@@ -14,3 +14,23 @@
 typedef _Return_type_success_(return >= 0) LONG NTSTATUS;
 typedef NTSTATUS *PNTSTATUS;
 #include "ntos.h"
+
+#ifdef DELETE
+#   undef DELETE
+#endif
+
+#ifdef near
+#   undef near
+#endif
+
+#ifdef far
+#   undef far
+#endif
+
+#ifdef FAR
+#   undef FAR
+#endif
+
+#ifdef NEAR
+#   undef NEAR
+#endif

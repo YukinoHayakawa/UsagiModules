@@ -15,15 +15,18 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="ntos.h">
+    <ClInclude Include="Constant.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Win32.hpp">
+    <ClInclude Include="Bezier.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Matrix.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="VirtualMemory.cpp">
+    <ClCompile Include="Lib.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

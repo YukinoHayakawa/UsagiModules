@@ -10,10 +10,18 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Bezier.hpp" />
+    <ClInclude Include="Constant.hpp" />
+    <ClInclude Include="Matrix.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Lib.cpp" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
-    <ProjectGuid>{cd325def-b361-4cc5-87ac-bf51588dbf2d}</ProjectGuid>
-    <RootNamespace>WinCommon</RootNamespace>
+    <ProjectGuid>{d4e79012-d153-40c0-b62d-fc9b31495442}</ProjectGuid>
+    <RootNamespace>Math</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -90,18 +98,6 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClInclude Include="ntos.h" />
-    <ClInclude Include="Win32.hpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="VirtualMemory.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\..\..\..\Library\Usagi\Usagi.vcxproj">
-      <Project>{f9061c06-bce6-416b-9aeb-31351810b7ba}</Project>
-    </ProjectReference>
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

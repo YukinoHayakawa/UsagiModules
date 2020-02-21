@@ -12,8 +12,8 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
-    <ProjectGuid>{cd325def-b361-4cc5-87ac-bf51588dbf2d}</ProjectGuid>
-    <RootNamespace>WinCommon</RootNamespace>
+    <ProjectGuid>{61c2c8d3-d6d1-4bea-b122-43142579ba35}</ProjectGuid>
+    <RootNamespace>Time</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -91,16 +91,10 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="ntos.h" />
-    <ClInclude Include="Win32.hpp" />
+    <ClCompile Include="Clock.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="VirtualMemory.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\..\..\..\Library\Usagi\Usagi.vcxproj">
-      <Project>{f9061c06-bce6-416b-9aeb-31351810b7ba}</Project>
-    </ProjectReference>
+    <ClInclude Include="Clock.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
