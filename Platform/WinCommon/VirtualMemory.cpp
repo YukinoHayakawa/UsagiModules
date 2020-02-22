@@ -9,7 +9,7 @@
 
 namespace usagi::platform::kernel
 {
-namespace virtual_memory
+namespace memory
 {
 std::size_t page_size()
 {
