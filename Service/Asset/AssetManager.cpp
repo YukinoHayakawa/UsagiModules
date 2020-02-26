@@ -25,7 +25,7 @@ std::optional<std::shared_ptr<MemoryRegion>> AssetManager::request_raw_asset(
     key.source = source;
     key.name = locator;
 
-    LockGuard lock(mCacheLock);
+    LockGuard lock(mCacheMutex);
 
     // Find asset in cache
     auto cache_iter = mAssetCache.find(key);
@@ -53,10 +53,10 @@ std::optional<std::shared_ptr<MemoryRegion>> AssetManager::request_raw_asset(
 
             // source and entry shall not be removed before the load job
             // is done
+            entry->status = AssetStatus::LOADING;
             entry->load_future = std::async(std::launch::async, [
                 source, entry = entry.get(), name = std::u8string(key.name)
             ]() {
-                entry->status = AssetStatus::LOADING;
                 // source->load() must be thread-safe
                 *entry->blob = source->load(name);
                 // after the loading job is done, mark it as present
@@ -64,10 +64,14 @@ std::optional<std::shared_ptr<MemoryRegion>> AssetManager::request_raw_asset(
             });
 
             if(no_entry)
+            {
                 // Insert cache entry
-                cache_iter = mAssetCache.try_emplace(
+                const auto insert = mAssetCache.try_emplace(
                     AssetKey(key), std::move(entry)
-                ).first;
+                );
+                cache_iter = insert.first;
+                assert(insert.second);
+            }
             else // unloaded
                 cache_iter->second = std::move(entry);
         }
@@ -77,13 +81,22 @@ std::optional<std::shared_ptr<MemoryRegion>> AssetManager::request_raw_asset(
         // Wait for the job to complete if it is a blocking read.
         if(options & ASSET_BLOCKING_LOAD)
         {
+            auto *entry_ptr = cache_iter->second.get();
+
+            // Increment reference
+            auto blob = entry_ptr->blob;
+
+            // Don't block on blocking load
+            lock.unlock();
+
             // It doesn't make sense to request a blocking load
             // while using fallback asset.
             assert((options & ASSET_FALLBACK_IF_MISSING) == 0);
 
-            cache_iter->second->load_future.wait();
+            entry_ptr->load_future.wait();
+            assert(entry_ptr->status == AssetStatus::PRESENT);
 
-            return cache_iter->second->blob;
+            return blob;
         }
 
         // Otherwise the asset is unavailable during loading

@@ -121,7 +121,7 @@ class AssetManager
     std::mutex mSourceMutex;
     std::vector<std::unique_ptr<AssetSource>> mSources;
 
-    SpinLock mCacheLock;
+    std::mutex mCacheMutex;
     // todo manage dynamic memory
     std::map<
         AssetKey,
