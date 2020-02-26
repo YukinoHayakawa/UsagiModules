@@ -34,3 +34,43 @@ typedef NTSTATUS *PNTSTATUS;
 #ifdef NEAR
 #   undef NEAR
 #endif
+
+#include <stdexcept>
+
+namespace usagi
+{
+struct NtException : std::runtime_error
+{
+    const std::u8string_view function;
+    const NTSTATUS status;
+
+    NtException(std::u8string_view function, const NTSTATUS status)
+        : runtime_error("Nt function call failed.")
+        , function(std::move(function))
+        , status(status)
+    {
+    }
+};
+
+struct Win32Exception : std::runtime_error
+{
+    const std::u8string_view function;
+    const DWORD error_code;
+
+    explicit Win32Exception(std::u8string_view function)
+        : runtime_error("Win32 function call failed.")
+        , function(std::move(function))
+        , error_code(GetLastError())
+    {
+    }
+};
+}
+
+#define NT_CHECK_THROW(function) \
+    if(!NT_SUCCESS(status)) \
+        USAGI_THROW(NtException(u8##function, status)) \
+/**/
+
+#define WIN32_THROW(function) \
+    USAGI_THROW(Win32Exception(u8##function)) \
+/**/
