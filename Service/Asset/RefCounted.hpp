@@ -27,6 +27,8 @@ protected:
 
     void share_from(const RefCounted &other)
     {
+        decrement();
+
         // The current object shares the ownership with another instance.
         // The caller must ensure that the lifetime other instance exceeds
         // the execution of this constructor.
@@ -40,6 +42,8 @@ protected:
 
     void move_from(RefCounted &&other)
     {
+        decrement();
+
         // As the copy constructor, the other instance must not die before
         // this function finishes.
 
@@ -55,7 +59,8 @@ protected:
         // if multiple RefCounted instances try to do that at the same time,
         // one instance will receive 0 and release the resource.
         const auto ref = RcTraits::decrement_reference(mValue);
-        if(ref == 0) RcTraits::free(mValue);
+        if(ref == 0)
+            RcTraits::free(mValue);
     }
 
 public:
@@ -67,7 +72,7 @@ public:
     {
         mValue = value;
         // May share the ownership with other instances
-        const auto ref = RcTraits::increment_reference(value);
+        RcTraits::increment_reference(value);
 
         // Before this constructor finishes, no other instances shall
         // be created by sharing the resource of this instance.
@@ -97,7 +102,6 @@ public:
         if(this == &other)
             return *this;
 
-        decrement();
         share_from(std::forward<decltype(other)>(other));
 
         return *this;
@@ -108,7 +112,6 @@ public:
         if(this == &other)
             return *this;
 
-        decrement();
         move_from(std::forward<decltype(other)>(other));
 
         return *this;
