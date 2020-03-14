@@ -18,27 +18,27 @@ namespace usagi
 {
 class AssetManager
 {
-    struct AssetCacheEntryComparator
+    struct CacheHandleComparator
     {
         bool operator()(
-            const std::shared_ptr<AssetCacheEntry> &lhs,
-            const std::shared_ptr<AssetCacheEntry> &rhs) const
+            const AssetCacheEntry &lhs,
+            const AssetCacheEntry &rhs) const
         {
-            return *lhs < *rhs;
+            return lhs.mHandle < rhs.mHandle;
         }
 
         bool operator()(
-            const std::shared_ptr<AssetCacheEntry> &lhs,
-            const AssetHandle rhs) const
+            const AssetHandle &lhs,
+            const AssetCacheEntry &rhs) const
         {
-            return lhs->handle() < rhs;
+            return lhs < rhs.mHandle;
         }
 
         bool operator()(
-            const AssetHandle lhs,
-            const std::shared_ptr<AssetCacheEntry> &rhs) const
+            const AssetCacheEntry &lhs,
+            const AssetHandle &rhs) const
         {
-            return lhs < rhs->handle();
+            return lhs.mHandle < rhs;
         }
 
         using is_transparent = void;
@@ -48,10 +48,7 @@ class AssetManager
     // is accessed, its reference counter is immediately incremented to
     // prevent it from being released.
     std::recursive_mutex mCacheMutex;
-    std::set<
-        std::shared_ptr<AssetCacheEntry>,
-        AssetCacheEntryComparator
-    > mAssetCache;
+    std::set<AssetCacheEntry, CacheHandleComparator> mAssetCache;
 
     std::mutex mSourceMutex;
     std::vector<std::unique_ptr<AssetSource>> mSources;
@@ -72,8 +69,10 @@ class AssetManager
             return { };
 
         // Wrap the cache entry in a reference counter so it cannot be freed
-        // by other threads
-        return { iter->get() };
+        // by other threads.
+        // We are sure that the asset handle won't be modified through the ref
+        // counter wrapper so the invariant of the search tree is safe.
+        return { &const_cast<AssetCacheEntry&>(*iter) };
     }
 
 public:
@@ -156,13 +155,13 @@ public:
         // If this is the first request to the asset, create an entry
         if(!entry)
         {
-            auto new_entry = std::make_unique<AssetCacheEntry>();
-            new_entry->mTypeId = TYPE_ID<AssetType>;
             // todo what if subsequent requests change this priority?
-            new_entry->mPriority = priority;
-            new_entry->mHandle = handle;
-            entry = new_entry.get();
-            const auto i = mAssetCache.emplace(std::move(new_entry));
+            const auto i = mAssetCache.emplace(
+                TYPE_ID<AssetType>,
+                handle,
+                priority
+            );
+            entry = &const_cast<AssetCacheEntry&>(*i.first);
             assert(i.second);
         }
 

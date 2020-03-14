@@ -37,7 +37,10 @@ class AssetCacheEntry
     // 8 bytes
     void *mTypeId;
 
-    std::uint32_t mHandle = 0;
+    // CRC32 hash of the asset info. Used as a search key for the cache.
+    //
+    // 4 bytes
+    const std::uint32_t mHandle = 0;
 
     // Counts the active references to this asset. Meant for preventing
     // the cache from being purged while in use. DOES NOT meant to be a
@@ -45,7 +48,6 @@ class AssetCacheEntry
     // MUST immediately release the reference after the usage of assets,
     // even it is going to used soon in the next frame. When it is the case,
     // make another request to the asset.
-    // todo impl usage
     //
     // 4 bytes
     std::atomic<std::uint32_t> mReferenceCounter = 0;
@@ -71,11 +73,16 @@ class AssetCacheEntry
     AssetPriority mPriority = AssetPriority::NORMAL;
 
 public:
-    friend bool operator<(
-        const AssetCacheEntry &lhs,
-        const AssetCacheEntry &rhs)
+    AssetCacheEntry() = default;
+
+    AssetCacheEntry(
+        void *type_id,
+        const std::uint32_t handle,
+        const AssetPriority priority)
+        : mTypeId(type_id)
+        , mHandle(handle)
+        , mPriority(priority)
     {
-        return lhs.mHandle < rhs.mHandle;
     }
 
     template <typename AssetType>
