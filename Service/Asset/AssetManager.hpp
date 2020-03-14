@@ -1,138 +1,92 @@
 ﻿#pragma once
 
 #include <memory>
-#include <optional>
-#include <string>
-#include <map>
-#include <future>
+#include <set>
+#include <mutex>
+#include <vector>
 
-#include <Usagi/Library/Memory/SpinLock.hpp>
 #include <Usagi/Library/Memory/LockGuard.hpp>
 
+#include "Asset.hpp"
 #include "AssetSource.hpp"
+#include "TypeId.hpp"
+#include "AssetCacheEntry.hpp"
+#include "Crc32.hpp"
+#include "Builder/AssetBuilderRawBuffer.hpp"
 
 namespace usagi
 {
-enum class AssetPriority
-{
-    CRITICAL_GAMEPLAY,
-    NORMAL,
-    LOW_DECORATIVE,
-};
-
-enum AssetRequestOption
-{
-    ASSET_FALLBACK_IF_MISSING   = 1 << 1,
-    ASSET_LOAD_IF_MISSING       = 1 << 2,
-    ASSET_BLOCKING_LOAD         = 1 << 3,
-};
-
-struct AssetNotFound final : std::runtime_error
-{
-    const std::u8string locator;
-
-    explicit AssetNotFound(std::u8string locator)
-        : runtime_error("Requested asset was not found in any asset source.")
-        , locator(std::move(locator))
-    {
-    }
-};
-
 class AssetManager
 {
-    enum class AssetStatus
+    struct AssetCacheEntryComparator
     {
-        UNLOADED,
-        LOADING,
-        PRESENT,
-    };
-
-    struct AssetSearchKey
-    {
-        AssetSource *source = nullptr;
-        std::u8string_view name;
-    };
-
-    struct AssetKey
-    {
-        AssetSource *source = nullptr;
-        std::u8string name;
-
-        explicit AssetKey(const AssetSearchKey search_key)
-            : source(search_key.source)
-            , name(search_key.name)
+        bool operator()(
+            const std::shared_ptr<AssetCacheEntry> &lhs,
+            const std::shared_ptr<AssetCacheEntry> &rhs) const
         {
+            return *lhs < *rhs;
         }
-    };
 
-    struct AssetKeyComparator
-    {
-        // allow searching with AssetSearchKey
-        // https://www.fluentcpp.com/2017/06/09/search-set-another-type-key/
+        bool operator()(
+            const std::shared_ptr<AssetCacheEntry> &lhs,
+            const AssetHandle rhs) const
+        {
+            return lhs->handle() < rhs;
+        }
+
+        bool operator()(
+            const AssetHandle lhs,
+            const std::shared_ptr<AssetCacheEntry> &rhs) const
+        {
+            return lhs < rhs->handle();
+        }
+
         using is_transparent = void;
-
-        constexpr bool operator()(
-            const AssetKey &lhs,
-            const AssetKey &rhs) const
-        {
-            if(lhs.source < rhs.source)
-                return true;
-            if(rhs.source < lhs.source)
-                return false;
-            return lhs.name < rhs.name;
-        }
-
-        constexpr bool operator()(
-            const AssetKey &lhs,
-            const AssetSearchKey &rhs) const
-        {
-            if(lhs.source < rhs.source)
-                return true;
-            if(rhs.source < lhs.source)
-                return false;
-            return lhs.name < rhs.name;
-        }
-
-        constexpr bool operator()(
-            const AssetSearchKey &lhs,
-            const AssetKey &rhs) const
-        {
-            if(lhs.source < rhs.source)
-                return true;
-            if(rhs.source < lhs.source)
-                return false;
-            return lhs.name < rhs.name;
-        }
     };
 
-    struct AssetCacheEntry
-    {
-        // Cache status
-        AssetStatus status = AssetStatus::UNLOADED;
-        std::future<void> load_future;
-        std::shared_ptr<MemoryRegion> blob = std::make_unique<MemoryRegion>();
-
-        // Decide which asset to evict
-        // todo: impl LRU eviction policy
-        AssetPriority priority = AssetPriority::NORMAL;
-        std::size_t last_access = 0;
-    };
+    // This mutex only locks the access to the cache map. Once an entry
+    // is accessed, its reference counter is immediately incremented to
+    // prevent it from being released.
+    std::recursive_mutex mCacheMutex;
+    std::set<
+        std::shared_ptr<AssetCacheEntry>,
+        AssetCacheEntryComparator
+    > mAssetCache;
 
     std::mutex mSourceMutex;
     std::vector<std::unique_ptr<AssetSource>> mSources;
 
-    std::mutex mCacheMutex;
-    // todo manage dynamic memory
-    std::map<
-        AssetKey,
-        std::unique_ptr<AssetCacheEntry>,
-        AssetKeyComparator
-    > mAssetCache;
     std::uint64_t mFrameCounter = 0;
 
-    AssetSource * find_source(const std::u8string_view locator)
+    using RefCountedCacheEntry = RefCounted<
+        AssetCacheEntry,
+        AssetCacheEntry::RefCountTraits
+    >;
+
+    RefCountedCacheEntry try_find_entry(const AssetHandle handle)
     {
-        LockGuard lock(mSourceMutex);
+        std::lock_guard lock(mCacheMutex);
+
+        const auto iter = mAssetCache.find(handle);
+        if(iter == mAssetCache.end())
+            return { };
+
+        // Wrap the cache entry in a reference counter so it cannot be freed
+        // by other threads
+        return { iter->get() };
+    }
+
+public:
+    void add_source(std::unique_ptr<AssetSource> source)
+    {
+        std::lock_guard lock(mSourceMutex);
+
+        mSources.emplace_back(std::move(source));
+    }
+
+    AssetSource * try_find_source(const std::u8string_view locator)
+    {
+        std::lock_guard lock(mSourceMutex);
 
         for(std::size_t i = 0; i < mSources.size(); ++i)
         {
@@ -142,18 +96,94 @@ class AssetManager
         return nullptr;
     }
 
-public:
-    void add_source(std::unique_ptr<AssetSource> source)
-    {
-        LockGuard lock(mSourceMutex);
+    // The request to asset returns a reference-counted promise-like object
+    // referring to the cache entry. This object internally refers to the
+    // cache entry inside the cache map. When the status of the asset is loaded,
+    // the object can be used to cast the raw pointer to the actual object
+    // stored in the cache. If the asset is loading, the object could be used to
+    // wait on the finish of the loading. If the asset is unloaded and no
+    // loading action is demanded, an empty handle will be returned.
 
-        mSources.emplace_back(std::move(source));
+    RefCountedCacheEntry request_cached_asset(const AssetHandle handle)
+    {
+        if(auto entry = try_find_entry(handle))
+        {
+            if(entry->mStatus != AssetStatus::UNINITIALIZED)
+                return entry;
+        }
+
+        // If there is no cache entry or the asset has been unloaded,
+        // a builder must be provided via request_asset() in order to rebuild
+        // the asset
+        return { };
     }
 
-    std::optional<std::shared_ptr<MemoryRegion>> request_raw_asset(
-        std::u8string_view locator,
-        AssetPriority priority,
-        AssetRequestOption options);
+    template <
+        typename Builder = AssetBuilderRawBuffer,
+        typename... BuilderArgs
+    >
+    RefCountedCacheEntry request_asset(
+        const AssetPriority priority,
+        const bool load_if_unloaded,
+        BuilderArgs &&... args) requires(AssetBuilder<Builder>)
+    {
+        using AssetType = typename Builder::OutputT;
+
+        Builder builder { this, std::forward<BuilderArgs>(args)... };
+
+        // Hash the asset info to create the handle
+        std::uint32_t handle = builder.hash();
+        handle = crc32c(handle, TYPE_ID<Builder>);
+
+        // ================== CRITICAL SECTION BEGIN ==================
+
+        LockGuard lock(mCacheMutex);
+
+        // Increment the reference
+        auto entry = try_find_entry(handle);
+
+        // The entry is in the cache but may be unloaded
+        if(entry && entry->mStatus != AssetStatus::UNINITIALIZED)
+        {
+            return entry;
+        }
+
+        if(!load_if_unloaded) return { };
+
+        // If the cache entry is not present and loading the asset is demanded,
+        // proceed to loading the asset
+
+        // If this is the first request to the asset, create an entry
+        if(!entry)
+        {
+            auto new_entry = std::make_unique<AssetCacheEntry>();
+            new_entry->mTypeId = TYPE_ID<AssetType>;
+            // todo what if subsequent requests change this priority?
+            new_entry->mPriority = priority;
+            new_entry->mHandle = handle;
+            entry = new_entry.get();
+            const auto i = mAssetCache.emplace(std::move(new_entry));
+            assert(i.second);
+        }
+
+        assert(entry->mStatus == AssetStatus::UNINITIALIZED);
+
+        // Prevent creation of new loading jobs
+        entry->mStatus = AssetStatus::LOADING;
+
+        lock.unlock();
+
+        // ================== CRITICAL SECTION END ==================
+
+        entry->mLoadFuture = std::async(std::launch::async, [
+            this, entry, builder = std::move(builder)
+        ]() mutable {
+            entry->mBlob = builder.build();
+            entry->mStatus = AssetStatus::LOADED;
+        });
+
+        return entry;
+    }
 
     // Increment the counter used to record last access time by one.
     void tick_frame()

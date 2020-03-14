@@ -63,13 +63,24 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="AssetManager.cpp" />
+    <ClCompile Include="Builder\AssetBuilderRawBuffer.cpp" />
     <ClCompile Include="AssetSourceFilesystemDirectory.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Asset.hpp" />
+    <ClInclude Include="AssetCacheEntry.hpp" />
     <ClInclude Include="AssetManager.hpp" />
+    <ClInclude Include="Builder\AssetBuilderRawBuffer.hpp" />
     <ClInclude Include="AssetSource.hpp" />
     <ClInclude Include="AssetSourceFilesystemDirectory.hpp" />
+    <ClInclude Include="Crc32.hpp" />
+    <ClInclude Include="RefCounted.hpp" />
+    <ClInclude Include="TypeId.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\..\Library\Usagi\Usagi.vcxproj">
+      <Project>{f9061c06-bce6-416b-9aeb-31351810b7ba}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

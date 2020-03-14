@@ -15,10 +15,10 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="AssetManager.cpp">
+    <ClCompile Include="AssetSourceFilesystemDirectory.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="AssetSourceFilesystemDirectory.cpp">
+    <ClCompile Include="Builder\AssetBuilderRawBuffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -26,10 +26,28 @@
     <ClInclude Include="AssetSource.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="AssetSourceFilesystemDirectory.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Builder\AssetBuilderRawBuffer.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="TypeId.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Crc32.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="AssetManager.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="AssetSourceFilesystemDirectory.hpp">
+    <ClInclude Include="Asset.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="AssetCacheEntry.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="RefCounted.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
