@@ -174,11 +174,18 @@ public:
 
         // ================== CRITICAL SECTION END ==================
 
+        // The lifetime of the lambda passed to async() might be the same
+        // as the returned future object. The loader job should hold a
+        // reference to the asset but should release it after finishing the
+        // task. Therefore the ref count handle is moved into the scope of
+        // the function so it get released when the function finished.
+        // https://stackoverflow.com/questions/49505280/what-is-the-lifetime-of-the-arguments-of-stdasync/51358564
         entry->mLoadFuture = std::async(std::launch::async, [
             this, entry, builder = std::move(builder)
         ]() mutable {
-            entry->mBlob = builder.build();
-            entry->mStatus = AssetStatus::LOADED;
+            auto ref = std::move(entry);
+            ref->mBlob = builder.build();
+            ref->mStatus = AssetStatus::LOADED;
         });
 
         return entry;
