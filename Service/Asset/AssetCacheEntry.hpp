@@ -118,6 +118,11 @@ public:
         return mHandle;
     }
 
+    std::uint32_t use_count() const
+    {
+        return mReferenceCounter.load();
+    }
+
     struct RefCountTraits
     {
         static std::uint32_t increment_reference(AssetCacheEntry *entry)
