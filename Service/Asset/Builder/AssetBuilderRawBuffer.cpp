@@ -25,6 +25,7 @@ AssetHandle AssetBuilderRawBuffer::hash() const
     AssetHandle crc = 0;
 
     crc = crc32c(crc, mPackage);
+    // todo: use canonical path
     crc = crc32c(crc, mAssetLocator.data(), mAssetLocator.size());
 
     return crc;
@@ -34,5 +35,11 @@ MemoryRegion AssetBuilderRawBuffer::build()
 {
     const auto blob = mPackage->load(mAssetLocator);
     return blob;
+}
+
+void AssetBuilderRawBuffer::free(const MemoryRegion &mem)
+{
+    // todo impl
+    throw std::runtime_error("unimplemented");
 }
 }

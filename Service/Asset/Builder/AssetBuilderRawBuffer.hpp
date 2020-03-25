@@ -21,6 +21,7 @@ public:
 
     AssetHandle hash() const;
     MemoryRegion build();
+    static void free(const MemoryRegion &mem);
 };
 static_assert(AssetBuilder<AssetBuilderRawBuffer>);
 }

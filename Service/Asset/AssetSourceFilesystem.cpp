@@ -1,17 +1,17 @@
-﻿#include "AssetSourceFilesystemDirectory.hpp"
+﻿#include "AssetSourceFilesystem.hpp"
 
 #include <Usagi/Runtime/ErrorHandling.hpp>
 #include <Usagi/Library/Memory/LockGuard.hpp>
 
 namespace usagi
 {
-AssetSourceFilesystemDirectory::AssetSourceFilesystemDirectory(
+AssetSourceFilesystem::AssetSourceFilesystem(
     const std::filesystem::path &base_path)
     : mBasePath(canonical(base_path))
 {
 }
 
-bool AssetSourceFilesystemDirectory::has_asset(
+bool AssetSourceFilesystem::has_asset(
     const std::u8string_view name) const
 {
     const auto file_path = mBasePath / name;
@@ -19,7 +19,7 @@ bool AssetSourceFilesystemDirectory::has_asset(
     return exists(file_path);
 }
 
-MemoryRegion AssetSourceFilesystemDirectory::load(const std::u8string_view name)
+MemoryRegion AssetSourceFilesystem::load(const std::u8string_view name)
 {
     std::filesystem::path relative_path = mBasePath / name;
     relative_path = relative_path.lexically_relative(mBasePath);
@@ -62,7 +62,7 @@ MemoryRegion AssetSourceFilesystemDirectory::load(const std::u8string_view name)
     };
 }
 
-void AssetSourceFilesystemDirectory::unload(const std::u8string_view name)
+void AssetSourceFilesystem::unload(const std::u8string_view name)
 {
     std::filesystem::path relative_path = mBasePath / name;
     relative_path = relative_path.lexically_relative(mBasePath);

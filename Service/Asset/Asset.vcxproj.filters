@@ -15,18 +15,15 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="AssetSourceFilesystemDirectory.cpp">
+    <ClCompile Include="Builder\AssetBuilderRawBuffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Builder\AssetBuilderRawBuffer.cpp">
+    <ClCompile Include="AssetSourceFilesystem.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AssetSource.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="AssetSourceFilesystemDirectory.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Builder\AssetBuilderRawBuffer.hpp">
@@ -48,6 +45,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="RefCounted.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="AssetSourceFilesystem.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

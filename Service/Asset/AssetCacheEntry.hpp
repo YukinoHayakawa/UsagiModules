@@ -15,6 +15,8 @@ namespace usagi
 class AssetCacheEntry
 {
     friend class AssetManager;
+
+    // todo impl job manager and remove the usage of futures because they might hold the lambda object passed to async()
     std::future<void> mLoadFuture;
 
     // // Indicates the type of memory allocator. <--- use custom delete function?
@@ -86,20 +88,17 @@ public:
     }
 
     template <typename AssetType>
-    AssetType * cast()
+    AssetType & cast()
     {
         // constexpr auto a = sizeof(AssetCacheEntry);
         // todo this could be an assertion
         if(mTypeId != TYPE_ID<AssetType>)
             throw std::runtime_error("invalid asset type cast");
         assert(mStatus == AssetStatus::LOADED);
-        return static_cast<AssetType *>(mBlob.base_address);
+        return *static_cast<AssetType *>(mBlob.base_address);
     }
 
-    MemoryRegion blob() const
-    {
-        return mBlob;
-    }
+    MemoryRegion blob() const { return mBlob; }
 
     bool ready() const
     {
@@ -108,20 +107,9 @@ public:
         return mStatus == AssetStatus::LOADED;
     }
 
-    void wait() const
-    {
-        mLoadFuture.wait();
-    }
-
-    std::uint32_t handle() const
-    {
-        return mHandle;
-    }
-
-    std::uint32_t use_count() const
-    {
-        return mReferenceCounter.load();
-    }
+    void wait() const { mLoadFuture.wait(); }
+    std::uint32_t handle() const { return mHandle; }
+    std::uint32_t use_count() const { return mReferenceCounter.load(); }
 
     struct RefCountTraits
     {

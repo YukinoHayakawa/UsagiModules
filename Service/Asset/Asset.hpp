@@ -39,6 +39,7 @@ concept AssetBuilder = requires (T t) {
     // chunks so the video could be partially loaded.
     { t.hash() } -> AssetHandle;
     { t.build() } -> MemoryRegion;
+    { T::free(std::declval<const MemoryRegion &>()) };
 };
 
 enum class AssetStatus : std::uint8_t

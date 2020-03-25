@@ -11,7 +11,7 @@
 
 namespace usagi
 {
-class AssetSourceFilesystemDirectory final : public AssetSource
+class AssetSourceFilesystem final : public AssetSource
 {
     std::filesystem::path mBasePath;
 
@@ -23,7 +23,7 @@ class AssetSourceFilesystemDirectory final : public AssetSource
     std::mutex mLock;
 
 public:
-    explicit AssetSourceFilesystemDirectory(
+    explicit AssetSourceFilesystem(
         const std::filesystem::path &base_path);
 
     bool has_asset(std::u8string_view name) const override;
