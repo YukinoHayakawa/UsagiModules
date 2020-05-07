@@ -41,10 +41,30 @@ struct AdjacencyMatrixGraph
         matrix[from][to] = 1;
     }
 
+    constexpr void remove_edge(const int from, const int to)
+    {
+        matrix[from][to] = 0;
+    }
+
+    constexpr bool operator==(const AdjacencyMatrixGraph &rhs) const
+    {
+        for(auto i = 0; i < Size; ++i)
+            for(auto j = 0; j < Size; ++j)
+                if(matrix[i][j] != rhs.matrix[i][j])
+                    return false;
+
+        return true;
+    }
+
+    constexpr bool operator!=(const AdjacencyMatrixGraph &rhs) const
+    {
+        return !(*this == rhs);
+    }
+
     using Flag = std::array<bool, Size>;
 
     // Ref: https://www.geeksforgeeks.org/detect-cycle-in-a-graph/
-    constexpr bool is_cyclic_helper(int v, Flag &visited, Flag &visiting)
+    constexpr bool is_cyclic_helper(int v, Flag &visited, Flag &visiting) const
     {
         if(!visited[v])
         {
@@ -65,8 +85,9 @@ struct AdjacencyMatrixGraph
                     if(is_cyclic_helper(i, visited, visiting))
                         return true;
                 }
-                    // getting back to one of the ancestor -> a cycle was found
-                else if(visiting[i]) { return true; }
+                // getting back to one of the ancestor -> a cycle was found
+                else if(visiting[i])
+                    return true;
             }
 
             visiting[v] = false;
@@ -74,7 +95,7 @@ struct AdjacencyMatrixGraph
         return false;
     }
 
-    constexpr bool is_cyclic()
+    constexpr bool is_cyclic() const
     {
         std::array<bool, Size> visited { };
         std::array<bool, Size> visiting { };
@@ -85,6 +106,40 @@ struct AdjacencyMatrixGraph
                 return true;
         }
         return false;
+    }
+
+    constexpr void transitive_reduce_helper(const int v, const int child)
+    {
+        // visit indirect descendents of v through child
+        for(auto i = 0; i < Size; ++i)
+        {
+            if(matrix[child][i] == false)
+                continue;
+
+            // otherwise, there is an indirect path from v to i, remove the
+            // direct path from v to i.
+            remove_edge(v, i);
+
+            transitive_reduce_helper(v, i);
+        }
+    }
+
+    // Ref: https://cs.stackexchange.com/a/29133
+    constexpr void transitive_reduce()
+    {
+        // perform DFS on all vertices, assuming the graph is a DAG
+        for(auto v = 0; v < Size; ++v)
+        {
+            // visit children of v
+            for(auto i = 0; i < Size; ++i)
+            {
+                // not child of v
+                if(matrix[v][i] == false)
+                    continue;
+
+                transitive_reduce_helper(v, i);
+            }
+        }
     }
 };
 
