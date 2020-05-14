@@ -2,8 +2,11 @@
 
 #include <tuple>
 #include <array>
+#include <type_traits>
 
 #include <Usagi/Game/System.hpp>
+#include <Usagi/Game/Entity/Component.hpp>
+#include <Usagi/Game/detail/ComponentAccessSystemAttribute.hpp>
 
 namespace usagi
 {
@@ -32,6 +35,8 @@ struct AdjacencyMatrixGraph
 {
     bool matrix[Size][Size] { };
 
+    ComponentAccess system_traits[Size] { };
+
     constexpr AdjacencyMatrixGraph()
     {
     }
@@ -46,12 +51,21 @@ struct AdjacencyMatrixGraph
         matrix[from][to] = 0;
     }
 
+    constexpr bool has_edge(const int from, const int to) const
+    {
+       return matrix[from][to] != 0;
+    }
+
     constexpr bool operator==(const AdjacencyMatrixGraph &rhs) const
     {
         for(auto i = 0; i < Size; ++i)
             for(auto j = 0; j < Size; ++j)
                 if(matrix[i][j] != rhs.matrix[i][j])
                     return false;
+
+        for(auto i = 0; i < Size; ++i)
+            if(system_traits[i] != rhs.system_traits[i])
+                return false;
 
         return true;
     }
@@ -143,15 +157,101 @@ struct AdjacencyMatrixGraph
     }
 };
 
-template <System... Sys>
-using SystemList = std::tuple<Sys...>;
 
-template <System From, System To, typename SystemList>
-constexpr void precede(
-    AdjacencyMatrixGraph<std::tuple_size_v<SystemList>> &task_graph)
+// Credit of has_type:
+// https://stackoverflow.com/a/41171291/2150446
+
+template <typename T, typename Tuple>
+struct has_type;
+
+template <typename T, typename... Us>
+struct has_type<T, std::tuple<Us...>> : std::disjunction<std::is_same<T, Us>...>
 {
-    task_graph.add_edge(INDEX<From, SystemList>, INDEX<To, SystemList>);
-}
+};
+
+template <typename T, typename Tuple>
+constexpr bool has_type_v = has_type<T, Tuple>::value;
+
+static_assert(has_type_v<int, std::tuple<int>>);
+static_assert(!has_type_v<float, std::tuple<int>>);
+static_assert(has_type_v<float, std::tuple<int, float>>);
+
+
+
+template <System... Sys>
+class TaskGraph : AdjacencyMatrixGraph<sizeof...(Sys)>
+{
+public:
+    constexpr static std::size_t NUM_SYSTEMS = sizeof...(Sys);
+    using SystemList = std::tuple<Sys...>;
+    using Graph = AdjacencyMatrixGraph<NUM_SYSTEMS>;
+
+    template <System From, System To>
+    constexpr void precede()
+    {
+        static_assert(has_type_v<From, SystemList>);
+        static_assert(has_type_v<To, SystemList>);
+
+        this->add_edge(
+            INDEX<From, SystemList>,
+            INDEX<To, SystemList>
+        );
+    }
+
+    template <Component C>
+    constexpr Graph component_dependency_graph() const
+    {
+        Graph cdg;
+        // visit all possible vertices
+        cdg_helper_row<C>(cdg, std::make_index_sequence<NUM_SYSTEMS>());
+        return cdg;
+    }
+
+private:
+    template <Component C, std::size_t From, std::size_t To>
+    constexpr void cdg_helper_edge(Graph &cdg) const
+    {
+        using SystemFrom = std::tuple_element_t<From, SystemList>;
+        using SystemTo = std::tuple_element_t<To, SystemList>;
+
+        constexpr bool sys_from = SystemCanAccessComponent<SystemFrom, C>;
+        constexpr bool sys_to = SystemCanAccessComponent<SystemTo, C>;
+
+        // If both systems access the same component, the edge is preserved
+        if(sys_from && sys_to && this->has_edge(From, To))
+        {
+            cdg.add_edge(From, To);
+        }
+    }
+
+    template <Component C, std::size_t I, std::size_t... CIs>
+    constexpr void cdg_helper_children(
+        Graph &cdg,
+        std::index_sequence<CIs...>) const
+    {
+        // visit each child of I
+        (..., cdg_helper_edge<C, I, CIs>(cdg));
+    }
+
+    template <Component C, std::size_t I>
+    constexpr void cdg_helper_vertex(Graph &cdg) const
+    {
+        // visit children of system I
+        cdg.system_traits[I] = SystemHighestComponentAccess<
+            std::tuple_element_t<I, SystemList>,
+            C
+        >;
+        cdg_helper_children<C, I>(cdg, std::make_index_sequence<NUM_SYSTEMS>());
+    }
+
+    template <Component C, std::size_t... Is>
+    constexpr void cdg_helper_row(Graph &cdg, std::index_sequence<Is...>) const
+    {
+        // visit every system
+        (..., cdg_helper_vertex<C, Is>(cdg));
+    }
+};
+
 
 template <int Size>
 struct Stack
@@ -171,6 +271,4 @@ struct Stack
         return stack[pos];
     }
 };
-
-
 }
