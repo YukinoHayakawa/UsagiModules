@@ -52,7 +52,7 @@ static_assert(has_type_v<float, std::tuple<int, float>>);
 template <int Size>
 struct Stack
 {
-    std::array<int, Size> stack;
+    std::array<int, Size> stack { };
     std::size_t pos = 0;
 
     constexpr void push(const int value)
@@ -64,13 +64,18 @@ struct Stack
     {
         return stack[--pos];
     }
+
+    constexpr bool empty() const
+    {
+        return pos == 0;
+    }
 };
 
 
 template <int Size>
 struct Queue
 {
-    std::array<int, Size> queue;
+    std::array<int, Size> queue { };
     std::size_t begin = 0, end = 0;
 
     constexpr void push(const int value)
@@ -88,6 +93,11 @@ struct Queue
         return begin == end;
     }
 
+    constexpr int front() const
+    {
+        return queue[begin];
+    }
+
     constexpr int back() const
     {
         return queue[end - 1];
@@ -97,7 +107,10 @@ struct Queue
 enum class ErrorCode
 {
     SUCCEED,
+    LOGICAL_ERROR,
     CDG_MULTIPLE_WRITE_PATHS,
+    // A write system is not on the shortest path between begin and end
+    CDG_SHORTCUT_WRITE_SYSTEM,
 };
 
 using TaskGraphError = CompileTimeError<
@@ -117,11 +130,14 @@ struct AdjacencyMatrixGraph
     bool matrix[Size][Size] { };
     int in_degree[Size] { };
     int out_degree[Size] { };
+    int read_group[Size] { };
 
     ComponentAccess system_traits[Size] { };
 
     constexpr AdjacencyMatrixGraph()
     {
+        for(auto i = 0; i < Size; ++i)
+            read_group[i] = -1;
     }
 
     constexpr void add_edge(const int from, const int to)
@@ -191,7 +207,7 @@ struct AdjacencyMatrixGraph
                     if(is_cyclic_helper(i, visited, visiting))
                         return true;
                 }
-                // getting back to one of the ancestor -> a cycle was found
+                    // getting back to one of the ancestor -> a cycle was found
                 else if(visiting[i])
                     return true;
             }
@@ -247,6 +263,44 @@ struct AdjacencyMatrixGraph
             }
         }
     }
+
+    constexpr void topological_sort_helper(
+        const int v,
+        Stack<Size> &stack,
+        std::array<bool, Size> &visited) const
+    {
+        visited[v] = true;
+
+        // visit children of v
+        for(auto i = 0; i < Size; ++i)
+        {
+            // not child of v
+            if(matrix[v][i] == false)
+                continue;
+
+            if(!visited[i])
+                topological_sort_helper(i, stack, visited);
+        }
+
+        // ensure the current vertex precedes the children when popping
+        // from the stack
+        stack.push(v);
+    }
+
+    // Ref: https://www.geeksforgeeks.org/topological-sorting/
+    constexpr auto topological_sort() const
+    {
+        Stack<Size> stack;
+        std::array<bool, Size> visited { };
+
+        for(auto v = 0; v < Size; ++v)
+        {
+            if(!visited[v])
+                topological_sort_helper(v, stack, visited);
+        }
+
+        return stack;
+    }
 };
 
 template <int Size>
@@ -260,6 +314,7 @@ constexpr bool cdg_no_write_systems(const AdjacencyMatrixGraph<Size> &cdg)
     return true;
 }
 
+/*
 template <int Size>
 constexpr TaskGraphErrorCode cdg_validate_helper1(
     const AdjacencyMatrixGraph<Size> &cdg,
@@ -304,63 +359,124 @@ constexpr TaskGraphErrorCode cdg_validate_helper1(
 
     return TaskGraphErrorCode(ErrorCode::SUCCEED);
 }
+*/
 
 template <int Size>
 constexpr TaskGraphErrorCode cdg_validate(const AdjacencyMatrixGraph<Size> &cdg)
 {
     // The CDG is validated as per the descriptions in:
     // https://yuki.moe/blog/index.php/2020/03/30/concurrent-entity-access/
+    // Note that the CDG must be transitive reduced.
 
-    // 1. If all Systems are Read Systems, no execution dependency is needed
-    //   since all of them will see the same data.
+    // If all Systems are Read Systems, the dependencies among them are ignored.
 
     if(cdg_no_write_systems(cdg))
         return TaskGraphErrorCode(ErrorCode::SUCCEED);
 
-    // 2. If there exists at least one Write System:
-    //
-    //     - There must exist one and only one acyclic path that contains
-    //       all Write Systems, call this path the Critical Write Path (CWP)
-    //       for C.
+    // If there exists at least one Write System, the weight of the shortest
+    // path from Begin System to End System equals the number of Write Systems,
+    // assuming all Write Systems have a weight of 1 and all Read Systems have a
+    // weight of 0. In simple words, in all topological orders of the CDG, the
+    // Write System are ordered in the same way and a Read System always sits
+    // between the same pair of Write Systems (assuming the dummy Begin and End
+    // Systems are Write Systems, too), so it does not incur a race condition.
 
-    // Perform DFS on all vertices with in-degree of 0 in the DAG. Track
-    // the first path where a write system was found which forms the CWP.
-    Queue<Size> cwp;
-    auto backtracking = false;
-    for(auto i = 0; i < Size; ++i)
+    // Ref: https://www2.seas.gwu.edu/~simhaweb/alg/modules/module9/module9.html
+
+    // the last two are dummy begin & end systems
+    constexpr int Begin = Size;
+    constexpr int End = Size + 1;
+    std::array<unsigned, Size + 2> priority { };
+    for(auto i = 0; i < Size + 2; ++i) priority[i] = -1;
+    std::array<int, Size + 2> predecessor { };
+    for(auto i = 0; i < Size + 2; ++i) predecessor[i] = -1;
+
+    auto order = cdg.topological_sort();
+    Stack<Size> write_systems;
+
+    auto search = [&priority, &predecessor, &cdg, Begin, End](const int v)
     {
-        if(cdg.in_degree[i] == 0)
+        int w = 0;
+
+        auto update = [&priority, &predecessor, &w](const int v, const int u)
         {
-            const auto result = cdg_validate_helper1(
-                cdg, i, cwp, backtracking
-            );
-            if(!result) return result;
+            // found a better route to u via v
+            // because read systems have a weight of 0, we have to use >=
+            // rather than >.
+            if(priority[u] >= priority[v] + w)
+            {
+                priority[u] = priority[v] + w;
+                predecessor[u] = v;
+            }
+        };
+
+        // the dummy begin system precedes all systems with a 0 in-degree
+        if(v == Begin)
+        {
+            w = 0;
+            for(auto i = 0; i < Size; ++i)
+            {
+                // link begin system to all systems with 0 in-degree
+                if(cdg.in_degree[i] > 0 ||
+                    cdg.system_traits[i] == ComponentAccess::NONE)
+                    continue;
+                update(v, i);
+            }
         }
+        else
+        {
+            // this is expected to be either write or read, never none.
+            w = cdg.system_traits[v] == ComponentAccess::WRITE ? 1 : 0;
+            // we have met a endpoint system, link it with the end system
+            if(cdg.out_degree[v] == 0)
+            {
+                update(v, End);
+            }
+            else
+            {
+                // visit children of v
+                for(auto i = 0; i < Size; ++i)
+                {
+                    // not child of v.
+                    if(cdg.matrix[v][i] == false)
+                        continue;
+                    update(v, i);
+                }
+            }
+        }
+    };
+
+    search(Begin);
+    while(!order.empty())
+    {
+        const auto s = order.pop();
+        if(cdg.system_traits[s] == ComponentAccess::NONE)
+            continue;
+        // store write systems in reserve order
+        if(cdg.system_traits[s] == ComponentAccess::WRITE)
+            write_systems.push(s);
+        search(s);
     }
 
-    //     - A Read System must:
-    //
-    //         - directly depends on the Begin Task without any
-    //           Write System in the middle, or
-    //
-    //         - directly depends on a Write System, or
-    //
-    //         - directly depends on a Read System satisfying any of this or
-    //           the previous two requirements.
-    //
-    // - For any two adjacent Write System A and B in the traversal order of
-    //   the Critical Write Path skipping any Read Systems on the path, if B
-    //   indirectly depends on A, define all the Read Systems that directly
-    //   or indirectly depend on A but not B the Dependent Read Group (DRG)
-    //   of A. Then, for each System in this group, there must be at least
-    //   one path from B to A containing this System.
-
-    for(auto i = 0; i < Size; ++i)
+    auto cur = End;
+    while(cur != -1)
     {
-        if(cdg.system_traits[i] != ComponentAccess::READ)
-            continue;
-
-
+        const auto p = predecessor[cur];
+        if(p == Begin) break;
+        if(cdg.system_traits[p] == ComponentAccess::WRITE)
+        {
+            const auto w = write_systems.pop();
+            // an unmatch in the write system order. could be a write system
+            // got short-cut or there are multiple possible write paths.
+            if(w != p)
+            {
+                return TaskGraphErrorCode(
+                    ErrorCode::CDG_SHORTCUT_WRITE_SYSTEM,
+                    w
+                );
+            }
+        }
+        cur = p;
     }
 
     return TaskGraphErrorCode(ErrorCode::SUCCEED);
@@ -392,13 +508,12 @@ public:
         Graph cdg;
         // visit all possible vertices
         cdg_helper_row<C>(cdg, std::make_index_sequence<NUM_SYSTEMS>());
+        cdg.transitive_reduce();
         return cdg;
     }
 
-
     constexpr Graph reduced_task_graph() const
     {
-
     }
 
 private:
