@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <cstdint>
+#include <concepts>
 
 namespace usagi
 {
@@ -10,9 +11,9 @@ concept RefCountTraits = requires(Traits traits, T *t)
 {
     // Atomic operation. Returns the new ref count immediately after
     // the increment.
-    { Traits::increment_reference(t) } -> std::uint32_t;
+    { Traits::increment_reference(t) } -> std::same_as<std::uint32_t>;
     // Similar idea as above.
-    { Traits::decrement_reference(t) } -> std::uint32_t;
+    { Traits::decrement_reference(t) } -> std::same_as<std::uint32_t>;
     { Traits::free(t) };
 };
 

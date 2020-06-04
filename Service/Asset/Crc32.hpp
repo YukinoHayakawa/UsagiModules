@@ -33,6 +33,6 @@ inline std::uint32_t crc32c(
 template <typename T>
 std::uint32_t crc32c(const std::uint32_t init, T &&value)
 {
-    return crc32c(init, &value, sizeof T);
+    return crc32c(init, &value, sizeof(T));
 }
 }

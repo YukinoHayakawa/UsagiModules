@@ -1,7 +1,8 @@
 ﻿#pragma once
 
-#include <string>
 #include <stdexcept>
+#include <string>
+#include <concepts>
 
 #include <Usagi/Runtime/Memory/Region.hpp>
 
@@ -30,15 +31,15 @@ using AssetHandle = std::uint32_t;
 
 template <typename T>
 concept AssetBuilder = requires (T t) {
-    { T::OutputT };
+    typename T::OutputT;
     // Cache identifier is a number used together with the processor type
     // to index the processed asset caches. The identifier should reflect the
     // parameters of the processor. For example, for an image decoder, the
     // identifier should uniquely reflect the pixel formal, number of channels,
     // etc. For video decoder, it should be able to index the caches by video
     // chunks so the video could be partially loaded.
-    { t.hash() } -> AssetHandle;
-    { t.build() } -> MemoryRegion;
+    { t.hash() } -> std::same_as<AssetHandle>;
+    { t.build() } -> std::same_as<MemoryRegion>;
     { T::free(std::declval<const MemoryRegion &>()) };
 };
 
