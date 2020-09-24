@@ -11,18 +11,24 @@ void prefetch(void *ptr, const std::size_t size_bytes)
     entry.VirtualAddress = ptr;
     entry.NumberOfBytes = size_bytes;
 
-    PrefetchVirtualMemory(
+    if(!PrefetchVirtualMemory(
         NtCurrentProcess(),
         1,
         &entry,
         0
-    );
+    )) WIN32_THROW("PrefetchVirtualMemory");
 }
 
 MemoryRegion offer(void *ptr, std::size_t size_bytes)
 {
-    // OfferVirtualMemory(ptr, size_bytes, VmOfferPriorityVeryLow);
-    // todo impl
-    USAGI_THROW(int());
+    if(!OfferVirtualMemory(ptr, size_bytes, VmOfferPriorityVeryLow))
+        WIN32_THROW("OfferVirtualMemory");
+
+    MemoryRegion region;
+
+    region.base_address = ptr;
+    region.length = size_bytes;
+
+    return region;
 }
 }

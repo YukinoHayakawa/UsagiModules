@@ -59,36 +59,19 @@ std::size_t size(const NativeFileHandle file)
     return li.QuadPart;
 }
 
-std::size_t read_at(
-    NativeFileHandle file,
-    std::size_t offset,
-    void *buf,
-    std::size_t size)
-{
-    // todo impl
-    USAGI_THROW(int());
-}
-
-std::size_t write_at(
-    NativeFileHandle file,
-    std::size_t offset,
-    const void *buf,
-    std::size_t size)
-{
-    // todo impl
-    USAGI_THROW(int());
-}
-
-
 // https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntcreatesection
 // https://doxygen.reactos.org/de/d40/filemap_8c.html#ab537c934fd29d080f1a28c9d72e0ea4a
 // https://devblogs.microsoft.com/oldnewthing/20080227-00/?p=23303
 // https://docs.microsoft.com/en-us/windows/win32/memory/creating-named-shared-memory
+// bug: cannot create read-only mappings
 MemoryMapping map(
-    const NativeFileHandle file,
-    const MemoryMappingMode mode,
-    const std::size_t max_size)
+    NativeFileHandle file,
+    MemoryMappingMode mode,
+    std::uint64_t offset,
+    std::uint64_t length,
+    std::uint64_t initial_commit)
 {
+    // https://docs.microsoft.com/en-us/windows/win32/memory/memory-protection-constants
     DWORD protect = 0;
 
     if(mode & MAPPING_READ)
@@ -96,13 +79,14 @@ MemoryMapping map(
     if(mode & MAPPING_WRITE)
         protect = PAGE_READWRITE;
 
-    LARGE_INTEGER size;
-    size.QuadPart = max_size;
+    LARGE_INTEGER size, offset_;
+    size.QuadPart = length;
+    offset_.QuadPart = offset;
 
     const HANDLE section = CreateFileMappingW(
         file,
         nullptr,
-        protect,
+        protect | SEC_RESERVE,
         size.HighPart,
         size.LowPart,
         nullptr
@@ -112,16 +96,18 @@ MemoryMapping map(
         WIN32_THROW("CreateFileMappingW");
 
     void *view_base = nullptr;
-    SIZE_T view_size = 0;
+    SIZE_T view_size = length;
 
+    // https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwmapviewofsection
     const NTSTATUS status = NtMapViewOfSection(
         section,
         NtCurrentProcess(),
         &view_base,
-        0, 0, nullptr,
+        0, initial_commit,
+        &offset_,
         &view_size,
         ViewShare,
-        0,
+        MEM_RESERVE,
         protect
     );
 

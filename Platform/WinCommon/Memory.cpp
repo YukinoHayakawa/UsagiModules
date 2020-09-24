@@ -46,6 +46,7 @@ MemoryRegion allocate(const std::size_t size_bytes, const bool commit)
     return ret;
 }
 
+// https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntallocatevirtualmemory
 MemoryRegion commit(void *ptr, std::size_t size_bytes)
 {
     const auto status = NtAllocateVirtualMemory(
@@ -62,6 +63,7 @@ MemoryRegion commit(void *ptr, std::size_t size_bytes)
     return { ptr, size_bytes };
 }
 
+// https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntfreevirtualmemory
 MemoryRegion decommit(void *ptr, std::size_t size_bytes)
 {
     const auto status = NtFreeVirtualMemory(
