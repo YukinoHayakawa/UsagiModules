@@ -41,7 +41,8 @@ public:
 protected:
     using StorageT = typename DatabaseT::EntityPageStorageT;
 
-    constexpr static std::uint16_t MAGIC_CHECK = 0x4985;
+    // entity database
+    constexpr static std::uint16_t MAGIC_CHECK = 0xDB01;
 
     void init_entity_page_storage()
     {
