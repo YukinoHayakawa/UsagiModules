@@ -1,11 +1,10 @@
 ﻿#pragma once
 
 #include <map>
-#include <filesystem>
-#include <memory>
 #include <mutex>
+#include <string_view>
 
-#include <Usagi/Runtime/File/MemoryMappedFile.hpp>
+#include <Usagi/Runtime/File/MappedFileView.hpp>
 
 #include "AssetSource.hpp"
 
@@ -16,10 +15,7 @@ class AssetSourceFilesystem final : public AssetSource
     std::filesystem::path mBasePath;
 
     // <relative path, memory mapping>
-    std::map<
-        std::filesystem::path,
-        std::unique_ptr<MemoryMappedFile>
-    > mLoadedFiles;
+    std::map<std::filesystem::path, MappedFileView> mLoadedFiles;
     std::mutex mLock;
 
 public:

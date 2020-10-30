@@ -1,7 +1,8 @@
 ﻿#include "AssetSourceFilesystem.hpp"
 
-#include <Usagi/Runtime/ErrorHandling.hpp>
 #include <Usagi/Library/Memory/LockGuard.hpp>
+#include <Usagi/Runtime/ErrorHandling.hpp>
+#include <Usagi/Runtime/File/RegularFile.hpp>
 
 namespace usagi
 {
@@ -34,31 +35,22 @@ MemoryRegion AssetSourceFilesystem::load(const std::u8string_view name)
 
     if(iter == mLoadedFiles.end())
     {
-        RegularFile file {
-            (mBasePath / relative_path).u8string(),
-            platform::file::OPEN_READ,
-            { }
-        };
-
         iter = mLoadedFiles.try_emplace(
             std::move(relative_path),
-            std::make_unique<MemoryMappedFile>(
-                std::move(file),
-                platform::file::MAPPING_READ,
-                0 // use file size
-            )
+            // todo map a read-only view
+            RegularFile(mBasePath / relative_path).create_view()
         ).first;
     }
 
-    auto mapping = iter->second.get();
+    auto &mapping = iter->second;
 
     lock.unlock();
 
-    mapping->prefetch(0, mapping->file().size());
+    mapping.prefetch();
 
     return {
-        .base_address = mapping->base_view(),
-        .length = mapping->file().size()
+        .base_address = mapping.base_view(),
+        .length = mapping.max_size()
     };
 }
 
