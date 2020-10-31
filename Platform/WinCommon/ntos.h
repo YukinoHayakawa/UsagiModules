@@ -147,7 +147,7 @@ typedef KIRQL *PKIRQL;
 #define ZwCurrentSession() NtCurrentSession()
 
 //Valid Only for Windows 8+
-#define NtCurrentProcessToken() ((HANDLE)(LONG_PTR)-4) 
+#define NtCurrentProcessToken() ((HANDLE)(LONG_PTR)-4)
 #define NtCurrentThreadToken() ((HANDLE)(LONG_PTR)-5)
 #define NtCurrentEffectiveToken() ((HANDLE)(LONG_PTR)-6)
 
@@ -243,8 +243,8 @@ typedef PVOID PHEAD;
 // Event Object Access Rights
 //
 #define EVENT_QUERY_STATE       0x0001
-#define EVENT_MODIFY_STATE      0x0002  
-#define EVENT_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED|SYNCHRONIZE|0x3) 
+#define EVENT_MODIFY_STATE      0x0002
+#define EVENT_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED|SYNCHRONIZE|0x3)
 
 //
 // EventPair Object Access Rights
@@ -255,8 +255,8 @@ typedef PVOID PHEAD;
 // I/O Completion Object Access Rights
 //
 #define IO_COMPLETION_QUERY_STATE   0x0001
-#define IO_COMPLETION_MODIFY_STATE  0x0002  
-#define IO_COMPLETION_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED|SYNCHRONIZE|0x3) 
+#define IO_COMPLETION_MODIFY_STATE  0x0002
+#define IO_COMPLETION_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED|SYNCHRONIZE|0x3)
 
 //
 // KeyedEvent Object Access Rights
@@ -289,7 +289,7 @@ typedef PVOID PHEAD;
 // Semaphore Object Access Rights
 //
 #define SEMAPHORE_QUERY_STATE       0x0001
-#define SEMAPHORE_MODIFY_STATE      0x0002 
+#define SEMAPHORE_MODIFY_STATE      0x0002
 #define SEMAPHORE_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED|SYNCHRONIZE|0x3)
 
 //
@@ -304,10 +304,10 @@ typedef PVOID PHEAD;
 #define THREAD_ALERT   (0x0004)
 
 #define THREAD_CREATE_FLAGS_CREATE_SUSPENDED        0x00000001
-#define THREAD_CREATE_FLAGS_SKIP_THREAD_ATTACH      0x00000002 
+#define THREAD_CREATE_FLAGS_SKIP_THREAD_ATTACH      0x00000002
 #define THREAD_CREATE_FLAGS_HIDE_FROM_DEBUGGER      0x00000004
-#define THREAD_CREATE_FLAGS_HAS_SECURITY_DESCRIPTOR 0x00000010 
-#define THREAD_CREATE_FLAGS_ACCESS_CHECK_IN_TARGET  0x00000020 
+#define THREAD_CREATE_FLAGS_HAS_SECURITY_DESCRIPTOR 0x00000010
+#define THREAD_CREATE_FLAGS_ACCESS_CHECK_IN_TARGET  0x00000020
 #define THREAD_CREATE_FLAGS_INITIAL_THREAD          0x00000080
 
 //
@@ -385,7 +385,7 @@ typedef PVOID PHEAD;
 //
 // This is the maximum MaximumLength for a UNICODE_STRING.
 //
-#define MAXUSHORT   0xffff     
+#define MAXUSHORT   0xffff
 #define MAX_USTRING ( sizeof(WCHAR) * (MAXUSHORT/sizeof(WCHAR)) )
 
 typedef struct _EX_RUNDOWN_REF {
@@ -1166,9 +1166,9 @@ typedef struct _PS_PROTECTION {
 
 // begin_rev
 #define PS_ATTRIBUTE_NUMBER_MASK 0x0000ffff
-#define PS_ATTRIBUTE_THREAD 0x00010000 
-#define PS_ATTRIBUTE_INPUT 0x00020000 
-#define PS_ATTRIBUTE_ADDITIVE 0x00040000 
+#define PS_ATTRIBUTE_THREAD 0x00010000
+#define PS_ATTRIBUTE_INPUT 0x00020000
+#define PS_ATTRIBUTE_ADDITIVE 0x00040000
 // end_rev
 
 typedef enum _PS_ATTRIBUTE_NUM {
@@ -2357,23 +2357,23 @@ typedef enum _SECTION_INHERIT {
 #endif
 
 #ifndef SEC_FILE
-#define SEC_FILE           0x800000     
+#define SEC_FILE           0x800000
 #endif
 
 #ifndef SEC_IMAGE
-#define SEC_IMAGE         0x1000000     
+#define SEC_IMAGE         0x1000000
 #endif
 
 #ifndef SEC_RESERVE
-#define SEC_RESERVE       0x4000000     
+#define SEC_RESERVE       0x4000000
 #endif
 
 #ifndef SEC_COMMIT
-#define SEC_COMMIT        0x8000000     
+#define SEC_COMMIT        0x8000000
 #endif
 
 #ifndef SEC_NOCACHE
-#define SEC_NOCACHE      0x10000000     
+#define SEC_NOCACHE      0x10000000
 #endif
 
 #ifndef SEC_GLOBAL
@@ -2381,7 +2381,7 @@ typedef enum _SECTION_INHERIT {
 #endif
 
 #ifndef SEC_LARGE_PAGES
-#define SEC_LARGE_PAGES  0x80000000    
+#define SEC_LARGE_PAGES  0x80000000
 #endif
 
 /*
@@ -2828,7 +2828,7 @@ typedef struct _OBJECT_HEADER_PROCESS_INFO { // Size=16
 
 typedef struct _OBJECT_HEADER_QUOTA_INFO {
     ULONG PagedPoolCharge; //4
-    ULONG NonPagedPoolCharge; //4 
+    ULONG NonPagedPoolCharge; //4
     ULONG SecurityDescriptorCharge; //4
     PVOID SecurityDescriptorQuotaBlock; //sizeof(pointer)
     unsigned __int64 Reserved; //sizeof(uint64)
@@ -3037,7 +3037,7 @@ typedef struct _OBJECT_TYPE_INITIALIZER_8 {
 } OBJECT_TYPE_INITIALIZER_8, *POBJECT_TYPE_INITIALIZER_8;
 
 //
-// Windows 10 RS1, new ObjectTypeFlags2 flag added, 
+// Windows 10 RS1, new ObjectTypeFlags2 flag added,
 // ParseProcedure now has two variants with different parameters.
 //
 typedef struct _OBJECT_TYPE_INITIALIZER_RS1 {
@@ -3828,7 +3828,7 @@ typedef struct _FAST_IO_DISPATCH {
 #define IRP_MJ_QUERY_QUOTA              0x19
 #define IRP_MJ_SET_QUOTA                0x1a
 #define IRP_MJ_PNP                      0x1b
-#define IRP_MJ_PNP_POWER                IRP_MJ_PNP      
+#define IRP_MJ_PNP_POWER                IRP_MJ_PNP
 #define IRP_MJ_MAXIMUM_FUNCTION         0x1b
 
 typedef struct _DRIVER_EXTENSION {
@@ -4193,13 +4193,13 @@ typedef struct _POP_POWER_SETTING_REGISTRATION_V1 {
 } POP_POWER_SETTING_REGISTRATION_V1, *PPOP_POWER_SETTING_REGISTRATION_V1;
 
 //
-// WARNING: this structure definition is incomplete. 
+// WARNING: this structure definition is incomplete.
 // Tail is incorrect/incomplete for newest Win10 versions.
 //
 typedef struct _POP_POWER_SETTING_REGISTRATION_V2 {
     LIST_ENTRY Link;
     ULONG Tag;
-    PVOID CallbackThread; //PKTHREAD   
+    PVOID CallbackThread; //PKTHREAD
     UCHAR UnregisterOnReturn;
     UCHAR UnregisterPending;
     GUID Guid;
@@ -9801,8 +9801,8 @@ NtTerminateJobObject(
 ************************************************************************************/
 
 NTSYSAPI
-NTSTATUS 
-NTAPI 
+NTSTATUS
+NTAPI
 NtOpenSession(
     _Out_ PHANDLE SessionHandle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -10952,4 +10952,4 @@ RtlApplicationVerifierStop(
 }
 #endif
 
-#endif NTOS_RTL
+#endif // NTOS_RTL

@@ -23,6 +23,11 @@ std::size_t round_up_to_page_size(const std::size_t size_bytes)
     return round_up_unsigned(size_bytes, page_size());
 }
 
+std::size_t round_down_to_page_size(const std::size_t size_bytes)
+{
+    return round_down_unsigned(size_bytes, page_size());
+}
+
 // For memory reservation and committing, see:
 // https://docs.microsoft.com/en-us/windows/win32/memory/reserving-and-committing-memory
 
@@ -134,5 +139,13 @@ MemoryRegion flush(void *ptr, std::size_t size_bytes)
         WIN32_THROW("FlushViewOfFile");
 
     return { ptr, size_bytes };
+}
+
+MemoryRegion zero_pages(void *ptr, std::size_t size_bytes)
+{
+    // Decommitting and recommitting memory will zero the pages.
+    // See: https://docs.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualallocex#mem_reset
+    decommit(ptr, size_bytes);
+    return commit(ptr, size_bytes);
 }
 }
