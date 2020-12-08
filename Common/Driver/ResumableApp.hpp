@@ -1,5 +1,7 @@
 ﻿#pragma once
 
+#include <sstream>
+
 #include <Usagi/Entity/EntityDatabase.hpp>
 #include <Usagi/Runtime/Memory/PagedStorage.hpp>
 
@@ -53,10 +55,15 @@ protected:
     template <Component C>
     void init_component_storage()
     {
-        // todo: file name should follow certain format
-        auto path = mBaseFolder / PATH_COMPONENTS / typeid(C).name();
-        path.replace_extension(EXT_STORAGE);
-        DatabaseT::template component_storage<C>().init(std::move(path));
+        if constexpr (!TagComponent<C>)
+        {
+            std::stringstream name;
+            name << std::setfill('0') << std::setw(16) << typeid(C).hash_code();
+            // todo: file name should follow certain format
+            auto path = mBaseFolder / PATH_COMPONENTS / name.str();
+            path.replace_extension(EXT_STORAGE);
+            DatabaseT::template component_storage<C>().init(std::move(path));
+        }
     }
 
 public:
