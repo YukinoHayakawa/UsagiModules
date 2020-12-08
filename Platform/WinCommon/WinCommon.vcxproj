@@ -59,17 +59,22 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Input\InputEventSourceWin32RawInput.hpp" />
     <ClInclude Include="ntos.h" />
     <ClInclude Include="Win32.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="File.cpp" />
+    <ClCompile Include="Input\InputEventSourceWin32RawInput.cpp" />
     <ClCompile Include="Memory.cpp" />
     <ClCompile Include="Win32.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\..\..\Library\Usagi\Usagi.vcxproj">
       <Project>{f9061c06-bce6-416b-9aeb-31351810b7ba}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Service\Input\Input.vcxproj">
+      <Project>{c87b711a-0036-4d0e-aa0b-501677f198fd}</Project>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

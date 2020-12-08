@@ -71,8 +71,8 @@ struct Win32Exception : std::runtime_error
 void check_nt_status(std::u8string_view function, NTSTATUS status);
 }
 
-#define NT_CHECK_THROW(function) ::usagi::check_nt_status(u8##function, status)
+#define USAGI_NT_CHECK_THROW(function) ::usagi::check_nt_status(u8##function, status)
 
-#define WIN32_THROW(function) \
+#define USAGI_WIN32_THROW(function) \
     USAGI_THROW(Win32Exception(u8##function)) \
 /**/

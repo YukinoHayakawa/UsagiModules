@@ -46,7 +46,7 @@ MemoryRegion allocate(const std::size_t size_bytes, const bool commit)
         commit ? PAGE_READWRITE : PAGE_NOACCESS
     );
 
-    NT_CHECK_THROW("NtAllocateVirtualMemory");
+    USAGI_NT_CHECK_THROW("NtAllocateVirtualMemory");
 
     return ret;
 }
@@ -63,7 +63,7 @@ MemoryRegion commit(void *ptr, std::size_t size_bytes)
         PAGE_READWRITE
     );
 
-    NT_CHECK_THROW("NtAllocateVirtualMemory");
+    USAGI_NT_CHECK_THROW("NtAllocateVirtualMemory");
 
     return { ptr, size_bytes };
 }
@@ -78,7 +78,7 @@ MemoryRegion decommit(void *ptr, std::size_t size_bytes)
         MEM_DECOMMIT
     );
 
-    NT_CHECK_THROW("NtFreeVirtualMemory");
+    USAGI_NT_CHECK_THROW("NtFreeVirtualMemory");
 
     return { ptr, size_bytes };
 }
@@ -92,7 +92,7 @@ MemoryRegion free(void *ptr, std::size_t size_bytes)
         MEM_RELEASE
     );
 
-    NT_CHECK_THROW("NtFreeVirtualMemory");
+    USAGI_NT_CHECK_THROW("NtFreeVirtualMemory");
 
     return { ptr, size_bytes };
 }
@@ -108,7 +108,7 @@ MemoryRegion lock(void *ptr, std::size_t size_bytes)
         0x0001 // This is used, when calling KERNEL32.DLL VirtualLock routine
     );
 
-    NT_CHECK_THROW("NtLockVirtualMemory");
+    USAGI_NT_CHECK_THROW("NtLockVirtualMemory");
 
     return { ptr, size_bytes };
 }
@@ -124,7 +124,7 @@ MemoryRegion unlock(void *ptr, std::size_t size_bytes)
         0x0001 // This is used, when calling KERNEL32.DLL VirtualLock routine
     );
 
-    NT_CHECK_THROW("NtUnlockVirtualMemory");
+    USAGI_NT_CHECK_THROW("NtUnlockVirtualMemory");
 
     return { ptr, size_bytes };
 }
@@ -136,7 +136,7 @@ MemoryRegion unlock(void *ptr, std::size_t size_bytes)
 MemoryRegion flush(void *ptr, std::size_t size_bytes)
 {
     if(!FlushViewOfFile(ptr, size_bytes))
-        WIN32_THROW("FlushViewOfFile");
+        USAGI_WIN32_THROW("FlushViewOfFile");
 
     return { ptr, size_bytes };
 }

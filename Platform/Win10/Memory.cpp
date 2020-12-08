@@ -16,13 +16,13 @@ void prefetch(void *ptr, const std::size_t size_bytes)
         1,
         &entry,
         0
-    )) WIN32_THROW("PrefetchVirtualMemory");
+    )) USAGI_WIN32_THROW("PrefetchVirtualMemory");
 }
 
 MemoryRegion offer(void *ptr, std::size_t size_bytes)
 {
     if(!OfferVirtualMemory(ptr, size_bytes, VmOfferPriorityVeryLow))
-        WIN32_THROW("OfferVirtualMemory");
+        USAGI_WIN32_THROW("OfferVirtualMemory");
 
     MemoryRegion region;
 

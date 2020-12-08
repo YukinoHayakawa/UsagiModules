@@ -12,8 +12,8 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
-    <ProjectGuid>{61c2c8d3-d6d1-4bea-b122-43142579ba35}</ProjectGuid>
-    <RootNamespace>Time</RootNamespace>
+    <ProjectGuid>{c87b711a-0036-4d0e-aa0b-501677f198fd}</ProjectGuid>
+    <RootNamespace>Input</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -59,11 +59,27 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Clock.cpp" />
+    <ClInclude Include="ArchetypeInputEvent.hpp" />
+    <ClInclude Include="InputEventSource.hpp" />
+    <ClInclude Include="InputEventVisitor.hpp" />
+    <ClInclude Include="Keyboard\ArchetypeKeyboardEvent.hpp" />
+    <ClInclude Include="Keyboard\KeyCode.hpp" />
+    <ClInclude Include="Mouse\ArchetypeMouseEvent.hpp" />
+    <ClInclude Include="Mouse\MouseButtonCode.hpp" />
+    <ClInclude Include="ServiceInputSource.hpp" />
+    <ClInclude Include="SystemInputEventPump.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Clock.hpp" />
-    <ClInclude Include="ComponentTimestamp.hpp" />
+    <ClCompile Include="Keyboard\KeyCode.cpp" />
+    <ClCompile Include="Mouse\MouseButtonCode.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Common\Math\Math.vcxproj">
+      <Project>{d4e79012-d153-40c0-b62d-fc9b31495442}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Common\Time\Time.vcxproj">
+      <Project>{61c2c8d3-d6d1-4bea-b122-43142579ba35}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

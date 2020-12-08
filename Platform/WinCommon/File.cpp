@@ -36,7 +36,7 @@ NativeFileHandle open(
     );
 
     if(handle == INVALID_HANDLE_VALUE)
-        WIN32_THROW("CreateFileW");
+        USAGI_WIN32_THROW("CreateFileW");
 
     return handle;
 }
@@ -44,7 +44,7 @@ NativeFileHandle open(
 void close(const NativeFileHandle file)
 {
     if(!CloseHandle(file))
-        WIN32_THROW("CloseHandle");
+        USAGI_WIN32_THROW("CloseHandle");
 }
 
 std::size_t size(const NativeFileHandle file)
@@ -52,7 +52,7 @@ std::size_t size(const NativeFileHandle file)
     LARGE_INTEGER li;
 
     if(!GetFileSizeEx(file, &li))
-        WIN32_THROW("GetFileSizeEx");
+        USAGI_WIN32_THROW("GetFileSizeEx");
 
     return li.QuadPart;
 }
@@ -67,7 +67,7 @@ void nt_unmap_section(NativeFileMappingObject &internal)
         NtCurrentProcess(),
         internal.base_address
     );
-    NT_CHECK_THROW("NtUnmapViewOfSection");
+    USAGI_NT_CHECK_THROW("NtUnmapViewOfSection");
     internal.base_address = nullptr;
 }
 
@@ -76,7 +76,7 @@ void nt_close_section(NativeFileMappingObject &internal)
     assert(internal.section_handle);
 
     const auto status = NtClose(internal.section_handle);
-    NT_CHECK_THROW("NtClose");
+    USAGI_NT_CHECK_THROW("NtClose");
     internal.section_handle = nullptr;
 }
 
@@ -170,7 +170,7 @@ MemoryMapping map(
         SEC_RESERVE,
         file
     );
-    NT_CHECK_THROW("NtCreateSection");
+    USAGI_NT_CHECK_THROW("NtCreateSection");
 
     // The actual mapping is larger but only the requested part is returned
     MemoryMapping mapping;
@@ -183,7 +183,7 @@ MemoryMapping map(
     if(!NT_SUCCESS(status))
         NtClose(section);
 
-    NT_CHECK_THROW("NtMapViewOfSection");
+    USAGI_NT_CHECK_THROW("NtMapViewOfSection");
 
     return mapping;
 }
@@ -200,11 +200,11 @@ void remap(MemoryMapping &mapping, std::uint64_t new_size)
         mapping.internal.section_handle,
         &sec_size
     );
-    NT_CHECK_THROW("NtExtendSection");
+    USAGI_NT_CHECK_THROW("NtExtendSection");
 
     // create a new mapping
     status = nt_map(mapping, new_size, 0);
-    NT_CHECK_THROW("NtMapViewOfSection");
+    USAGI_NT_CHECK_THROW("NtMapViewOfSection");
 }
 
 void unmap(MemoryMapping &mapping)
