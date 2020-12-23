@@ -24,11 +24,19 @@ protected:
         return path;
     }
 
-    explicit ResumableAppBase(std::filesystem::path base_folder)
-        : mBaseFolder(std::move(base_folder))
+    void init(std::filesystem::path base_folder)
     {
+        mBaseFolder = std::move(base_folder);
+
         create_directories(mBaseFolder);
         create_directories(mBaseFolder / PATH_COMPONENTS);
+    }
+
+    ResumableAppBase() = default;
+
+    explicit ResumableAppBase(std::filesystem::path base_folder)
+    {
+        init(std::move(base_folder));
     }
 };
 
@@ -67,16 +75,23 @@ protected:
     }
 
 public:
+    ResumableApp() = default;
+
     explicit ResumableApp(std::filesystem::path base_folder)
-        : ResumableAppBase(std::move(base_folder))
     {
-        init_entity_page_storage();
-        (..., init_component_storage<EnabledComponents>());
+        init(std::move(base_folder));
     }
 
     ~ResumableApp()
     {
         StorageT::template pop_header<MAGIC_CHECK>(DatabaseT::mMeta, true);
+    }
+
+    void init(std::filesystem::path base_folder)
+    {
+        ResumableAppBase::init(std::move(base_folder));
+        init_entity_page_storage();
+        (..., init_component_storage<EnabledComponents>());
     }
 
     DatabaseT & database() { return *this; }
