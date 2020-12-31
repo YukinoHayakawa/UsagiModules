@@ -53,11 +53,13 @@ protected:
 
     // entity database
     constexpr static std::uint16_t MAGIC_CHECK = 0xDB01;
+    bool mHeaderInitialized = false;
 
     void init_entity_page_storage()
     {
         const bool exists = DatabaseT::entity_pages().init(path_edb());
         StorageT::template push_header<MAGIC_CHECK>(DatabaseT::mMeta, exists);
+        mHeaderInitialized = true;
     }
 
     template <Component C>
@@ -84,7 +86,10 @@ public:
 
     ~ResumableApp()
     {
-        StorageT::template pop_header<MAGIC_CHECK>(DatabaseT::mMeta, true);
+        if(mHeaderInitialized)
+        {
+            StorageT::template pop_header<MAGIC_CHECK>(DatabaseT::mMeta, true);
+        }
     }
 
     void init(std::filesystem::path base_folder)
