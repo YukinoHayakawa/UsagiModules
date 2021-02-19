@@ -26,5 +26,8 @@
     <ClInclude Include="ComponentTimestamp.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ServiceMasterClock.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

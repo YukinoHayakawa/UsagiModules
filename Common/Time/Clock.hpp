@@ -10,39 +10,32 @@ using TimePoint = double;
 class Clock
 {
     using ClockT = std::chrono::high_resolution_clock;
-    ClockT::time_point mStart;
+    ClockT::time_point mCreation;
     ClockT::time_point mLastTick;
     using Duration = std::chrono::duration<double>;
-    Duration mSinceLastTick;
-    Duration mTillLastTick;
+    Duration mLastFrameTime;
+    Duration mTotalFrameTime;
 
 public:
     Clock();
 
     void reset();
 
-    /**
-     * \brief Time since construction or reset till invocation.
-     * \return
-     */
-    TimePoint now() const;
-
-    /**
-     * \brief Calculate elapsed time since last tick.
-     * \return
-     */
+    // Calculate elapsed time since last tick and update tick.
     TimeDuration tick();
 
-    /**
-     * \brief Time since last tick.
-     * \return
-     */
-    TimeDuration elapsed() const;
 
-    /**
-     * \brief Time since start to last tick.
-     * \return
-     */
-    TimeDuration totalElapsed() const;
+    // Time in second from last tick.
+    TimeDuration realtime_elapsed() const;
+
+    // Time in second since clock creation/last reset.
+    TimeDuration realtime_total_elapsed() const;
+
+
+    // Time between last two ticks
+    TimeDuration last_frame_time() const;
+
+    // Time since start to last tick.
+    TimeDuration total_frame_time() const;
 };
 }

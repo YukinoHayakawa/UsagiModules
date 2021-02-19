@@ -11,20 +11,26 @@ usagi::Clock::Clock()
 
 void usagi::Clock::reset()
 {
-    mStart = mLastTick = ClockT::now();
-    mTillLastTick = mSinceLastTick = mLastTick - mStart;
+    mCreation = mLastTick = ClockT::now();
+    mTotalFrameTime = mLastFrameTime = mLastTick - mCreation;
 }
 
-usagi::TimePoint usagi::Clock::now() const
+usagi::TimeDuration usagi::Clock::realtime_elapsed() const
 {
-    Duration d = ClockT::now() - mStart;
+    const Duration d = ClockT::now() - mLastTick;
+    return d.count();
+}
+
+usagi::TimeDuration usagi::Clock::realtime_total_elapsed() const
+{
+    const Duration d = ClockT::now() - mCreation;
     return d.count();
 }
 
 usagi::TimeDuration usagi::Clock::tick()
 {
     const auto this_tick = ClockT::now();
-    mSinceLastTick = this_tick - mLastTick;
+    mLastFrameTime = this_tick - mLastTick;
 
     using namespace std::chrono_literals;
     // if(mSinceLastTick > 1s)
@@ -33,16 +39,16 @@ usagi::TimeDuration usagi::Clock::tick()
     //     LOG(warn, "Tick time > 1s. Set to 16ms.");
     // }
     mLastTick = this_tick;
-    mTillLastTick = mLastTick - mStart;
-    return elapsed();
+    mTotalFrameTime = this_tick - mCreation;
+    return last_frame_time();
 }
 
-usagi::TimeDuration usagi::Clock::elapsed() const
+usagi::TimeDuration usagi::Clock::last_frame_time() const
 {
-    return mSinceLastTick.count();
+    return mLastFrameTime.count();
 }
 
-usagi::TimeDuration usagi::Clock::totalElapsed() const
+usagi::TimeDuration usagi::Clock::total_frame_time() const
 {
-    return mTillLastTick.count();
+    return mTotalFrameTime.count();
 }
