@@ -6,19 +6,14 @@
 
 namespace usagi
 {
-namespace detail::win32_input
-{
-struct RawInputSink;
-}
-
 // Not thread-safe.
 class InputEventSourceWin32RawInput : public InputEventSource
 {
-    std::shared_ptr<detail::win32_input::RawInputSink> mSink;
+    std::shared_ptr<struct RawInputSink> mSink;
 
 public:
     InputEventSourceWin32RawInput();
 
-    void pump_events(InputEventVisitor &visitor) override;
+    bool pump_event(InputEventInserter &inserter) override;
 };
 }

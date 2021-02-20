@@ -16,94 +16,6 @@
 
 std::map<std::string, std::string> usagi::Win32InputManager::mDeviceNames;
 
-void usagi::Win32InputManager::registerWindowClass() const
-{
-    WNDCLASSEXW wcex { };
-    wcex.cbSize = sizeof(WNDCLASSEXW);
-    wcex.lpfnWndProc = &inputMessageDispatcher;
-    wcex.hInstance = mProcessInstanceHandle;
-    wcex.lpszClassName = WINDOW_CLASS_NAME;
-
-    if(!RegisterClassExW(&wcex))
-    {
-        USAGI_THROW(win32::Win32Exception("RegisterClassEx() failed!"));
-    }
-}
-
-void usagi::Win32InputManager::unregisterWindowClass() const
-{
-    UnregisterClassW(WINDOW_CLASS_NAME, mProcessInstanceHandle);
-}
-
-void usagi::Win32InputManager::createInputSinkWindow()
-{
-    LOG(info, "Creating input sink");
-
-    mMessageWindow = CreateWindowExW(
-        0,
-        WINDOW_CLASS_NAME,
-        L"usagi::Win32InputManager Raw Input Sink",
-        0,
-        0, 0, 0, 0,
-        HWND_MESSAGE, // create a message-only window
-        nullptr,
-        nullptr,
-        nullptr
-    );
-
-    if(!mMessageWindow)
-    {
-        USAGI_THROW(win32::Win32Exception("CreateWindowEx() failed"));
-    }
-}
-
-void usagi::Win32InputManager::registerRawInputDevices()
-{
-    std::vector<RAWINPUTDEVICE> devices { 3 };
-
-    // For HID APIs, see:
-    // https://docs.microsoft.com/en-us/windows-hardware/drivers/hid/
-    // For usage page and usage codes, see:
-    // https://docs.microsoft.com/en-us/windows-hardware/drivers/hid/top-level-collections-opened-by-windows-for-system-use
-    // http://www.usb.org/developers/hidpage/Hut1_12v2.pdf
-
-    // adds HID mice, RIDEV_NOLEGACY is not used because we need the system
-    // to process non-client area.
-    devices[0].usUsagePage = 0x01;
-    devices[0].usUsage = 0x02;
-    // receives device add/remove messages (WM_INPUT_DEVICE_CHANGE)
-    devices[0].dwFlags = RIDEV_DEVNOTIFY;
-    // receives events from the window with keyboard focus
-    devices[0].hwndTarget = mMessageWindow;
-
-    // adds HID keyboards, RIDEV_NOLEGACY is not used to allow the system
-    // process hotkeys like print screen. note that alt+f4 is not handled
-    // if related key messages not passed to DefWindowProc(). looks like
-    // RIDEV_NOLEGACY should only be used when having a single fullscreen
-    // window.
-    devices[1].usUsagePage = 0x01;
-    devices[1].usUsage = 0x06;
-    // interestingly, RIDEV_NOHOTKEYS will prevent the explorer from using
-    // the fancy window-choosing popup, and we still receive key events when
-    // switching window, so it is not used here.
-    devices[1].dwFlags = RIDEV_DEVNOTIFY;
-    devices[1].hwndTarget = mMessageWindow;
-
-    // adds gamepads
-    devices[2].usUsagePage = 0x01;
-    devices[2].usUsage = 0x05;
-    devices[2].dwFlags = RIDEV_DEVNOTIFY;
-    devices[2].hwndTarget = mMessageWindow;
-
-    // note that this registration affects the entire application
-    if(RegisterRawInputDevices(
-        devices.data(), static_cast<UINT>(devices.size()),
-        sizeof(RAWINPUTDEVICE)) == FALSE)
-    {
-        //registration failed. Call GetLastError for the cause of the error
-        USAGI_THROW(win32::Win32Exception("RegisterRawInputDevices() failed"));
-    }
-}
 
 // Some links:
 // Querying kernel objects & following symbolic links:
@@ -347,12 +259,7 @@ LRESULT CALLBACK usagi::Win32InputManager::inputMessageHandler(
 
 void usagi::Win32InputManager::processEvents()
 {
-    MSG msg;
-    while(PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE))
-    {
-        TranslateMessage(&msg);
-        DispatchMessageW(&msg);
-    }
+
 }
 
 std::shared_ptr<usagi::Keyboard> usagi::Win32InputManager::

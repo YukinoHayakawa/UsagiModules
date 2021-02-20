@@ -60,12 +60,18 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Input\InputEventSourceWin32RawInput.hpp" />
+    <ClInclude Include="Input\Input.hpp" />
+    <ClInclude Include="Input\RawInputSink.hpp" />
     <ClInclude Include="ntos.h" />
     <ClInclude Include="Win32.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="File.cpp" />
     <ClCompile Include="Input\InputEventSourceWin32RawInput.cpp" />
+    <ClCompile Include="Input\Keyboard.cpp" />
+    <ClCompile Include="Input\Mouse.cpp" />
+    <ClCompile Include="Input\RawInputSink.cpp" />
+    <ClCompile Include="Input\VirtualKey.cpp" />
     <ClCompile Include="Memory.cpp" />
     <ClCompile Include="Win32.cpp" />
   </ItemGroup>
