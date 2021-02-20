@@ -15,22 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Keyboard\KeyCode.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Keyboard\ArchetypeKeyboardEvent.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Mouse\MouseButtonCode.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Mouse\ArchetypeMouseEvent.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="ArchetypeInputEvent.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="InputEventVisitor.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="SystemInputEventPump.hpp">
@@ -42,12 +27,21 @@
     <ClInclude Include="InputEventSource.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ComponentInputEvent.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="InputAxis.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="InputEventQueue.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="InputEventInserter.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Keyboard\KeyCode.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Mouse\MouseButtonCode.cpp">
+    <ClCompile Include="InputAxis.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

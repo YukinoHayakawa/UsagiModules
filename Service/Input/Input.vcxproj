@@ -60,20 +60,21 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="ArchetypeInputEvent.hpp" />
+    <ClInclude Include="ComponentInputEvent.hpp" />
+    <ClInclude Include="InputEventQueue.hpp" />
     <ClInclude Include="InputEventSource.hpp" />
-    <ClInclude Include="InputEventVisitor.hpp" />
-    <ClInclude Include="Keyboard\ArchetypeKeyboardEvent.hpp" />
-    <ClInclude Include="Keyboard\KeyCode.hpp" />
-    <ClInclude Include="Mouse\ArchetypeMouseEvent.hpp" />
-    <ClInclude Include="Mouse\MouseButtonCode.hpp" />
+    <ClInclude Include="InputAxis.hpp" />
+    <ClInclude Include="InputEventInserter.hpp" />
     <ClInclude Include="ServiceInputSource.hpp" />
     <ClInclude Include="SystemInputEventPump.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Keyboard\KeyCode.cpp" />
-    <ClCompile Include="Mouse\MouseButtonCode.cpp" />
+    <ClCompile Include="InputAxis.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\..\..\..\Library\Usagi\Usagi.vcxproj">
+      <Project>{f9061c06-bce6-416b-9aeb-31351810b7ba}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\..\Common\Math\Math.vcxproj">
       <Project>{d4e79012-d153-40c0-b62d-fc9b31495442}</Project>
     </ProjectReference>

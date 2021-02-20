@@ -1,14 +1,14 @@
 ﻿#pragma once
 
+#include "InputEventInserter.hpp"
+
 namespace usagi
 {
-class InputEventVisitor;
-
 class InputEventSource
 {
 public:
     virtual ~InputEventSource() = default;
 
-    virtual void pump_events(InputEventVisitor &visitor) = 0;
+    virtual bool pump_event(InputEventInserter &inserter) = 0;
 };
 }
