@@ -12,7 +12,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Bezier.hpp" />
+    <ClInclude Include="ComponentRegion2D.hpp" />
     <ClInclude Include="Constant.hpp" />
+    <ClInclude Include="Lerp.hpp" />
     <ClInclude Include="Matrix.hpp" />
   </ItemGroup>
   <ItemGroup>
@@ -32,6 +34,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>ClangCL</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">

@@ -24,6 +24,12 @@
     <ClInclude Include="Matrix.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Lerp.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ComponentRegion2D.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Lib.cpp">
