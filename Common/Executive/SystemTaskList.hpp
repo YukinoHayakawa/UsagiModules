@@ -27,13 +27,17 @@ struct SystemTaskList
         else
         {
             auto ret = sys.update(rt, access);
-            observer(sys, ret);
+            observer(sys, std::move(ret));
         }
     }
 
     void update(auto &&rt, auto &&db, auto &&observer)
     {
-        (..., update_system<Sys>(rt, db, observer));
+        (..., update_system<Sys>(
+            std::forward<decltype(rt)>(rt),
+            std::forward<decltype(db)>(db),
+            std::forward<decltype(observer)>(observer)
+        ));
     }
 
     using EnabledComponents = SystemComponentUsage<Sys...>;
