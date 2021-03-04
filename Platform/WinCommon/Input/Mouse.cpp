@@ -16,7 +16,7 @@ POINT convert_from_absolute_position(const Vector2f &pos)
     };
 }
 
-bool raw_input_handle_mouse(
+bool raw_input__handle_mouse(
     InputEventInserter &inserter,
     const tagRAWMOUSE &mouse)
 {

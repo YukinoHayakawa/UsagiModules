@@ -4,7 +4,7 @@
 
 namespace usagi::win32
 {
-bool raw_input_handle_keyboard(
+bool raw_input__handle_keyboard(
     InputEventInserter &inserter,
     const tagRAWKEYBOARD &keyboard)
 {

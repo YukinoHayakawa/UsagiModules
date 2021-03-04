@@ -63,14 +63,14 @@ LRESULT input_message_dispatcher(
             switch(input->header.dwType)
             {
                 case RIM_TYPEKEYBOARD:
-                    win32::raw_input_handle_keyboard(
+                    win32::raw_input__handle_keyboard(
                         *gEventInserter,
                         input->data.keyboard
                     );
                     break;
 
                 case RIM_TYPEMOUSE:
-                    win32::raw_input_handle_mouse(
+                    win32::raw_input__handle_mouse(
                         *gEventInserter,
                         input->data.mouse
                     );
