@@ -28,7 +28,7 @@ protected:
     Vector2f mPosition { 0, 0 };
     Vector2f mSize { 0, 0 };
     Vector2f mDpiScaling { 1, 1 };
-    bool mClosed = false;
+    bool mShouldClose = false;
 
 public:
     virtual ~NativeWindow() = default;
@@ -37,7 +37,7 @@ public:
     Vector2f size() const { return mSize; }
     Vector2f dpi_scaling() const { return mDpiScaling; }
 
-    bool closed() const { return mClosed; }
+    bool should_close() const { return mShouldClose; }
     virtual void destroy() = 0;
 
     // virtual void setPosition(const Vector2i &position) = 0;

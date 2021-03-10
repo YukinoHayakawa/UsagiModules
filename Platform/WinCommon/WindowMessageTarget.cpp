@@ -35,9 +35,34 @@ LRESULT message_dispatcher(
     LPARAM lParam)
 {
     if(const auto target = target_from_hwnd(hWnd))
-        target->message_handler(message, wParam, lParam);
+        return target->message_handler(message, wParam, lParam);
 
     return DefWindowProcW(hWnd, message, wParam, lParam);
+}
+
+WindowMessageTarget::WindowMessageTarget(WindowMessageTarget &&other) noexcept
+    : mWindowHandle { other.mWindowHandle } { other.mWindowHandle = nullptr; }
+
+WindowMessageTarget & WindowMessageTarget::operator=(
+    WindowMessageTarget &&other) noexcept
+{
+    if(this == &other)
+        return *this;
+    mWindowHandle = other.mWindowHandle;
+    other.mWindowHandle = nullptr;
+    return *this;
+}
+
+WindowMessageTarget::~WindowMessageTarget()
+{
+    if(mWindowHandle)
+    {
+        // prevent receiving further messages since the derived class
+        // is already destructed.
+        SetWindowLongPtrW(mWindowHandle, GWLP_USERDATA, 0);
+        USAGI_WIN32_CHECK_ASSERT(DestroyWindow, mWindowHandle);
+    }
+    mWindowHandle = nullptr;
 }
 
 std::chrono::milliseconds WindowMessageTarget::tick_to_clock(DWORD tick) const

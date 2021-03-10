@@ -52,7 +52,7 @@ struct Win32NativeWindowClass
 
 void NativeWindowManagerWin32::mark_closed(NativeWindowWin32 *window)
 {
-    window->mClosed = true;
+    window->mShouldClose = true;
 }
 
 NativeWindowManagerWin32::NativeWindowManagerWin32()
@@ -98,7 +98,7 @@ void NativeWindowManagerWin32::destroy_unused_windows()
 {
     const auto rng = std::ranges::remove_if(
         mWindows, [](auto &&wnd) {
-        if(wnd.touched == false || wnd.window->closed())
+        if(wnd.touched == false || wnd.window->should_close())
         {
             wnd.window.reset();
             return true;

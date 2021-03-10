@@ -99,8 +99,11 @@ void RawInputSink::create_input_sink_window()
         nullptr
     );
 
-    SetWindowLongPtrW(mWindowHandle, GWLP_USERDATA,
-        reinterpret_cast<LONG_PTR>(this));
+    SetWindowLongPtrW(
+        mWindowHandle,
+        GWLP_USERDATA,
+        reinterpret_cast<ULONG_PTR>(static_cast<WindowMessageTarget*>(this))
+    );
 }
 
 void RawInputSink::destroy_input_sink_window()

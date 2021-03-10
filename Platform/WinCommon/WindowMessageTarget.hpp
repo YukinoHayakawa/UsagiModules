@@ -2,6 +2,8 @@
 
 #include <chrono>
 
+#include <Usagi/Library/Noncopyable.hpp>
+
 #include "Win32.hpp"
 
 namespace usagi::win32
@@ -23,7 +25,7 @@ struct MessageInfo
 };
 static_assert(sizeof(MessageInfo) == sizeof(WPARAM));
 
-class WindowMessageTarget
+class WindowMessageTarget : Noncopyable
 {
 protected:
     HWND mWindowHandle = nullptr;
@@ -35,7 +37,11 @@ protected:
         std::chrono::high_resolution_clock::now();
 
 public:
-    virtual ~WindowMessageTarget() = default;
+    WindowMessageTarget() = default;
+    WindowMessageTarget(WindowMessageTarget &&other) noexcept;
+    virtual ~WindowMessageTarget();
+
+    WindowMessageTarget & operator=(WindowMessageTarget &&other) noexcept;
 
     virtual LRESULT message_handler(
         UINT message,

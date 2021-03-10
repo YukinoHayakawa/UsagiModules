@@ -71,22 +71,16 @@ NativeWindowWin32::NativeWindowWin32(
     SetWindowLongPtrW(
         mWindowHandle,
         GWLP_USERDATA,
-        reinterpret_cast<ULONG_PTR>(this)
+        reinterpret_cast<ULONG_PTR>(static_cast<WindowMessageTarget*>(this))
     );
 
     // show(true);
     ShowWindow(mWindowHandle, SW_SHOWNORMAL);
 }
 
-NativeWindowWin32::~NativeWindowWin32()
-{
-    if(mWindowHandle)
-        NativeWindowWin32::destroy();
-}
-
 void NativeWindowWin32::destroy()
 {
-    DestroyWindow(mWindowHandle);
+    USAGI_WIN32_CHECK_ASSERT(DestroyWindow, mWindowHandle);
     mWindowHandle = nullptr;
 }
 
@@ -95,6 +89,14 @@ LRESULT NativeWindowWin32::message_handler(
     WPARAM wParam,
     LPARAM lParam)
 {
-    return DefWindowProcW(mWindowHandle, message, wParam, lParam);
+    switch(message)
+    {
+        case WM_CLOSE:
+            mShouldClose = true;
+            return 0;
+
+        default:
+            return DefWindowProcW(mWindowHandle, message, wParam, lParam);
+    }
 }
 }

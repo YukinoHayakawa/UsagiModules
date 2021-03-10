@@ -66,7 +66,7 @@
     <ClInclude Include="NativeWindowManager.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Lib.cpp" />
+    <ClCompile Include="CreateLib.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

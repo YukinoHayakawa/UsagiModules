@@ -31,7 +31,7 @@ public:
         const Vector2f &size,
         const wchar_t *window_class
     );
-    ~NativeWindowWin32();
+
     void destroy() override;
 
     // HWND handle() const { return mHandle; }
