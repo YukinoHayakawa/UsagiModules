@@ -63,8 +63,10 @@
     <ClInclude Include="NativeWindow.hpp" />
     <ClInclude Include="ServiceNativeWindowManager.hpp" />
     <ClInclude Include="SystemNativeWindowCoordinator.hpp" />
-    <ClInclude Include="WindowEventListener.hpp" />
     <ClInclude Include="NativeWindowManager.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Lib.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

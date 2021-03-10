@@ -15,9 +15,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="WindowEventListener.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="NativeWindow.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -33,5 +30,10 @@
     <ClInclude Include="SystemNativeWindowCoordinator.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Lib.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
