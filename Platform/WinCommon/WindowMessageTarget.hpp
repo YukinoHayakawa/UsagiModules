@@ -13,6 +13,14 @@ LRESULT message_dispatcher(
     WPARAM wParam,
     LPARAM lParam);
 
+struct MessageInfo
+{
+    POINTS cursor;
+    // https://devblogs.microsoft.com/oldnewthing/20140122-00/?p=2013
+    ULONG time;
+};
+static_assert(sizeof(MessageInfo) == sizeof(WPARAM));
+
 class WindowMessageTarget
 {
 protected:

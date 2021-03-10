@@ -6,7 +6,8 @@ namespace usagi::win32
 {
 bool raw_input__handle_keyboard(
     InputEventInserter &inserter,
-    const tagRAWKEYBOARD &keyboard)
+    const tagRAWKEYBOARD &keyboard,
+    const MessageInfo &info)
 {
     const auto key = translate_keycode(keyboard);
 

@@ -123,6 +123,17 @@ LRESULT RawInputSink::message_handler(
             const auto current_size = message_queue.size();
             const auto input = win32::get_raw_input_data(lParam);
             message_queue.resize(current_size + input->header.dwSize);
+
+            using namespace win32;
+
+            MessageInfo info;
+            const auto pos = GetMessagePos();
+            info.cursor.x = (short)LOWORD(pos);
+            info.cursor.y = (short)HIWORD(pos);
+            info.time = GetMessageTime();
+            // reuse the space to store the info
+            *(MessageInfo*)&input->header.wParam = info;
+
             std::memcpy(
                 &message_queue[current_size],
                 input,

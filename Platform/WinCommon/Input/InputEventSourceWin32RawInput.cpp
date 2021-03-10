@@ -31,19 +31,23 @@ void InputEventSourceWin32RawInput::process_events(
 
     while(head && reinterpret_cast<std::size_t>(head) < end)
     {
+        const auto &info = *(MessageInfo*)&head->header.wParam;
+
         switch(head->header.dwType)
         {
             case RIM_TYPEKEYBOARD:
                 raw_input__handle_keyboard(
                     input_event_sink,
-                    head->data.keyboard
+                    head->data.keyboard,
+                    info
                 );
                 break;
 
             case RIM_TYPEMOUSE:
                 raw_input__handle_mouse(
                     input_event_sink,
-                    head->data.mouse
+                    head->data.mouse,
+                    info
                 );
                 break;
 

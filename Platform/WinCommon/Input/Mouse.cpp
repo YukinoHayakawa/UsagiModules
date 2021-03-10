@@ -1,6 +1,7 @@
 ﻿#include "Input.hpp"
 
 #include <Usagi/Module/Platform/WinCommon/Win32.hpp>
+#include <Usagi/Module/Platform/WinCommon/WindowMessageTarget.hpp>
 
 namespace usagi::win32
 {
@@ -18,9 +19,11 @@ POINT convert_from_absolute_position(const Vector2f &pos)
 
 bool raw_input__handle_mouse(
     InputEventInserter &inserter,
-    const tagRAWMOUSE &mouse)
+    const tagRAWMOUSE &mouse,
+    const MessageInfo &info)
 {
     // todo: timestamp
+
 
     [[maybe_unused]]
     static Vector2f last_position;
@@ -29,8 +32,7 @@ bool raw_input__handle_mouse(
     auto &event = archetype.component<ComponentInputEvent>();
 
     Vector2f cursor_rel;
-    [[maybe_unused]]
-    Vector2f cursor_abs = { };
+    const Vector2f cursor_abs = { info.cursor.x, info.cursor.y };
 
     // if the mouse position is absolute (e.g. sent by remote desktop software)
     // convert them to relative. note that typically only relative positions
@@ -75,7 +77,7 @@ bool raw_input__handle_mouse(
     if(!cursor_rel.isZero())
     {
         event.axis = InputAxis::MOUSE_CURSOR;
-        event.absolute = { 0, 0 };
+        event.absolute = cursor_abs;
         event.relative = cursor_rel;
         inserter.insert();
     }
