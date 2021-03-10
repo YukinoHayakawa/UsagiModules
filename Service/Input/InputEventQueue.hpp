@@ -9,7 +9,6 @@ namespace usagi
 using InputEventQueue = EntityDatabase<
     entity::EntityDatabaseConfiguration<>,
     ComponentTimestamp,
-    ComponentInputEvent,
-    TagEventProcessed
+    ComponentInputEvent
 >;
 }

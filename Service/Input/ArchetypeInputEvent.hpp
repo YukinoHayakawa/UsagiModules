@@ -11,6 +11,4 @@ using ArchetypeInputEvent = Archetype<
     ComponentTimestamp,
     ComponentInputEvent
 >;
-
-USAGI_DECL_TAG_COMPONENT(TagEventProcessed);
 }

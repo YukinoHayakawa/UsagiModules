@@ -45,7 +45,8 @@ struct SystemInputEventPump
             }
         } visitor { archetype, db };
 
-        while(source.pump_event(visitor));
+        source.collect_events();
+        source.process_events(visitor);
     }
 };
 }
