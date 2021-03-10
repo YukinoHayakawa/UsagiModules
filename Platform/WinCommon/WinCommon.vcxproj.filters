@@ -24,9 +24,6 @@
     <ClInclude Include="Input\InputEventSourceWin32RawInput.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Input\Input.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Input\RawInputSink.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -37,6 +34,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="WindowMessageTarget.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Input\VirtualKey.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -54,12 +54,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Input\InputEventSourceWin32RawInput.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Input\Keyboard.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Input\Mouse.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Input\RawInputSink.cpp">

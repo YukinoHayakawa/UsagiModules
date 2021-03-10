@@ -1,5 +1,7 @@
 ﻿#pragma once
 
+#include <chrono>
+
 #include "Win32.hpp"
 
 namespace usagi::win32
@@ -26,6 +28,12 @@ class WindowMessageTarget
 protected:
     HWND mWindowHandle = nullptr;
 
+    // the number of milliseconds that have elapsed since the system was started
+    DWORD mStartTime = GetTickCount();
+    ULONGLONG mStartTime64 = GetTickCount64();
+    std::chrono::high_resolution_clock::time_point mStartTimeWall =
+        std::chrono::high_resolution_clock::now();
+
 public:
     virtual ~WindowMessageTarget() = default;
 
@@ -33,5 +41,9 @@ public:
         UINT message,
         WPARAM wParam,
         LPARAM lParam) = 0;
+
+    // todo: handle overflow
+    // https://docs.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-gettickcount
+    std::chrono::milliseconds tick_to_clock(DWORD tick) const;
 };
 }
