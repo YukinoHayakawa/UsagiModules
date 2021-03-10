@@ -4,33 +4,90 @@
 
 namespace usagi
 {
-namespace detail::win32_input
+namespace
 {
-LRESULT CALLBACK input_message_dispatcher(
-    HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+constexpr auto WINDOW_CLASS_NAME = L"usagi::RawInputSink";
+}
+
+namespace win32
+{
+RAWINPUT* get_raw_input_data(LPARAM lParam)
+{
+    // RAWHID may have data larger than the RAWINPUT structure.
+    thread_local static std::vector<BYTE> buffer;
+    UINT buf_size = static_cast<UINT>(buffer.size());
+
+    // Fetch raw input data.
+    // Note that WM_INPUT messages cannot be stored. When processing a WM_INPUT
+    // message in PeekMessage/GetMessage, any unretrieved previous HIDDATA
+    // will be freed by FreeHidData (see xxxRealInternalGetMessage).
+    int ret = GetRawInputData(
+        reinterpret_cast<HRAWINPUT>(lParam),
+        RID_INPUT,
+        buffer.data(), // nullptr during the first call
+        &buf_size,
+        sizeof(RAWINPUTHEADER)
+    );
+
+/*
+  ntstubs.c:NtUserGetRawInputData:
+
+  Situation                                LastError                  Return
+  ---------------------------------------- -------------------------- ---------
+  cbSizeHeader != sizeof(RAWINPUTHEADER)   ERROR_INVALID_PARAMETER    -1
+  invalid handle                           0                          -1
+  Bad dwType for pHidData                  0                          -1
+  invalid uiCommand                        ERROR_INVALID_PARAMETER    -1
+  !pData && can't write pcbSize            0                          -1
+  !pData && buffer size wrote to pcbSize   -                          0
+  pData && cbBufferSize >= cbOutSize       -                          cbOutSize
+  pData && cbBufferSize < cbOutSize        ERROR_INSUFFICIENT_BUFFER  -1
+*/
+
+    if((ret == -1 && GetLastError() == ERROR_INSUFFICIENT_BUFFER) || ret == 0)
+    {
+        // resize the buffer and try again
+        buffer.resize(buf_size);
+        ret = GetRawInputData(
+            reinterpret_cast<HRAWINPUT>(lParam),
+            RID_INPUT,
+            buffer.data(),
+            &buf_size,
+            sizeof(RAWINPUTHEADER)
+        );
+        if(ret != buf_size) USAGI_WIN32_THROW("GetRawInputData");
+    }
+    else if(ret == -1) USAGI_WIN32_THROW("GetRawInputData");
+
+    return reinterpret_cast<RAWINPUT*>(buffer.data());
+}
 }
 
 void RawInputSink::register_window_class()
 {
-    WNDCLASSEXW wcex { };
-    wcex.cbSize = sizeof(WNDCLASSEXW);
-    wcex.lpfnWndProc = &detail::win32_input::input_message_dispatcher;
-    wcex.hInstance = process_instance_handle;
-    wcex.lpszClassName = WINDOW_CLASS_NAME;
+    WNDCLASSEXW wcex {
+        .cbSize = sizeof(WNDCLASSEXW),
+        .lpfnWndProc = &win32::message_dispatcher,
+        .hInstance = process_instance_handle,
+        .lpszClassName = WINDOW_CLASS_NAME
+    };
 
-    if(!RegisterClassExW(&wcex))
-        USAGI_WIN32_THROW("RegisterClassExW");
+    USAGI_WIN32_CHECK_THROW(RegisterClassExW, &wcex);
 }
 
 void RawInputSink::unregister_window_class()
 {
-    if(!UnregisterClassW(WINDOW_CLASS_NAME, process_instance_handle))
-        USAGI_WIN32_THROW("UnregisterClassW");
+    USAGI_WIN32_CHECK_THROW(
+        UnregisterClassW,
+        WINDOW_CLASS_NAME, process_instance_handle
+    );
 }
 
 void RawInputSink::create_input_sink_window()
 {
-    message_window = CreateWindowExW(
+    USAGI_WIN32_CHECK_ASSIGN_THROW(
+        mWindowHandle,
+        CreateWindowExW,
         0,
         WINDOW_CLASS_NAME,
         L"UsagiWin32RawInputSink",
@@ -41,15 +98,40 @@ void RawInputSink::create_input_sink_window()
         nullptr,
         nullptr
     );
-    if(!message_window)
-        USAGI_WIN32_THROW("CreateWindowExW");
+
+    SetWindowLongPtrW(mWindowHandle, GWLP_USERDATA,
+        reinterpret_cast<LONG_PTR>(this));
 }
 
 void RawInputSink::destroy_input_sink_window()
 {
-    if(!DestroyWindow(message_window))
-        USAGI_WIN32_THROW("DestroyWindow");
-    message_window = nullptr;
+    // do not throw exception in destructor
+    USAGI_WIN32_CHECK_ASSERT(DestroyWindow, mWindowHandle);
+    mWindowHandle = nullptr;
+}
+
+LRESULT RawInputSink::message_handler(
+    UINT message,
+    WPARAM wParam,
+    LPARAM lParam)
+{
+    switch(message)
+    {
+        // simply store the messages for later processing
+        case WM_INPUT:
+        {
+            const auto current_size = message_queue.size();
+            const auto input = win32::get_raw_input_data(lParam);
+            message_queue.resize(current_size + input->header.dwSize);
+            std::memcpy(
+                &message_queue[current_size],
+                input,
+                input->header.dwSize
+            );
+        }
+        default: break;
+    }
+    return DefWindowProcW(mWindowHandle, message, wParam, lParam);
 }
 
 void RawInputSink::register_raw_input_devices()
@@ -69,7 +151,7 @@ void RawInputSink::register_raw_input_devices()
     // receives device add/remove messages (WM_INPUT_DEVICE_CHANGE)
     devices[0].dwFlags = RIDEV_INPUTSINK | RIDEV_DEVNOTIFY;
     // receives events from the window with keyboard focus
-    devices[0].hwndTarget = message_window;
+    devices[0].hwndTarget = mWindowHandle;
 
     // adds HID keyboards, RIDEV_NOLEGACY is not used to allow the system
     // process hotkeys like print screen. note that alt+f4 is not handled
@@ -82,20 +164,20 @@ void RawInputSink::register_raw_input_devices()
     // the fancy window-choosing popup, and we still receive key events when
     // switching window, so it is not used here.
     devices[1].dwFlags = RIDEV_INPUTSINK | RIDEV_DEVNOTIFY;
-    devices[1].hwndTarget = message_window;
+    devices[1].hwndTarget = mWindowHandle;
 
     // adds gamepads
     devices[2].usUsagePage = 0x01;
     devices[2].usUsage = 0x05;
     devices[2].dwFlags = RIDEV_INPUTSINK | RIDEV_DEVNOTIFY;
-    devices[2].hwndTarget = message_window;
+    devices[2].hwndTarget = mWindowHandle;
 
     // note that this registration affects the entire application
-    if(RegisterRawInputDevices(
-        devices.data(), static_cast<UINT>(devices.size()),
-        sizeof(RAWINPUTDEVICE)) == FALSE)
-    {
-        USAGI_WIN32_THROW("RegisterRawInputDevices");
-    }
+    USAGI_WIN32_CHECK_THROW(
+        RegisterRawInputDevices,
+        devices.data(),
+        static_cast<UINT>(devices.size()),
+        sizeof(RAWINPUTDEVICE)
+    );
 }
 }

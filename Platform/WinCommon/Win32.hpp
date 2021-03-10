@@ -35,6 +35,7 @@ typedef NTSTATUS *PNTSTATUS;
 #   undef NEAR
 #endif
 
+#include <cassert>
 #include <stdexcept>
 #include <string_view>
 
@@ -75,4 +76,19 @@ void check_nt_status(std::u8string_view function, NTSTATUS status);
 
 #define USAGI_WIN32_THROW(function) \
     USAGI_THROW(Win32Exception(u8##function)) \
+/**/
+
+#define USAGI_WIN32_CHECK_THROW(function, ...) \
+    do { if(!function(__VA_ARGS__)) \
+        USAGI_WIN32_THROW(#function); } while(false) \
+/**/
+
+#define USAGI_WIN32_CHECK_ASSERT(function, ...) \
+    do { const auto ret = function(__VA_ARGS__); \
+        assert(ret); } while(false) \
+/**/
+
+#define USAGI_WIN32_CHECK_ASSIGN_THROW(var, function, ...) \
+    do { if(!(var = function(__VA_ARGS__))) \
+        USAGI_THROW(Win32Exception(u8## #function)); } while(false) \
 /**/

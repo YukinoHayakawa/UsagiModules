@@ -43,16 +43,14 @@ NativeFileHandle open(
 
 void close(const NativeFileHandle file)
 {
-    if(!CloseHandle(file))
-        USAGI_WIN32_THROW("CloseHandle");
+    USAGI_WIN32_CHECK_THROW(CloseHandle, file);
 }
 
 std::size_t size(const NativeFileHandle file)
 {
     LARGE_INTEGER li;
 
-    if(!GetFileSizeEx(file, &li))
-        USAGI_WIN32_THROW("GetFileSizeEx");
+    USAGI_WIN32_CHECK_THROW(GetFileSizeEx, file, &li);
 
     return li.QuadPart;
 }

@@ -62,6 +62,7 @@
     <ClInclude Include="Input\InputEventSourceWin32RawInput.hpp" />
     <ClInclude Include="Input\Input.hpp" />
     <ClInclude Include="Input\RawInputSink.hpp" />
+    <ClInclude Include="WindowMessageTarget.hpp" />
     <ClInclude Include="Windowing\NativeWindowManagerWin32.hpp" />
     <ClInclude Include="ntos.h" />
     <ClInclude Include="Win32.hpp" />
@@ -78,6 +79,7 @@
     <ClCompile Include="Windowing\NativeWindowManagerWin32.cpp" />
     <ClCompile Include="Win32.cpp" />
     <ClCompile Include="Windowing\NativeWindowWin32.cpp" />
+    <ClCompile Include="WindowMessageTarget.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\..\..\Library\Usagi\Usagi.vcxproj">

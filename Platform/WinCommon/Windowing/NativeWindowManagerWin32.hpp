@@ -1,13 +1,13 @@
 ﻿#pragma once
 
-#include <map>
+#include <vector>
 
 #include <Usagi/Library/Container/FixedCapacityString.hpp>
 #include <Usagi/Module/Service/Windowing/NativeWindowManager.hpp>
 
 namespace usagi
 {
-namespace detail::win32
+namespace win32
 {
 struct Win32NativeWindowClass;
 }
@@ -21,8 +21,8 @@ class NativeWindowManagerWin32 : public NativeWindowManager
         bool touched = true;
     };
     // HWND -> Record
-    std::map<void*, WindowRecord> mWindows;
-    std::shared_ptr<detail::win32::Win32NativeWindowClass> mWindowClass;
+    std::vector<WindowRecord> mWindows;
+    std::shared_ptr<win32::Win32NativeWindowClass> mWindowClass;
 
 public:
     NativeWindowManagerWin32();
@@ -36,7 +36,6 @@ public:
     NativeWindow * window(std::string_view identifier) override;
     void destroy_unused_windows() override;
 
-    NativeWindowWin32 * window_from_handle(void *hwnd);
     static void mark_closed(NativeWindowWin32 *window);
 };
 }

@@ -135,9 +135,7 @@ MemoryRegion unlock(void *ptr, std::size_t size_bytes)
 // https://docs.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-flushviewoffile
 MemoryRegion flush(void *ptr, std::size_t size_bytes)
 {
-    if(!FlushViewOfFile(ptr, size_bytes))
-        USAGI_WIN32_THROW("FlushViewOfFile");
-
+    USAGI_WIN32_CHECK_THROW(FlushViewOfFile, ptr, size_bytes);
     return { ptr, size_bytes };
 }
 

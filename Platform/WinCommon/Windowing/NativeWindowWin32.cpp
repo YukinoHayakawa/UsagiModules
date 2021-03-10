@@ -33,7 +33,7 @@ UINT NativeWindowWin32::build_style() const
 
 void NativeWindowWin32::update_style(const UINT style)
 {
-    SetWindowLongW(mHandle, GWL_STYLE, style ? style : build_style());
+    SetWindowLongW(mWindowHandle, GWL_STYLE, style ? style : build_style());
 }
 
 NativeWindowWin32::NativeWindowWin32(
@@ -49,7 +49,10 @@ NativeWindowWin32::NativeWindowWin32(
     const auto rect = window_rect();
 
     const auto dw_style = build_style();
-    mHandle = CreateWindowExW(
+
+    USAGI_WIN32_CHECK_ASSIGN_THROW(
+        mWindowHandle,
+        CreateWindowExW,
         WINDOW_STYLE_EX,
         window_class,
         // window_title_wide.c_str(),
@@ -62,24 +65,36 @@ NativeWindowWin32::NativeWindowWin32(
         GetModuleHandleW(nullptr),
         nullptr
     );
+
     update_style(dw_style);
 
-    if(!mHandle)
-        USAGI_WIN32_THROW("CreateWindowEx");
+    SetWindowLongPtrW(
+        mWindowHandle,
+        GWLP_USERDATA,
+        reinterpret_cast<ULONG_PTR>(this)
+    );
 
     // show(true);
-    ShowWindow(mHandle, SW_SHOWNORMAL);
+    ShowWindow(mWindowHandle, SW_SHOWNORMAL);
 }
 
 NativeWindowWin32::~NativeWindowWin32()
 {
-    if(mHandle)
+    if(mWindowHandle)
         NativeWindowWin32::destroy();
 }
 
 void NativeWindowWin32::destroy()
 {
-    DestroyWindow(mHandle);
-    mHandle = nullptr;
+    DestroyWindow(mWindowHandle);
+    mWindowHandle = nullptr;
+}
+
+LRESULT NativeWindowWin32::message_handler(
+    UINT message,
+    WPARAM wParam,
+    LPARAM lParam)
+{
+    return DefWindowProcW(mWindowHandle, message, wParam, lParam);
 }
 }

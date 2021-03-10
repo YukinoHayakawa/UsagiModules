@@ -14,6 +14,7 @@ class InputEventSourceWin32RawInput : public InputEventSource
 public:
     InputEventSourceWin32RawInput();
 
-    bool pump_event(InputEventInserter &inserter) override;
+    void collect_events() override;
+    void process_events(InputEventInserter &input_event_sink) override;
 };
 }

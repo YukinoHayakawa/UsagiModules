@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include <Usagi/Module/Platform/WinCommon/WindowMessageTarget.hpp>
 #include <Usagi/Module/Service/Windowing/NativeWindow.hpp>
 
 #include "NativeWindowManagerWin32.hpp"
@@ -7,10 +8,10 @@
 
 namespace usagi
 {
-class NativeWindowWin32 : public NativeWindow
+class NativeWindowWin32
+    : public NativeWindow
+    , public win32::WindowMessageTarget
 {
-    HWND mHandle = nullptr;
-
     bool mFullscreen = false;
     bool mAllowResizing = true;
 
@@ -33,6 +34,11 @@ public:
     ~NativeWindowWin32();
     void destroy() override;
 
-    HWND handle() const { return mHandle; }
+    // HWND handle() const { return mHandle; }
+
+    LRESULT message_handler(
+        UINT message,
+        WPARAM wParam,
+        LPARAM lParam) override;
 };
 }

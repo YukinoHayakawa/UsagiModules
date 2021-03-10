@@ -1,14 +1,18 @@
 ﻿#pragma once
 
+#include <vector>
+
 #include <Usagi/Module/Platform/WinCommon/Win32.hpp>
+#include <Usagi/Module/Platform/WinCommon/WindowMessageTarget.hpp>
+#include <Usagi/Runtime/Memory/VmAllocatorPagefileBacked.hpp>
 
 namespace usagi
 {
-struct RawInputSink
+struct RawInputSink : win32::WindowMessageTarget
 {
-    static inline const wchar_t WINDOW_CLASS_NAME[] = L"UsagiWin32RawInputSink";
     HINSTANCE process_instance_handle = GetModuleHandleW(nullptr);
-    HWND message_window = nullptr;
+
+    std::vector<std::byte> message_queue;
 
     void register_window_class();
     void create_input_sink_window();
@@ -29,5 +33,10 @@ struct RawInputSink
         destroy_input_sink_window();
         unregister_window_class();
     }
+
+    LRESULT message_handler(
+        UINT message,
+        WPARAM wParam,
+        LPARAM lParam) override;
 };
 }
