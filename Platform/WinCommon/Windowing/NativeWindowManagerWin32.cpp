@@ -19,6 +19,11 @@ struct Win32NativeWindowClass
 {
     Win32NativeWindowClass()
     {
+        USAGI_WIN32_CHECK_THROW(
+            SetProcessDpiAwarenessContext,
+            DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2
+        );
+
         // get the process handle, all windows created using this class will have
         // their messages dispatched to our handler
         const auto process_instance_handle = GetModuleHandleW(nullptr);
@@ -27,7 +32,7 @@ struct Win32NativeWindowClass
         wcex.cbSize = sizeof(WNDCLASSEXW);
         // CS_OWNDC is required to create OpenGL context
         wcex.style = CS_OWNDC;
-        wcex.lpfnWndProc = &win32::message_dispatcher;
+        wcex.lpfnWndProc = &message_dispatcher;
         wcex.hInstance = process_instance_handle;
         // hInstance param must be null to use predefined cursors
         wcex.hCursor = LoadCursorW(nullptr, IDC_ARROW);
@@ -74,7 +79,10 @@ NativeWindow * NativeWindowManagerWin32::create_window(
 {
     WindowRecord record;
     record.window = std::make_unique<NativeWindowWin32>(
-        title, position, size, gWin32WindowClassName
+        title,
+        position,
+        size,
+        gWin32WindowClassName
     );
     record.identifier = identifier;
     record.touched = true;
@@ -86,10 +94,12 @@ NativeWindow * NativeWindowManagerWin32::create_window(
 NativeWindow * NativeWindowManagerWin32::window(
     std::string_view identifier)
 {
-    const auto iter = std::ranges::find_if(mWindows, [&](auto &&r) {
-        return r.identifier == identifier;
-    });
-    if(iter == mWindows.end()) return nullptr;
+    const auto iter = std::ranges::find_if(
+        mWindows,
+        [&](auto &&r) { return r.identifier == identifier; }
+    );
+    if(iter == mWindows.end())
+        return nullptr;
     iter->touched = true;
     return iter->window.get();
 }
@@ -97,15 +107,17 @@ NativeWindow * NativeWindowManagerWin32::window(
 void NativeWindowManagerWin32::destroy_unused_windows()
 {
     const auto rng = std::ranges::remove_if(
-        mWindows, [](auto &&wnd) {
-        if(wnd.touched == false || wnd.window->should_close())
-        {
-            wnd.window.reset();
-            return true;
+        mWindows,
+        [](auto &&wnd) {
+            if(wnd.touched == false || wnd.window->should_close())
+            {
+                wnd.window.reset();
+                return true;
+            }
+            wnd.touched = false;
+            return false;
         }
-        wnd.touched = false;
-        return false;
-    });
+    );
     mWindows.erase(rng.begin(), rng.end());
 }
 }

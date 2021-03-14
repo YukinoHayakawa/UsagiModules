@@ -59,7 +59,7 @@ struct SystemNativeWindowCoordinator
             else
             {
                 c_region.position = h_wnd->position();
-                c_region.size = h_wnd->size();
+                c_region.size = h_wnd->logical_size();
                 c_wnd.dpi_scaling = h_wnd->dpi_scaling();
             }
         }

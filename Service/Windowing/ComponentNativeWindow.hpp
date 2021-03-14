@@ -7,7 +7,7 @@ namespace usagi
 struct ComponentNativeWindow
 {
     FixedCapacityString<16> identifier;
-    Vector2f dpi_scaling { 1, 1 };
+    float dpi_scaling = 1;
 
     enum OnCloseAction : std::uint16_t
     {
@@ -17,4 +17,5 @@ struct ComponentNativeWindow
         NOTIFY_EXIT     = 1 << 2,
     } on_close = DESTROY_ENTITY;
 };
+
 }

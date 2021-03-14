@@ -21,6 +21,15 @@ class NativeWindowWin32
     RECT window_rect() const;
     UINT build_style() const;
     void update_style(UINT style);
+    void verify_client_area_size();
+    void update_position();
+
+    void update_dpi_scaling(UINT dpi)
+    {
+        mDpiScaling = dpi;
+        mDpiScaling /= USER_DEFAULT_SCREEN_DPI;
+        mSurfaceSize = mLogicalSize * mDpiScaling;
+    }
 
     friend class NativeWindowManagerWin32;
 

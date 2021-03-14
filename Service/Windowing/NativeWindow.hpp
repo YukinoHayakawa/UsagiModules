@@ -26,16 +26,20 @@ class NativeWindow
 {
 protected:
     Vector2f mPosition { 0, 0 };
-    Vector2f mSize { 0, 0 };
-    Vector2f mDpiScaling { 1, 1 };
+    Vector2f mLogicalSize { 0, 0 };
+    Vector2f mSurfaceSize { 0, 0 };
+    float mDpiScaling = 1;
     bool mShouldClose = false;
 
 public:
     virtual ~NativeWindow() = default;
 
     Vector2f position() const { return mPosition; }
-    Vector2f size() const { return mSize; }
-    Vector2f dpi_scaling() const { return mDpiScaling; }
+    // Base size of the window.
+    Vector2f logical_size() const { return mLogicalSize; }
+    // The actual size of the window = logical size * DPI scaling.
+    Vector2f surface_size() const { return mSurfaceSize; }
+    float dpi_scaling() const { return mDpiScaling; }
 
     bool should_close() const { return mShouldClose; }
     virtual void destroy() = 0;
