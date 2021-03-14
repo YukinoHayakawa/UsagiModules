@@ -14,6 +14,9 @@ struct Win32NativeWindowClass;
 
 class NativeWindowManagerWin32 : public NativeWindowManager
 {
+    // must be destructed after destroying all the window
+    std::shared_ptr<win32::Win32NativeWindowClass> mWindowClass;
+
     struct WindowRecord
     {
         std::unique_ptr<class NativeWindowWin32> window;
@@ -22,7 +25,6 @@ class NativeWindowManagerWin32 : public NativeWindowManager
     };
     // HWND -> Record
     std::vector<WindowRecord> mWindows;
-    std::shared_ptr<win32::Win32NativeWindowClass> mWindowClass;
 
 public:
     NativeWindowManagerWin32();

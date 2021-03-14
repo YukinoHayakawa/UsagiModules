@@ -142,6 +142,8 @@ LRESULT RawInputSink::message_handler(
                 input,
                 input->header.dwSize
             );
+
+            return 0;
         }
         default: break;
     }

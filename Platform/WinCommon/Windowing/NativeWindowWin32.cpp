@@ -95,8 +95,8 @@ LRESULT NativeWindowWin32::message_handler(
             mShouldClose = true;
             return 0;
 
-        default:
-            return DefWindowProcW(mWindowHandle, message, wParam, lParam);
+        default: break;
     }
+    return DefWindowProcW(mWindowHandle, message, wParam, lParam);
 }
 }
