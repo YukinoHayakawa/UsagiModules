@@ -4,9 +4,6 @@ namespace usagi
 {
 RECT NativeWindowWin32::window_rect() const
 {
-    // Note that RECT represents an enclosed area. The corners are all WITHIN
-    // the area. Therefore, when calculating the width and height from it,
-    // attentions must be paid to the 1px of the border.
     RECT rect;
     rect.left = 0;
     rect.top = 0;
@@ -26,6 +23,23 @@ RECT NativeWindowWin32::window_rect() const
     rect.left += mPosition.x();
     rect.top += mPosition.y();
 
+    return rect;
+}
+
+RECT NativeWindowWin32::frame_size() const
+{
+    RECT rect;
+    rect.left = 0;
+    rect.top = 0;
+    rect.right = 0;
+    rect.bottom = 0;
+    AdjustWindowRectExForDpi(
+        &rect,
+        WINDOW_STYLE,
+        FALSE,
+        WINDOW_STYLE_EX,
+        mDpiScaling * USER_DEFAULT_SCREEN_DPI
+    );
     return rect;
 }
 
@@ -180,6 +194,26 @@ LRESULT NativeWindowWin32::message_handler(
                 SWP_NOZORDER | SWP_NOACTIVATE
             );
             // verify_client_area_size();
+
+            return 0;
+        }
+
+        case WM_WINDOWPOSCHANGED:
+        {
+            auto pos = *(PWINDOWPOS)lParam;
+            const auto frame = frame_size();
+            // calculate the new rect of client area
+            pos.x -= frame.left; // left and top are negative
+            pos.y -= frame.top;
+            pos.cx += frame.left;
+            pos.cx -= frame.right;
+            pos.cy += frame.top;
+            pos.cy -= frame.bottom;
+
+            mPosition = { pos.x, pos.y };
+            mSurfaceSize = { pos.cx, pos.cy };
+            mLogicalSize = mSurfaceSize / mDpiScaling;
+            mLogicalSize = { ceil(mLogicalSize.x()), ceil(mLogicalSize.y()) };
 
             return 0;
         }
