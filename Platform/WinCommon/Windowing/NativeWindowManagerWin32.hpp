@@ -37,7 +37,5 @@ public:
         const Vector2f &size) override;
     NativeWindow * window(std::string_view identifier) override;
     void destroy_unused_windows() override;
-
-    static void mark_closed(NativeWindowWin32 *window);
 };
 }

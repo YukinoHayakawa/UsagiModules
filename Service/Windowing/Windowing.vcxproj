@@ -61,6 +61,7 @@
   <ItemGroup>
     <ClInclude Include="ComponentNativeWindow.hpp" />
     <ClInclude Include="NativeWindow.hpp" />
+    <ClInclude Include="NativeWindowState.hpp" />
     <ClInclude Include="ServiceNativeWindowManager.hpp" />
     <ClInclude Include="SystemNativeWindowCoordinator.hpp" />
     <ClInclude Include="NativeWindowManager.hpp" />

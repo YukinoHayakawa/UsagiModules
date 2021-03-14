@@ -19,7 +19,6 @@ class NativeWindowWin32
     static constexpr DWORD WINDOW_STYLE_EX = WS_EX_ACCEPTFILES;
 
     RECT window_rect() const;
-    RECT frame_size() const;
     UINT build_style() const;
     void update_style(UINT style);
     void verify_client_area_size();

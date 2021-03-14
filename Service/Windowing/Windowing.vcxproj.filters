@@ -30,6 +30,9 @@
     <ClInclude Include="SystemNativeWindowCoordinator.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="NativeWindowState.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CreateLib.cpp">

@@ -2,6 +2,8 @@
 
 #include <Usagi/Module/Common/Math/Matrix.hpp>
 
+#include "NativeWindowState.hpp"
+
 namespace usagi
 {
 /**
@@ -29,7 +31,7 @@ protected:
     Vector2f mLogicalSize { 0, 0 };
     Vector2f mSurfaceSize { 0, 0 };
     float mDpiScaling = 1;
-    bool mShouldClose = false;
+    NativeWindowState mState = NativeWindowState::NORMAL;
 
 public:
     virtual ~NativeWindow() = default;
@@ -41,7 +43,11 @@ public:
     Vector2f surface_size() const { return mSurfaceSize; }
     float dpi_scaling() const { return mDpiScaling; }
 
-    bool should_close() const { return mShouldClose; }
+    NativeWindowState state() const { return mState; }
+    bool closed() const { return state() == NativeWindowState::CLOSED; }
+    bool maximized() const { return state() == NativeWindowState::MAXIMIZED; }
+    bool minimized() const { return state() == NativeWindowState::MINIMIZED; }
+
     virtual void destroy() = 0;
 
     // virtual void setPosition(const Vector2i &position) = 0;

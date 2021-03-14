@@ -32,6 +32,7 @@ struct SystemNativeWindowCoordinator
             // for the entity
             if(!h_wnd)
             {
+                // todo: restore window state (maximized/etc)
                 wnd_mgr.create_window(
                     id,
                     "test",
@@ -39,7 +40,7 @@ struct SystemNativeWindowCoordinator
                     c_region.size
                 );
             }
-            else if(h_wnd->should_close())
+            else if(h_wnd->closed())
             {
                 using Action = ComponentNativeWindow::OnCloseAction;
 
@@ -55,7 +56,6 @@ struct SystemNativeWindowCoordinator
                 }
             }
             // synchronize the window state
-            // todo: sync in two directions
             else
             {
                 c_region.position = h_wnd->position();

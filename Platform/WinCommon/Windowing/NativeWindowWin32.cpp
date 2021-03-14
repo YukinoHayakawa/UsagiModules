@@ -26,23 +26,6 @@ RECT NativeWindowWin32::window_rect() const
     return rect;
 }
 
-RECT NativeWindowWin32::frame_size() const
-{
-    RECT rect;
-    rect.left = 0;
-    rect.top = 0;
-    rect.right = 0;
-    rect.bottom = 0;
-    AdjustWindowRectExForDpi(
-        &rect,
-        WINDOW_STYLE,
-        FALSE,
-        WINDOW_STYLE_EX,
-        mDpiScaling * USER_DEFAULT_SCREEN_DPI
-    );
-    return rect;
-}
-
 UINT NativeWindowWin32::build_style() const
 {
     UINT style = WS_VISIBLE;
@@ -153,7 +136,7 @@ LRESULT NativeWindowWin32::message_handler(
     {
         case WM_CLOSE:
         {
-            mShouldClose = true;
+            mState = NativeWindowState::CLOSED;
             return 0;
         }
 
@@ -198,20 +181,32 @@ LRESULT NativeWindowWin32::message_handler(
             return 0;
         }
 
-        case WM_WINDOWPOSCHANGED:
+        // https://docs.microsoft.com/en-us/windows/win32/winmsg/wm-move
+        case WM_MOVE:
         {
-            auto pos = *(PWINDOWPOS)lParam;
-            const auto frame = frame_size();
-            // calculate the new rect of client area
-            pos.x -= frame.left; // left and top are negative
-            pos.y -= frame.top;
-            pos.cx += frame.left;
-            pos.cx -= frame.right;
-            pos.cy += frame.top;
-            pos.cy -= frame.bottom;
+            const auto x = (int)(short)LOWORD(lParam);
+            const auto y = (int)(short)HIWORD(lParam);
+            mPosition = { x, y };
+            return 0;
+        }
 
-            mPosition = { pos.x, pos.y };
-            mSurfaceSize = { pos.cx, pos.cy };
+        case WM_SIZE:
+        {
+            switch(wParam)
+            {
+                case SIZE_MAXIMIZED:
+                    mState = NativeWindowState::MAXIMIZED;
+                    break;
+                case SIZE_MINIMIZED:
+                    mState = NativeWindowState::MINIMIZED;
+                    break;
+                case SIZE_RESTORED:
+                    mState = NativeWindowState::NORMAL;
+                    break;
+                default: goto defproc;
+            }
+
+            mSurfaceSize = { LOWORD(lParam), HIWORD(lParam) };
             mLogicalSize = mSurfaceSize / mDpiScaling;
             mLogicalSize = { ceil(mLogicalSize.x()), ceil(mLogicalSize.y()) };
 
@@ -220,6 +215,7 @@ LRESULT NativeWindowWin32::message_handler(
 
         default: break;
     }
+defproc:
     return DefWindowProcW(mWindowHandle, message, wParam, lParam);
 }
 }
