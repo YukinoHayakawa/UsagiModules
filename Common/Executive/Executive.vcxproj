@@ -61,6 +61,7 @@
     <ClInclude Include="AppDatabase.hpp" />
     <ClInclude Include="AppDirectory.hpp" />
     <ClInclude Include="AppHost.hpp" />
+    <ClInclude Include="ServiceTransitionGraph.hpp" />
     <ClInclude Include="SystemTaskList.hpp" />
   </ItemGroup>
   <ItemGroup>
