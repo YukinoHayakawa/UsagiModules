@@ -27,13 +27,25 @@ namespace usagi
 class NativeWindow
 {
 protected:
-    Vector2f mPosition { 0, 0 };
-    Vector2f mLogicalSize { 0, 0 };
+    Vector2f mPosition;
+    Vector2f mLogicalSize;
     Vector2f mSurfaceSize { 0, 0 };
-    float mDpiScaling = 1;
-    NativeWindowState mState = NativeWindowState::NORMAL;
+    float mDpiScaling;
+    NativeWindowState mState;
 
 public:
+    NativeWindow(
+        Vector2f position,
+        Vector2f logical_size,
+        float dpi_scaling,
+        NativeWindowState state)
+        : mPosition(std::move(position))
+        , mLogicalSize(std::move(logical_size))
+        , mDpiScaling(dpi_scaling)
+        , mState(state)
+    {
+    }
+
     virtual ~NativeWindow() = default;
 
     Vector2f position() const { return mPosition; }

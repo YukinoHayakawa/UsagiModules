@@ -70,13 +70,17 @@ NativeWindow * NativeWindowManagerWin32::create_window(
     std::string_view identifier,
     std::string_view title,
     const Vector2f &position,
-    const Vector2f &size)
+    const Vector2f &size,
+    float dpi_scaling,
+    NativeWindowState state)
 {
     WindowRecord record;
     record.window = std::make_unique<NativeWindowWin32>(
         title,
         position,
         size,
+        dpi_scaling,
+        state,
         gWin32WindowClassName
     );
     record.identifier = identifier;

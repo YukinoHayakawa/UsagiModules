@@ -37,7 +37,9 @@ struct SystemNativeWindowCoordinator
                     id,
                     "test",
                     c_region.position,
-                    c_region.size
+                    c_region.size,
+                    c_wnd.dpi_scaling,
+                    c_wnd.state
                 );
             }
             else if(h_wnd->closed())
@@ -61,6 +63,7 @@ struct SystemNativeWindowCoordinator
                 c_region.position = h_wnd->position();
                 c_region.size = h_wnd->logical_size();
                 c_wnd.dpi_scaling = h_wnd->dpi_scaling();
+                c_wnd.state = h_wnd->state();
             }
         }
 

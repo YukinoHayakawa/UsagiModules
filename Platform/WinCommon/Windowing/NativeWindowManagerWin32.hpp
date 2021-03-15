@@ -34,7 +34,9 @@ public:
         std::string_view identifier,
         std::string_view title,
         const Vector2f &position,
-        const Vector2f &size) override;
+        const Vector2f &size,
+        float dpi_scaling,
+        NativeWindowState state) override;
     NativeWindow * window(std::string_view identifier) override;
     void destroy_unused_windows() override;
 };

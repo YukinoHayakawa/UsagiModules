@@ -23,6 +23,7 @@ class NativeWindowWin32
     void update_style(UINT style);
     void verify_client_area_size();
     void update_position();
+    void sync_window_state();
 
     void update_dpi_scaling(UINT dpi)
     {
@@ -38,6 +39,8 @@ public:
         std::string_view title,
         const Vector2f &position,
         const Vector2f &size,
+        float dpi_scaling,
+        NativeWindowState state,
         const wchar_t *window_class
     );
 

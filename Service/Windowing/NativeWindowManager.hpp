@@ -2,6 +2,8 @@
 
 #include <Usagi/Module/Common/Math/Matrix.hpp>
 
+#include "NativeWindowState.hpp"
+
 namespace usagi
 {
 class NativeWindow;
@@ -15,7 +17,9 @@ public:
         std::string_view identifier,
         std::string_view title,
         const Vector2f &position,
-        const Vector2f &size
+        const Vector2f &size,
+        float dpi_scaling,
+        NativeWindowState state
     ) = 0;
 
     virtual NativeWindow * window(std::string_view identifier) = 0;

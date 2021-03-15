@@ -1,5 +1,7 @@
 ﻿#include "NativeWindowWin32.hpp"
 
+// #include <fmt/printf.h>
+
 namespace usagi
 {
 RECT NativeWindowWin32::window_rect() const
@@ -39,6 +41,8 @@ UINT NativeWindowWin32::build_style() const
         if(!mAllowResizing)
             style ^= WS_MAXIMIZEBOX | WS_SIZEBOX;
     }
+    if(mState == NativeWindowState::MINIMIZED) style |= WS_MINIMIZE;
+    else if(mState == NativeWindowState::MAXIMIZED) style |= WS_MAXIMIZE;
     return style;
 }
 
@@ -73,16 +77,32 @@ void NativeWindowWin32::update_position()
     // verify_client_area_size();
 }
 
+void NativeWindowWin32::sync_window_state()
+{
+    int flag = 0;
+    switch(mState)
+    {
+        case NativeWindowState::NORMAL: flag = SW_SHOWNORMAL; break;
+        case NativeWindowState::HIDDEN: flag = SW_HIDE; break;
+        case NativeWindowState::MINIMIZED: flag = SW_SHOWMINIMIZED; break;
+        case NativeWindowState::MAXIMIZED: flag = SW_SHOWMAXIMIZED; break;
+        default: USAGI_UNREACHABLE();
+    }
+    USAGI_WIN32_CHECK_THROW(ShowWindow, mWindowHandle, flag);
+}
+
 NativeWindowWin32::NativeWindowWin32(
     std::string_view title,
     const Vector2f &position,
     const Vector2f &size,
+    float dpi_scaling,
+    NativeWindowState state,
     const wchar_t *window_class)
+    : NativeWindow(position, size, dpi_scaling, state)
 {
-    mPosition = position;
-    mLogicalSize = size;
-    update_dpi_scaling(USER_DEFAULT_SCREEN_DPI);
+    update_dpi_scaling(USER_DEFAULT_SCREEN_DPI * dpi_scaling);
 
+    // todo
     // const auto window_title_wide = utf8To16(mTitle);
     const auto rect = window_rect();
     const auto dw_style = build_style();
@@ -95,15 +115,15 @@ NativeWindowWin32::NativeWindowWin32(
         // window_title_wide.c_str(),
         L"test",
         dw_style,
-        rect.left, rect.top,
-        rect.right, rect.bottom,
+        rect.left,
+        rect.top,
+        rect.right,
+        rect.bottom,
         nullptr,
         nullptr,
         GetModuleHandleW(nullptr),
         nullptr
     );
-
-    // update_style(dw_style);
 
     SetWindowLongPtrW(
         mWindowHandle,
@@ -111,14 +131,16 @@ NativeWindowWin32::NativeWindowWin32(
         reinterpret_cast<ULONG_PTR>(static_cast<WindowMessageTarget*>(this))
     );
 
-    // Update window DPI scaling
-    UINT dpi;
-    USAGI_WIN32_CHECK_ASSIGN_THROW(dpi, GetDpiForWindow, mWindowHandle);
-    update_dpi_scaling(dpi);
-    update_position();
+    if(mState != NativeWindowState::MINIMIZED)
+    {
+        // Update window DPI scaling
+        UINT dpi;
+        USAGI_WIN32_CHECK_ASSIGN_THROW(dpi, GetDpiForWindow, mWindowHandle);
+        update_dpi_scaling(dpi);
+        update_position();
+    }
 
-    // show(true);
-    USAGI_WIN32_CHECK_THROW(ShowWindow, mWindowHandle, SW_SHOWNORMAL);
+    USAGI_WIN32_CHECK_THROW(ShowWindow, mWindowHandle, SW_SHOW);
 }
 
 void NativeWindowWin32::destroy()
@@ -145,6 +167,8 @@ LRESULT NativeWindowWin32::message_handler(
         // bug: the value returned from this message is NOT passed to WM_DPICHANGED, at least in Windows 10 2004. Probably a Windows bug.
         case WM_GETDPISCALEDSIZE:
         {
+            // fmt::print("WM_GETDPISCALEDSIZE\n");
+
             update_dpi_scaling(wParam);
 
             // Calculate the new decorated size and provide it to the OS.
@@ -161,21 +185,48 @@ LRESULT NativeWindowWin32::message_handler(
         // to receive this message.
         case WM_DPICHANGED:
         {
+            // fmt::print("WM_DPICHANGED\n");
+
             update_dpi_scaling(HIWORD(wParam));
 
-            // DO NOT trust the RECT passed by Windows. Calculate it again.
+            // The RECT calculated by Windows is inaccurate: moving a window
+            // back and forth between two monitors with different scaling could
+            // change the size of the window. Therefore, we calculate the size
+            // by ourselves. Unless the window is being maximized (by snapping,
+            // for example), in which case a sequence of WM_MOVE, WM_SIZE,
+            // WM_DPICHANGED is passed, and two subsequent WM_MOVE and
+            // WM_SIZE will be caused by the DPI change. The first move & size
+            // messages will update our rect of the window. If we rescale the
+            // window again during the DPI change, the window will have
+            // incorrect size.
             RECT* const prc_new_window = (RECT*)lParam;
-            const auto rect = window_rect();
-            USAGI_WIN32_CHECK_THROW(
-                SetWindowPos,
-                mWindowHandle,
-                nullptr,
-                prc_new_window->left,
-                prc_new_window->top,
-                rect.right,
-                rect.bottom,
-                SWP_NOZORDER | SWP_NOACTIVATE
-            );
+            if(mState == NativeWindowState::MAXIMIZED)
+            {
+                USAGI_WIN32_CHECK_THROW(
+                    SetWindowPos,
+                    mWindowHandle,
+                    nullptr,
+                    prc_new_window->left,
+                    prc_new_window->top,
+                    prc_new_window->right - prc_new_window->left,
+                    prc_new_window->bottom - prc_new_window->top,
+                    SWP_NOZORDER | SWP_NOACTIVATE
+                );
+            }
+            else
+            {
+                const auto rect = window_rect();
+                USAGI_WIN32_CHECK_THROW(
+                    SetWindowPos,
+                    mWindowHandle,
+                    nullptr,
+                    prc_new_window->left,
+                    prc_new_window->top,
+                    rect.right,
+                    rect.bottom,
+                    SWP_NOZORDER | SWP_NOACTIVATE
+                );
+            }
             // verify_client_area_size();
 
             return 0;
@@ -184,22 +235,33 @@ LRESULT NativeWindowWin32::message_handler(
         // https://docs.microsoft.com/en-us/windows/win32/winmsg/wm-move
         case WM_MOVE:
         {
+            // fmt::print("WM_MOVE\n");
+
             const auto x = (int)(short)LOWORD(lParam);
             const auto y = (int)(short)HIWORD(lParam);
-            mPosition = { x, y };
+
+            // The window is minimized.
+            // https://stackoverflow.com/questions/31755601/does-minimizing-a-window-on-a-modern-version-of-windows-still-move-it-to-coordin
+            if(!(x == -32000 && y == -32000))
+                mPosition = { x, y };
+
             return 0;
         }
 
         case WM_SIZE:
         {
+            // fmt::print("WM_SIZE\n");
+
             switch(wParam)
             {
                 case SIZE_MAXIMIZED:
                     mState = NativeWindowState::MAXIMIZED;
                     break;
+                // Don't update window size if it is minimized, since the size
+                // would be 0.
                 case SIZE_MINIMIZED:
                     mState = NativeWindowState::MINIMIZED;
-                    break;
+                    return 0;
                 case SIZE_RESTORED:
                     mState = NativeWindowState::NORMAL;
                     break;
