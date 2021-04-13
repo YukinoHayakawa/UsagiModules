@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include <sstream>
+#include <fmt/format.h>
 
 #include <Usagi/Entity/EntityDatabase.hpp>
 #include <Usagi/Runtime/Memory/PagedStorage.hpp>
@@ -9,6 +9,12 @@ namespace usagi
 {
 class ResumableAppBase
 {
+public:
+    using DatabaseConfig = entity::EntityDatabaseConfiguration<
+        PagedStorageFileBacked,
+        entity::InsertionPolicy::FIRST_VACANCY
+    >;
+
 protected:
     std::filesystem::path mBaseFolder;
 
@@ -43,10 +49,13 @@ protected:
 template <Component... EnabledComponents>
 class ResumableApp
     : ResumableAppBase
-    , EntityDatabaseFileBacked<EnabledComponents...>
+    , EntityDatabase<ResumableAppBase::DatabaseConfig, EnabledComponents...>
 {
 public:
-    using DatabaseT = EntityDatabaseFileBacked<EnabledComponents...>;
+    using DatabaseT = EntityDatabase<
+        DatabaseConfig,
+        EnabledComponents...
+    >;
 
 protected:
     using StorageT = typename DatabaseT::EntityPageStorageT;
