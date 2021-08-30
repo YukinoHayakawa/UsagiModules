@@ -8,7 +8,7 @@ namespace usagi
 {
 VulkanSwapchain::VulkanSwapchain(
     VulkanGpuDevice *device,
-    vk::UniqueSurfaceKHR vk_surface_khr)
+    VulkanUniqueSurface vk_surface_khr)
     : mDevice { device }
     , mSurface { std::move(vk_surface_khr) }
     // todo linear color format? https://stackoverflow.com/questions/12524623/what-are-the-practical-differences-when-working-with-colors-in-a-linear-vs-a-no
@@ -24,13 +24,14 @@ vk::Semaphore VulkanSwapchain::acquire_next_image()
 
     auto sem = mDevice->allocate_semaphore();
 
-    // todo sometimes hangs when debugging with RenderDoc
+    // bug sometimes hangs when debugging with RenderDoc
     const auto result = mDevice->device().acquireNextImageKHR(
         mSwapchain.get(),
         UINT64_MAX, // 1000000000u, // 1s
         sem,
         nullptr,
-        &mCurrentImageIndex
+        &mCurrentImageIndex,
+        mDevice->dispatch_device()
     );
     switch(result)
     {
@@ -78,7 +79,9 @@ void VulkanSwapchain::present(const std::span<vk::Semaphore> wait_semaphores)
 
     // If the swapchain is suboptimal or out-of-date, it will be recreated
     // during next call of acquireNextImage().
-    switch(mDevice->present_queue().presentKHR(&info))
+    switch(mDevice->present_queue().presentKHR(
+        &info,
+        mDevice->dispatch_device()))
     {
         case vk::Result::eSuccess: break;
         case vk::Result::eSuboptimalKHR:
@@ -162,14 +165,18 @@ std::uint32_t VulkanSwapchain::select_presentation_queue_family() const
 {
     // todo use vkGetPhysicalDeviceWin32PresentationSupportKHR
     const auto queue_families =
-        mDevice->physical_device().getQueueFamilyProperties();
+        mDevice->physical_device().getQueueFamilyProperties(
+            mDevice->dispatch_instance()
+        );
     for(auto i = queue_families.begin(); i != queue_families.end(); ++i)
     {
         const auto queue_index =
             static_cast<uint32_t>(i - queue_families.begin());
         if(mDevice->physical_device().getSurfaceSupportKHR(
-            queue_index, mSurface.get()))
-            return queue_index;
+            queue_index,
+            mSurface.get(),
+            mDevice->dispatch_instance()
+        )) return queue_index;
     }
     USAGI_THROW(std::runtime_error("No queue family supporting WSI was found."));
 }
@@ -189,7 +196,7 @@ void VulkanSwapchain::create(
     // Ensure that no operation involving the swapchain images is outstanding.
     // Since acquireNextImage() and drawing operations aren't parallel,
     // as long as the device is idle, it won't happen.
-    mDevice->device().waitIdle();
+    mDevice->device().waitIdle(mDevice->dispatch_device());
 
     LOG(info, "Creating swapchain");
 
@@ -199,11 +206,14 @@ void VulkanSwapchain::create(
     //     mPresentationQueueFamilyIndex);
 
     const auto surface_capabilities =
-        mDevice->physical_device().getSurfaceCapabilitiesKHR(mSurface.get());
+        mDevice->physical_device().getSurfaceCapabilitiesKHR(
+            mSurface.get(), mDevice->dispatch_instance());
     const auto surface_formats =
-        mDevice->physical_device().getSurfaceFormatsKHR(mSurface.get());
+        mDevice->physical_device().getSurfaceFormatsKHR(
+            mSurface.get(), mDevice->dispatch_instance());
     const auto surface_present_modes =
-        mDevice->physical_device().getSurfacePresentModesKHR(mSurface.get());
+        mDevice->physical_device().getSurfacePresentModesKHR(
+            mSurface.get(), mDevice->dispatch_instance());
 
     vk::SwapchainCreateInfoKHR create_info;
 
@@ -240,7 +250,8 @@ void VulkanSwapchain::create(
 
     create_info.setOldSwapchain(mSwapchain.get());
 
-    mSwapchain = mDevice->device().createSwapchainKHRUnique(create_info);
+    mSwapchain = mDevice->device().createSwapchainKHRUnique(
+        create_info, nullptr, mDevice->dispatch_device());
     mFormat = vk_format;
     mSize = { create_info.imageExtent.width, create_info.imageExtent.height };
 
@@ -249,7 +260,8 @@ void VulkanSwapchain::create(
 
 void VulkanSwapchain::get_swapchain_images()
 {
-    mImages = mDevice->device().getSwapchainImagesKHR(mSwapchain.get());
+    mImages = mDevice->device().getSwapchainImagesKHR(
+        mSwapchain.get(), mDevice->dispatch_device());
     mCurrentImageIndex = INVALID_IMAGE_INDEX;
 }
 }

@@ -121,6 +121,12 @@ uint32_t VulkanGpuDevice::select_queue(
 
 void VulkanGpuDevice::create_instance()
 {
+    vk::DynamicLoader loader;
+    const auto instance_proc = loader.getProcAddress<PFN_vkGetInstanceProcAddr>(
+        "vkGetInstanceProcAddr"
+    );
+    mDispatchInit.init(instance_proc);
+
     LOG(info, "Creating Vulkan intance");
     LOG(info, "--------------------------------");
 
@@ -135,17 +141,17 @@ void VulkanGpuDevice::create_instance()
     {
         LOG(info, "Available instance extensions");
         LOG(info, "--------------------------------");
-        for(auto &&ext : vk::enumerateInstanceExtensionProperties())
-        {
-            LOG(info, ext.extensionName.data());
-        }
+        for(auto &&ext : enumerateInstanceExtensionProperties(
+            nullptr,
+            mDispatchInstance
+        )) LOG(info, ext.extensionName.data());
         LOG(info, "--------------------------------");
     }
     // Validation layers
     {
         LOG(info, "Available validation layers");
         LOG(info, "--------------------------------");
-        for(auto &&layer : vk::enumerateInstanceLayerProperties())
+        for(auto &&layer : enumerateInstanceLayerProperties(mDispatchInstance))
         {
             LOG(info, "Name       : {}", layer.layerName);
             LOG(info, "Description: {}", layer.description);
@@ -178,7 +184,13 @@ void VulkanGpuDevice::create_instance()
         static_cast<uint32_t>(validation_layers.size()));
     instance_create_info.setPpEnabledLayerNames(validation_layers.data());
 
-    mInstance = createInstanceUnique(instance_create_info);
+    mInstance = createInstanceUnique(
+        instance_create_info,
+        nullptr,
+        mDispatchInit
+    );
+
+    mDispatchInstance.init(mInstance.get(), instance_proc);
 }
 
 void VulkanGpuDevice::create_debug_report()
@@ -197,44 +209,47 @@ void VulkanGpuDevice::create_debug_report()
         Type::ePerformance;
     info.pfnUserCallback = &debug_messenger_callback_dispatcher;
 
-    mDebugUtilsMessenger = mInstance->createDebugUtilsMessengerEXTUnique(info);
+    mDebugUtilsMessenger = mInstance->createDebugUtilsMessengerEXTUnique(
+        info, nullptr, mDispatchInstance
+    );
 }
 
 void VulkanGpuDevice::select_physical_device()
 {
+    LOG(info, "Available physical devices");
+    LOG(info, "--------------------------------");
+    for(auto physical_devices = mInstance->enumeratePhysicalDevices(
+        mDispatchInstance); auto &&dev : physical_devices)
     {
-        LOG(info, "Available physical devices");
+        const auto prop = dev.getProperties(mDispatchInstance);
+        LOG(info, "Device Name   : {}", prop.deviceName);
+        LOG(info, "Device Type   : {}", to_string(prop.deviceType));
+        LOG(info, "Device ID     : {}", prop.deviceID);
+        LOG(info, "API Version   : {}", prop.apiVersion);
+        LOG(info, "Driver Version: {}", prop.vendorID);
+        LOG(info, "Vendor ID     : {}", prop.vendorID);
         LOG(info, "--------------------------------");
-        auto physical_devices = mInstance->enumeratePhysicalDevices();
-        for(auto &&dev : physical_devices)
-        {
-            const auto prop = dev.getProperties();
-            LOG(info, "Device Name   : {}", prop.deviceName);
-            LOG(info, "Device Type   : {}", to_string(prop.deviceType));
-            LOG(info, "Device ID     : {}", prop.deviceID);
-            LOG(info, "API Version   : {}", prop.apiVersion);
-            LOG(info, "Driver Version: {}", prop.vendorID);
-            LOG(info, "Vendor ID     : {}", prop.vendorID);
-            LOG(info, "--------------------------------");
-            // todo: select device based on features and score them / let the
-            // user choose
-            if(!mPhysicalDevice)
-                mPhysicalDevice = dev;
-            else if(prop.deviceType == vk::PhysicalDeviceType::eDiscreteGpu)
-                mPhysicalDevice = dev;
-        }
+        // todo: select device based on features and score them / let the
+        // user choose
+        if(!mPhysicalDevice)
+            mPhysicalDevice = dev;
+        else if(prop.deviceType == vk::PhysicalDeviceType::eDiscreteGpu)
+            mPhysicalDevice = dev;
     }
+
     if(!mPhysicalDevice)
         USAGI_THROW(std::runtime_error("No available GPU supporting Vulkan."));
     LOG(info, "Using physical device: {}",
-        mPhysicalDevice.getProperties().deviceName);
+        mPhysicalDevice.getProperties(mDispatchInstance).deviceName);
 }
 
 void VulkanGpuDevice::create_device_and_queues()
 {
     LOG(info, "Creating device and queues");
 
-    auto queue_families = mPhysicalDevice.getQueueFamilyProperties();
+    auto queue_families = mPhysicalDevice.getQueueFamilyProperties(
+        mDispatchInstance
+    );
     LOG(info, "Supported queue families:");
     for(std::size_t i = 0; i < queue_families.size(); ++i)
     {
@@ -266,6 +281,7 @@ void VulkanGpuDevice::create_device_and_queues()
     device_create_info.setPQueueCreateInfos(queue_create_info);
 
     // todo: check device capacity
+    // todo: move to instance ext
     const std::vector<const char *> device_extensions
     {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
@@ -274,9 +290,15 @@ void VulkanGpuDevice::create_device_and_queues()
         device_extensions.size()));
     device_create_info.setPpEnabledExtensionNames(device_extensions.data());
 
-    mDevice = mPhysicalDevice.createDeviceUnique(device_create_info);
+    mDevice = mPhysicalDevice.createDeviceUnique(
+        device_create_info, nullptr, mDispatchInstance);
+    mDispatchDevice.init(mInstance.get(), mDevice.get(), vk::DynamicLoader());
 
-    mGraphicsQueue = mDevice->getQueue(graphics_queue_index, 0);
+    mGraphicsQueue = mDevice->getQueue(
+        graphics_queue_index,
+        0,
+        mDispatchDevice
+    );
     mGraphicsQueueFamilyIndex = graphics_queue_index;
 }
 
@@ -309,7 +331,7 @@ void VulkanGpuDevice::submit_graphics_jobs(
     }
     submit.setCommandBufferInfos(mCmdSubmitInfo);
 
-    mGraphicsQueue.submit2KHR({ submit });
+    mGraphicsQueue.submit2KHR({ submit }, { }, dispatch_device());
     mCmdSubmitInfo.clear();
 }
 
@@ -341,7 +363,7 @@ void VulkanGpuDevice::submit_graphics_jobs(
 vk::Semaphore VulkanGpuDevice::allocate_semaphore()
 {
     // todo lifetime management
-    auto sem = mDevice->createSemaphore({ });
+    auto sem = mDevice->createSemaphore({ }, nullptr, mDispatchDevice);
     return sem;
 }
 

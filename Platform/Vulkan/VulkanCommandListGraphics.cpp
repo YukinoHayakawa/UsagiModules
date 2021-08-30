@@ -1,17 +1,19 @@
 ﻿#include "VulkanCommandListGraphics.hpp"
 
+#include "VulkanGpuDevice.hpp"
+
 namespace usagi
 {
 void VulkanCommandListGraphics::begin_recording()
 {
     vk::CommandBufferBeginInfo info;
     info.setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
-    mCommandBuffer->begin(info);
+    mCommandBuffer->begin(info, mDevice->dispatch_device());
 }
 
 void VulkanCommandListGraphics::end_recording()
 {
-    mCommandBuffer->end();
+    mCommandBuffer->end(mDevice->dispatch_device());
 }
 
 // Note: bad performance on tile-based GPUs
@@ -32,8 +34,11 @@ void VulkanCommandListGraphics::clear_color_image(
     subresource_range.setBaseMipLevel(0);
     subresource_range.setLevelCount(1);
     mCommandBuffer->clearColorImage(
-        image, layout,
-        color_value, { subresource_range }
+        image,
+        layout,
+        color_value,
+        { subresource_range },
+        mDevice->dispatch_device()
     );
 }
 
@@ -42,7 +47,6 @@ void VulkanCommandListGraphics::clear_color_image(
 // https://github.com/philiptaylor/vulkan-sxs/blob/master/04-clear/README.md
 // https://github.com/KhronosGroup/Vulkan-Guide/blob/master/chapters/extensions/VK_KHR_synchronization2.md
 // https://www.khronos.org/blog/understanding-vulkan-synchronization
-//
 void VulkanCommandListGraphics::image_transition(
     const vk::Image image,
     const Vulkan_GpuPipelineStage src_stage,
@@ -79,6 +83,6 @@ void VulkanCommandListGraphics::image_transition(
     dep.imageMemoryBarrierCount = 1;
     dep.pImageMemoryBarriers = &barrier;
 
-    mCommandBuffer->pipelineBarrier2KHR(dep);
+    mCommandBuffer->pipelineBarrier2KHR(dep, mDevice->dispatch_device());
 }
 }

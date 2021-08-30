@@ -3,10 +3,9 @@
 #include <map>
 #include <mutex>
 
-#include <vulkan/vulkan.hpp>
-
 #include <Usagi/Module/Service/Windowing/NativeWindow.hpp>
 
+#include "Vulkan.hpp"
 #include "VulkanCommandListGraphics.hpp"
 #include "VulkanSwapchain.hpp"
 
@@ -14,10 +13,14 @@ namespace usagi
 {
 class VulkanGpuDevice
 {
-    vk::UniqueInstance mInstance;
-    vk::UniqueDebugUtilsMessengerEXT mDebugUtilsMessenger;
+    VulkanUniqueInstance mInstance;
+    vk::UniqueHandle<vk::DebugUtilsMessengerEXT, vk::DispatchLoaderDynamic>
+        mDebugUtilsMessenger;
     vk::PhysicalDevice mPhysicalDevice;
-    vk::UniqueDevice mDevice;
+    VulkanUniqueDevice mDevice;
+    vk::DispatchLoaderDynamic mDispatchInit;
+    vk::DispatchLoaderDynamic mDispatchInstance;
+    vk::DispatchLoaderDynamic mDispatchDevice;
 
     vk::Queue mGraphicsQueue;
     std::uint32_t mGraphicsQueueFamilyIndex = -1;
@@ -95,5 +98,15 @@ public:
     vk::PhysicalDevice physical_device() const { return mPhysicalDevice; }
     vk::Device device() const { return mDevice.get(); }
     vk::Queue present_queue() const { return mGraphicsQueue; }
+
+    const vk::DispatchLoaderDynamic & dispatch_device() const
+    {
+        return mDispatchDevice;
+    }
+
+    const vk::DispatchLoaderDynamic & dispatch_instance() const
+    {
+        return mDispatchInstance;
+    }
 };
 }

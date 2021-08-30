@@ -1,18 +1,22 @@
 ﻿#pragma once
 
-#include <vulkan/vulkan.hpp>
-
 #include <Usagi/Module/Common/Color/Color.hpp>
 
+#include "Vulkan.hpp"
 #include "VulkanEnum.hpp"
 
 namespace usagi
 {
+class VulkanGpuDevice;
+
 class VulkanCommandListGraphics
 {
-    vk::UniqueCommandBuffer mCommandBuffer;
+    VulkanGpuDevice *mDevice = nullptr;
+    VulkanUniqueCommandBuffer mCommandBuffer;
 
 public:
+    // todo ctor
+
     void begin_recording();
     void end_recording();
 

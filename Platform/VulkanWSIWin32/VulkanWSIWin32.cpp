@@ -14,9 +14,11 @@ const char * VulkanGpuDevice::platform_surface_extension_name()
 void VulkanGpuDevice::check_queue_presentation_capacity_throw(
     const uint32_t queue_family_index) const
 {
-    if (!mPhysicalDevice.getWin32PresentationSupportKHR(queue_family_index))
-        USAGI_THROW(std::runtime_error(
-            "Graphics queue doesn't support Win32 presentation"));
+    if(!mPhysicalDevice.getWin32PresentationSupportKHR(
+        queue_family_index,
+        mDispatchInstance
+    )) USAGI_THROW(std::runtime_error(
+        "Graphics queue doesn't support Win32 presentation"));
 }
 
 VulkanSwapchain & VulkanGpuDevice::create_swapchain(NativeWindow* window)
@@ -31,9 +33,10 @@ VulkanSwapchain & VulkanGpuDevice::create_swapchain(NativeWindow* window)
         GetWindowLongPtrW(win32_window.handle(), GWLP_HINSTANCE)));
     surface_create_info.setHwnd(win32_window.handle());
 
-    auto surface = mInstance->createWin32SurfaceKHRUnique(surface_create_info);
+    auto surface = mInstance->createWin32SurfaceKHRUnique(
+        surface_create_info, nullptr, mDispatchInstance);
     if (!mPhysicalDevice.getSurfaceSupportKHR(
-        mGraphicsQueueFamilyIndex, surface.get()
+        mGraphicsQueueFamilyIndex, surface.get(), mDispatchInstance
     )) USAGI_THROW(std::runtime_error(
         "Graphics queue doesn't support Win32 surface"));
 

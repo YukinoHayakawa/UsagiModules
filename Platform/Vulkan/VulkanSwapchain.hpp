@@ -2,10 +2,10 @@
 
 #include <span>
 
-#include <vulkan/vulkan.hpp>
-
 #include <Usagi/Library/Noncopyable.hpp>
 #include <Usagi/Module/Common/Math/Matrix.hpp>
+
+#include "Vulkan.hpp"
 
 namespace usagi
 {
@@ -14,13 +14,13 @@ class VulkanGpuDevice;
 // todo
 class VulkanSwapchain : Noncopyable
 {
-    VulkanGpuDevice *mDevice;
+    VulkanGpuDevice *mDevice = nullptr;
 
-    vk::UniqueSurfaceKHR mSurface;
+    VulkanUniqueSurface mSurface;
     vk::SurfaceFormatKHR mFormat;
     Vector2u32 mSize;
 
-    vk::UniqueSwapchainKHR mSwapchain;
+    VulkanUniqueSwapchain mSwapchain;
 
     static inline constexpr uint32_t INVALID_IMAGE_INDEX = -1;
     uint32_t mCurrentImageIndex = INVALID_IMAGE_INDEX;
@@ -45,7 +45,7 @@ class VulkanSwapchain : Noncopyable
 public:
     VulkanSwapchain(
         VulkanGpuDevice *device,
-        vk::UniqueSurfaceKHR vk_surface_khr);
+        VulkanUniqueSurface vk_surface_khr);
 
     // GpuBufferFormat format() const override;
     Vector2u32 size() const { return mSize; }
