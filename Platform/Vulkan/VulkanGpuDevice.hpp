@@ -3,20 +3,19 @@
 #include <map>
 #include <mutex>
 
-#include <Usagi/Module/Service/Windowing/NativeWindow.hpp>
-
 #include "Vulkan.hpp"
 #include "VulkanCommandListGraphics.hpp"
 #include "VulkanSwapchain.hpp"
 
 namespace usagi
 {
+class NativeWindow;
+
 class VulkanGpuDevice
 {
     // keeps the connection to vulkan dynamic library
     vk::DynamicLoader mLoader;
-    vk::DispatchLoaderDynamic mDispatchInstance;
-    vk::DispatchLoaderDynamic mDispatchDevice;
+    vk::DispatchLoaderDynamic mDispatch;
     VulkanUniqueInstance mInstance;
     vk::UniqueHandle<vk::DebugUtilsMessengerEXT, vk::DispatchLoaderDynamic>
         mDebugUtilsMessenger;
@@ -105,14 +104,9 @@ public:
     vk::Device device() const { return mDevice.get(); }
     vk::Queue present_queue() const { return mGraphicsQueue; }
 
-    const vk::DispatchLoaderDynamic & dispatch_device() const
+    const vk::DispatchLoaderDynamic & dispatch() const
     {
-        return mDispatchDevice;
-    }
-
-    const vk::DispatchLoaderDynamic & dispatch_instance() const
-    {
-        return mDispatchInstance;
+        return mDispatch;
     }
 };
 }

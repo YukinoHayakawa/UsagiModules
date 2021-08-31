@@ -20,6 +20,8 @@ VulkanSwapchain::VulkanSwapchain(
 
 VulkanSwapchain::NextImage VulkanSwapchain::acquire_next_image()
 {
+    assert(mSwapchain);
+
     auto& sync_obj = locate_available_sync_objects();
     NextImage image;
 
@@ -30,7 +32,7 @@ VulkanSwapchain::NextImage VulkanSwapchain::acquire_next_image()
         sync_obj.sem_image_available.get(),
         nullptr,
         &image.priv_image_index,
-        mDevice->dispatch_device()
+        mDevice->dispatch()
     );
     switch(result)
     {
@@ -84,7 +86,7 @@ void VulkanSwapchain::present(
     // during next call of acquireNextImage().
     switch(mDevice->present_queue().presentKHR(
         &info,
-        mDevice->dispatch_device()))
+        mDevice->dispatch()))
     {
         case vk::Result::eSuccess: break;
         case vk::Result::eSuboptimalKHR:
@@ -114,7 +116,7 @@ VulkanSwapchain::locate_available_sync_objects()
         [this](auto&& o) {
             return mDevice->device().getFenceStatus(
                 o.fence_render_finished.get(),
-                mDevice->dispatch_device()
+                mDevice->dispatch()
             ) == vk::Result::eSuccess;
         }
     );
@@ -196,7 +198,7 @@ std::uint32_t VulkanSwapchain::select_presentation_queue_family() const
     // todo use vkGetPhysicalDeviceWin32PresentationSupportKHR
     const auto queue_families =
         mDevice->physical_device().getQueueFamilyProperties(
-            mDevice->dispatch_instance()
+            mDevice->dispatch()
         );
     for(auto i = queue_families.begin(); i != queue_families.end(); ++i)
     {
@@ -205,7 +207,7 @@ std::uint32_t VulkanSwapchain::select_presentation_queue_family() const
         if(mDevice->physical_device().getSurfaceSupportKHR(
             queue_index,
             mSurface.get(),
-            mDevice->dispatch_instance()
+            mDevice->dispatch()
         )) return queue_index;
     }
     USAGI_THROW(std::runtime_error(
@@ -227,7 +229,7 @@ void VulkanSwapchain::create(
     // Ensure that no operation involving the swapchain images is outstanding.
     // Since acquireNextImage() and drawing operations aren't parallel,
     // as long as the device is idle, it won't happen.
-    mDevice->device().waitIdle(mDevice->dispatch_device());
+    mDevice->device().waitIdle(mDevice->dispatch());
 
     LOG(info, "Creating swapchain");
 
@@ -238,13 +240,13 @@ void VulkanSwapchain::create(
 
     const auto surface_capabilities =
         mDevice->physical_device().getSurfaceCapabilitiesKHR(
-            mSurface.get(), mDevice->dispatch_instance());
+            mSurface.get(), mDevice->dispatch());
     const auto surface_formats =
         mDevice->physical_device().getSurfaceFormatsKHR(
-            mSurface.get(), mDevice->dispatch_instance());
+            mSurface.get(), mDevice->dispatch());
     const auto surface_present_modes =
         mDevice->physical_device().getSurfacePresentModesKHR(
-            mSurface.get(), mDevice->dispatch_instance());
+            mSurface.get(), mDevice->dispatch());
 
     vk::SwapchainCreateInfoKHR create_info;
 
@@ -287,7 +289,7 @@ void VulkanSwapchain::create(
     create_info.setOldSwapchain(mSwapchain.get());
 
     mSwapchain = mDevice->device().createSwapchainKHRUnique(
-        create_info, nullptr, mDevice->dispatch_device());
+        create_info, nullptr, mDevice->dispatch());
     mFormat = vk_format;
     mSize = { create_info.imageExtent.width, create_info.imageExtent.height };
 
@@ -298,7 +300,7 @@ void VulkanSwapchain::get_swapchain_images()
 {
     mImages = mDevice->device().getSwapchainImagesKHR(
         mSwapchain.get(),
-        mDevice->dispatch_device()
+        mDevice->dispatch()
     );
 }
 }

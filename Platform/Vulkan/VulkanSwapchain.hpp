@@ -56,13 +56,13 @@ class VulkanSwapchain : Noncopyable
 
     void get_swapchain_images();
 
-    void create(const Vector2u32 &size, vk::Format format);
-    void resize(const Vector2u32 &size);
-
 public:
     VulkanSwapchain(
         VulkanGpuDevice *device,
         VulkanUniqueSurface vk_surface_khr);
+
+    void create(const Vector2u32& size, vk::Format format);
+    void resize(const Vector2u32& size);
 
     // GpuBufferFormat format() const override;
     Vector2u32 size() const { return mSize; }

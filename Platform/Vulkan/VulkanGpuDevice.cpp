@@ -9,6 +9,9 @@ namespace usagi
 VulkanGpuDevice::VulkanGpuDevice()
 {
     create_instance();
+    create_debug_report();
+    select_physical_device();
+    create_device_and_queues();
 }
 
 VulkanGpuDevice::~VulkanGpuDevice()
@@ -125,7 +128,7 @@ void VulkanGpuDevice::create_instance()
         mLoader.getProcAddress<PFN_vkGetInstanceProcAddr>(
             "vkGetInstanceProcAddr"
         );
-    mDispatchInstance.init(instance_proc);
+    mDispatch.init(instance_proc);
 
     LOG(info, "Creating Vulkan instance");
     LOG(info, "--------------------------------");
@@ -143,7 +146,7 @@ void VulkanGpuDevice::create_instance()
         LOG(info, "--------------------------------");
         for(auto &&ext : enumerateInstanceExtensionProperties(
             nullptr,
-            mDispatchInstance
+            mDispatch
         )) LOG(info, ext.extensionName.data());
         LOG(info, "--------------------------------");
     }
@@ -151,7 +154,7 @@ void VulkanGpuDevice::create_instance()
     {
         LOG(info, "Available validation layers");
         LOG(info, "--------------------------------");
-        for(auto &&layer : enumerateInstanceLayerProperties(mDispatchInstance))
+        for(auto &&layer : enumerateInstanceLayerProperties(mDispatch))
         {
             LOG(info, "Name       : {}", layer.layerName);
             LOG(info, "Description: {}", layer.description);
@@ -187,12 +190,12 @@ void VulkanGpuDevice::create_instance()
     mInstance = createInstanceUnique(
         instance_create_info,
         nullptr,
-        mDispatchInstance
+        mDispatch
     );
 
     // further initialize instance-related functions including
     // vkDestroyInstance
-    mDispatchInstance.init(mInstance.get(), instance_proc);
+    mDispatch.init(mInstance.get(), instance_proc);
 
     LOG(info, "Vulkan instance created.");
 }
@@ -214,7 +217,7 @@ void VulkanGpuDevice::create_debug_report()
     info.pfnUserCallback = &debug_messenger_callback_dispatcher;
 
     mDebugUtilsMessenger = mInstance->createDebugUtilsMessengerEXTUnique(
-        info, nullptr, mDispatchInstance
+        info, nullptr, mDispatch
     );
 }
 
@@ -222,10 +225,10 @@ void VulkanGpuDevice::select_physical_device()
 {
     LOG(info, "Available physical devices");
     LOG(info, "--------------------------------");
-    for(auto physical_devices = mInstance->enumeratePhysicalDevices(
-        mDispatchInstance); auto &&dev : physical_devices)
+    for(auto physical_devices = mInstance->enumeratePhysicalDevices(mDispatch);
+        auto &&dev : physical_devices)
     {
-        const auto prop = dev.getProperties(mDispatchInstance);
+        const auto prop = dev.getProperties(mDispatch);
         LOG(info, "Device Name   : {}", prop.deviceName);
         LOG(info, "Device Type   : {}", to_string(prop.deviceType));
         LOG(info, "Device ID     : {}", prop.deviceID);
@@ -244,16 +247,14 @@ void VulkanGpuDevice::select_physical_device()
     if(!mPhysicalDevice)
         USAGI_THROW(std::runtime_error("No available GPU supporting Vulkan."));
     LOG(info, "Using physical device: {}",
-        mPhysicalDevice.getProperties(mDispatchInstance).deviceName);
+        mPhysicalDevice.getProperties(mDispatch).deviceName);
 }
 
 void VulkanGpuDevice::create_device_and_queues()
 {
     LOG(info, "Creating device and queues");
 
-    auto queue_families = mPhysicalDevice.getQueueFamilyProperties(
-        mDispatchInstance
-    );
+    auto queue_families = mPhysicalDevice.getQueueFamilyProperties(mDispatch);
     LOG(info, "Supported queue families:");
     for(std::size_t i = 0; i < queue_families.size(); ++i)
     {
@@ -295,13 +296,13 @@ void VulkanGpuDevice::create_device_and_queues()
     device_create_info.setPpEnabledExtensionNames(device_extensions.data());
 
     mDevice = mPhysicalDevice.createDeviceUnique(
-        device_create_info, nullptr, mDispatchInstance);
-    mDispatchDevice.init(mInstance.get(), mDevice.get(), vk::DynamicLoader());
+        device_create_info, nullptr, mDispatch);
+    mDispatch.init(mDevice.get());
 
     mGraphicsQueue = mDevice->getQueue(
         graphics_queue_index,
         0,
-        mDispatchDevice
+        mDispatch
     );
     mGraphicsQueueFamilyIndex = graphics_queue_index;
 }
@@ -336,7 +337,7 @@ void VulkanGpuDevice::submit_graphics_jobs(
     }
     submit.setCommandBufferInfos(mCmdSubmitInfo);
 
-    mGraphicsQueue.submit2KHR({ submit }, signal_fence, dispatch_device());
+    mGraphicsQueue.submit2KHR({ submit }, signal_fence, mDispatch);
     mCmdSubmitInfo.clear();
 }
 
@@ -369,12 +370,12 @@ void VulkanGpuDevice::submit_graphics_jobs(
 
 VulkanUniqueSemaphore VulkanGpuDevice::allocate_semaphore()
 {
-    return mDevice->createSemaphoreUnique({ }, nullptr, mDispatchDevice);
+    return mDevice->createSemaphoreUnique({ }, nullptr, mDispatch);
 }
 
 VulkanUniqueFence VulkanGpuDevice::allocate_fence()
 {
-    return mDevice->createFenceUnique({ }, nullptr, mDispatchDevice);
+    return mDevice->createFenceUnique({ }, nullptr, mDispatch);
 }
 
 VulkanSwapchain & VulkanGpuDevice::swapchain(NativeWindow * window)

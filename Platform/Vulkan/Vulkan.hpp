@@ -1,6 +1,35 @@
 ﻿#pragma once
 
+#ifdef _WIN32
+#define VK_USE_PLATFORM_WIN32_KHR
+#pragma push_macro("_WINDOWS_")
+    // define the minimal required types used by vulkan, unless windows.h
+    // is already included.
+    #ifndef _WINDOWS_
+        #define _WINDOWS_
+        struct HINSTANCE__ { int unused; }; typedef struct HINSTANCE__* HINSTANCE;
+        struct HWND__ { int unused; }; typedef struct HWND__* HWND;
+        struct HMONITOR__ { int unused; }; typedef struct HMONITOR__* HMONITOR;
+        typedef void *HANDLE;
+        typedef unsigned long DWORD;
+        typedef void *LPVOID;
+        typedef int BOOL;
+        typedef const wchar_t* LPCWSTR;
+        typedef struct _SECURITY_ATTRIBUTES {
+            DWORD nLength;
+            LPVOID lpSecurityDescriptor;
+            BOOL bInheritHandle;
+        } SECURITY_ATTRIBUTES, *PSECURITY_ATTRIBUTES, *LPSECURITY_ATTRIBUTES;
+    #endif
+#endif
+
+// do not use static dispatcher
+#define VK_NO_PROTOTYPES
 #include <vulkan/vulkan.hpp>
+
+#ifdef _WIN32
+#pragma pop_macro("_WINDOWS_")
+#endif
 
 namespace usagi
 {

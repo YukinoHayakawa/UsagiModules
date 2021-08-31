@@ -8,12 +8,12 @@ void VulkanCommandListGraphics::begin_recording()
 {
     vk::CommandBufferBeginInfo info;
     info.setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
-    mCommandBuffer->begin(info, mDevice->dispatch_device());
+    mCommandBuffer->begin(info, mDevice->dispatch());
 }
 
 void VulkanCommandListGraphics::end_recording()
 {
-    mCommandBuffer->end(mDevice->dispatch_device());
+    mCommandBuffer->end(mDevice->dispatch());
 }
 
 // Note: bad performance on tile-based GPUs
@@ -38,7 +38,7 @@ void VulkanCommandListGraphics::clear_color_image(
         layout,
         color_value,
         { subresource_range },
-        mDevice->dispatch_device()
+        mDevice->dispatch()
     );
 }
 
@@ -83,6 +83,6 @@ void VulkanCommandListGraphics::image_transition(
     dep.imageMemoryBarrierCount = 1;
     dep.pImageMemoryBarriers = &barrier;
 
-    mCommandBuffer->pipelineBarrier2KHR(dep, mDevice->dispatch_device());
+    mCommandBuffer->pipelineBarrier2KHR(dep, mDevice->dispatch());
 }
 }
