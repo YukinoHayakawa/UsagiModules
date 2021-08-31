@@ -46,7 +46,7 @@ public:
 
     void destroy() override;
 
-    // HWND handle() const { return mHandle; }
+    HWND handle() const { return mWindowHandle; }
 
     LRESULT message_handler(
         UINT message,

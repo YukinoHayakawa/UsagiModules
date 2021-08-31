@@ -131,6 +131,7 @@ NativeWindowWin32::NativeWindowWin32(
         reinterpret_cast<ULONG_PTR>(static_cast<WindowMessageTarget*>(this))
     );
 
+    // todo: handle changes in monitor position/DPI between runs of the program.
     if(mState != NativeWindowState::MINIMIZED)
     {
         // Update window DPI scaling
