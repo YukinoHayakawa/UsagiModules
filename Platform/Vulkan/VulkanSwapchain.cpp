@@ -1,5 +1,7 @@
 ﻿#include "VulkanSwapchain.hpp"
 
+#include <ranges>
+
 #include <Usagi/Module/Common/Logging/Logging.hpp>
 
 #include "VulkanGpuDevice.hpp"
@@ -16,21 +18,18 @@ VulkanSwapchain::VulkanSwapchain(
 {
 }
 
-vk::Semaphore VulkanSwapchain::acquire_next_image()
+VulkanSwapchain::NextImage VulkanSwapchain::acquire_next_image()
 {
-    if(mImagesInUse != 0)
-        LOG(warn, "Requesting another image from swapchain while "
-            "already {} is used.", mImagesInUse);
-
-    auto sem = mDevice->allocate_semaphore();
+    auto& sync_obj = locate_available_sync_objects();
+    NextImage image;
 
     // bug sometimes hangs when debugging with RenderDoc
     const auto result = mDevice->device().acquireNextImageKHR(
         mSwapchain.get(),
         UINT64_MAX, // 1000000000u, // 1s
-        sem,
+        sync_obj.sem_image_available.get(),
         nullptr,
-        &mCurrentImageIndex,
+        &image.priv_image_index,
         mDevice->dispatch_device()
     );
     switch(result)
@@ -39,28 +38,32 @@ vk::Semaphore VulkanSwapchain::acquire_next_image()
             LOG(warn, "Suboptimal swapchain");
         case vk::Result::eSuccess: break;
         case vk::Result::eNotReady:
-            USAGI_THROW(std::runtime_error("Currently no usable swapchain image."));
+            USAGI_THROW(std::runtime_error(
+                "Currently no usable swapchain image."));
         case vk::Result::eTimeout:
-            USAGI_THROW(std::runtime_error("acquireNextImageKHR() timed out."));
+            USAGI_THROW(std::runtime_error(
+                "acquireNextImageKHR() timed out."));
 
         case vk::Result::eErrorOutOfDateKHR:
             LOG(info, "Swapchain is out-of-date, recreating");
             create(mSize, mFormat.format);
             return acquire_next_image();
 
-        default: USAGI_THROW(std::runtime_error("acquireNextImageKHR() failed."));
+        default: USAGI_THROW(std::runtime_error(
+            "acquireNextImageKHR() failed."));
     }
 
-    ++mImagesInUse;
-    return sem;
+    image.image = mImages[image.priv_image_index];
+    image.sem_image_available = sync_obj.sem_image_available.get();
+    image.sem_render_finished = sync_obj.sem_render_finished.get();
+    image.fence_render_finished = sync_obj.fence_render_finished.get();
+
+    return image;
 }
 
-vk::Image VulkanSwapchain::current_image()
-{
-    return mImages[mCurrentImageIndex];
-}
-
-void VulkanSwapchain::present(const std::span<vk::Semaphore> wait_semaphores)
+void VulkanSwapchain::present(
+    const NextImage &image,
+    const std::span<vk::Semaphore> wait_semaphores)
 {
     vk::PresentInfoKHR info;
 
@@ -69,7 +72,7 @@ void VulkanSwapchain::present(const std::span<vk::Semaphore> wait_semaphores)
     const auto sc_handle = mSwapchain.get();
     info.setSwapchainCount(1);
     info.setPSwapchains(&sc_handle);
-    info.setPImageIndices(&mCurrentImageIndex);
+    info.setPImageIndices(&image.priv_image_index);
 
     // https://github.com/KhronosGroup/Vulkan-Docs/issues/595
     // Seems that after the semaphores waited on have all signaled,
@@ -92,7 +95,34 @@ void VulkanSwapchain::present(const std::span<vk::Semaphore> wait_semaphores)
             break;
         default: ;
     }
-    --mImagesInUse;
+}
+
+void VulkanSwapchain::insert_new_sync_objects()
+{
+    mSyncObjectPool.emplace_back(
+        mDevice->allocate_semaphore(),
+        mDevice->allocate_semaphore(),
+        mDevice->allocate_fence()
+    );
+}
+
+VulkanSwapchain::ImageSyncObjects &
+VulkanSwapchain::locate_available_sync_objects()
+{
+    const auto iter_avail = std::ranges::find_if(
+        mSyncObjectPool,
+        [this](auto&& o) {
+            return mDevice->device().getFenceStatus(
+                o.fence_render_finished.get(),
+                mDevice->dispatch_device()
+            ) == vk::Result::eSuccess;
+        }
+    );
+
+    if(iter_avail == mSyncObjectPool.end())
+        return insert_new_sync_objects(), mSyncObjectPool.back();
+
+    return *iter_avail;
 }
 
 // todo: allow choosing colorspace
@@ -155,8 +185,8 @@ vk::PresentModeKHR VulkanSwapchain::select_present_mode(
 {
     // todo: allow disable v-sync
     // prefer mailbox mode to achieve triple buffering
-    if(std::find(present_modes.begin(), present_modes.end(),
-        vk::PresentModeKHR::eMailbox) != present_modes.end())
+    if(std::ranges::find(present_modes, vk::PresentModeKHR::eMailbox)
+        != present_modes.end())
         return vk::PresentModeKHR::eMailbox;
     return vk::PresentModeKHR::eFifo;
 }
@@ -178,7 +208,8 @@ std::uint32_t VulkanSwapchain::select_presentation_queue_family() const
             mDevice->dispatch_instance()
         )) return queue_index;
     }
-    USAGI_THROW(std::runtime_error("No queue family supporting WSI was found."));
+    USAGI_THROW(std::runtime_error(
+        "No queue family supporting WSI was found."));
 }
 
 void VulkanSwapchain::resize(const Vector2u32 &size)
@@ -223,9 +254,14 @@ void VulkanSwapchain::create(
     LOG(info, "Surface colorspace: {}", to_string(vk_format.colorSpace));
     create_info.setImageFormat(vk_format.format);
     create_info.setImageColorSpace(vk_format.colorSpace);
-    create_info.setImageExtent(select_surface_extent(size, surface_capabilities));
-    LOG(info, "Surface extent: {}x{}",
-        create_info.imageExtent.width, create_info.imageExtent.height);
+    create_info.setImageExtent(
+        select_surface_extent(size, surface_capabilities)
+    );
+    LOG(info,
+        "Surface extent: {}x{}",
+        create_info.imageExtent.width,
+        create_info.imageExtent.height
+    );
 
     create_info.setPresentMode(select_present_mode(surface_present_modes));
     // todo: mailbox not available on my R9 290X
@@ -261,7 +297,8 @@ void VulkanSwapchain::create(
 void VulkanSwapchain::get_swapchain_images()
 {
     mImages = mDevice->device().getSwapchainImagesKHR(
-        mSwapchain.get(), mDevice->dispatch_device());
-    mCurrentImageIndex = INVALID_IMAGE_INDEX;
+        mSwapchain.get(),
+        mDevice->dispatch_device()
+    );
 }
 }

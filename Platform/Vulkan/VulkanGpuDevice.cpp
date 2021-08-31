@@ -121,13 +121,13 @@ uint32_t VulkanGpuDevice::select_queue(
 
 void VulkanGpuDevice::create_instance()
 {
-    vk::DynamicLoader loader;
-    const auto instance_proc = loader.getProcAddress<PFN_vkGetInstanceProcAddr>(
-        "vkGetInstanceProcAddr"
-    );
-    mDispatchInit.init(instance_proc);
+    const auto instance_proc =
+        mLoader.getProcAddress<PFN_vkGetInstanceProcAddr>(
+            "vkGetInstanceProcAddr"
+        );
+    mDispatchInstance.init(instance_proc);
 
-    LOG(info, "Creating Vulkan intance");
+    LOG(info, "Creating Vulkan instance");
     LOG(info, "--------------------------------");
 
     vk::ApplicationInfo application_info;
@@ -178,7 +178,7 @@ void VulkanGpuDevice::create_instance()
     // todo: disable in release
     const std::vector<const char*> validation_layers
     {
-        "VK_LAYER_LUNARG_standard_validation"
+        "VK_LAYER_KHRONOS_validation"
     };
     instance_create_info.setEnabledLayerCount(
         static_cast<uint32_t>(validation_layers.size()));
@@ -187,10 +187,14 @@ void VulkanGpuDevice::create_instance()
     mInstance = createInstanceUnique(
         instance_create_info,
         nullptr,
-        mDispatchInit
+        mDispatchInstance
     );
 
+    // further initialize instance-related functions including
+    // vkDestroyInstance
     mDispatchInstance.init(mInstance.get(), instance_proc);
+
+    LOG(info, "Vulkan instance created.");
 }
 
 void VulkanGpuDevice::create_debug_report()
@@ -308,7 +312,8 @@ void VulkanGpuDevice::submit_graphics_jobs(
     std::span<vk::Semaphore> wait_semaphores,
     std::span<Vulkan_GpuPipelineStage> wait_stages,
     std::span<vk::Semaphore> signal_semaphores,
-    std::span<Vulkan_GpuPipelineStage> signal_stages)
+    std::span<Vulkan_GpuPipelineStage> signal_stages,
+    vk::Fence signal_fence)
 {
     assert(wait_semaphores.size() == wait_stages.size());
     assert(signal_semaphores.size() == signal_stages.size());
@@ -331,7 +336,7 @@ void VulkanGpuDevice::submit_graphics_jobs(
     }
     submit.setCommandBufferInfos(mCmdSubmitInfo);
 
-    mGraphicsQueue.submit2KHR({ submit }, { }, dispatch_device());
+    mGraphicsQueue.submit2KHR({ submit }, signal_fence, dispatch_device());
     mCmdSubmitInfo.clear();
 }
 
@@ -340,7 +345,8 @@ void VulkanGpuDevice::submit_graphics_jobs(
     std::span<vk::Semaphore> wait_semaphores,
     std::span<GpuPipelineStage> wait_stages,
     std::span<vk::Semaphore> signal_semaphores,
-    std::span<GpuPipelineStage> signal_stages)
+    std::span<GpuPipelineStage> signal_stages,
+    vk::Fence signal_fence)
 {
     // todo perf
     std::vector<Vulkan_GpuPipelineStage> translated;
@@ -356,15 +362,19 @@ void VulkanGpuDevice::submit_graphics_jobs(
         wait_semaphores,
         { translated.begin(), translated.begin() + wait_stages.size() },
         signal_semaphores,
-        { translated.begin() + wait_stages.size(), translated.end() }
+        { translated.begin() + wait_stages.size(), translated.end() },
+        signal_fence
     );
 }
 
-vk::Semaphore VulkanGpuDevice::allocate_semaphore()
+VulkanUniqueSemaphore VulkanGpuDevice::allocate_semaphore()
 {
-    // todo lifetime management
-    auto sem = mDevice->createSemaphore({ }, nullptr, mDispatchDevice);
-    return sem;
+    return mDevice->createSemaphoreUnique({ }, nullptr, mDispatchDevice);
+}
+
+VulkanUniqueFence VulkanGpuDevice::allocate_fence()
+{
+    return mDevice->createFenceUnique({ }, nullptr, mDispatchDevice);
 }
 
 VulkanSwapchain & VulkanGpuDevice::swapchain(NativeWindow * window)

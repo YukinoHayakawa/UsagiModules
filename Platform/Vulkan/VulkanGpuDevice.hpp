@@ -13,14 +13,15 @@ namespace usagi
 {
 class VulkanGpuDevice
 {
+    // keeps the connection to vulkan dynamic library
+    vk::DynamicLoader mLoader;
+    vk::DispatchLoaderDynamic mDispatchInstance;
+    vk::DispatchLoaderDynamic mDispatchDevice;
     VulkanUniqueInstance mInstance;
     vk::UniqueHandle<vk::DebugUtilsMessengerEXT, vk::DispatchLoaderDynamic>
         mDebugUtilsMessenger;
     vk::PhysicalDevice mPhysicalDevice;
     VulkanUniqueDevice mDevice;
-    vk::DispatchLoaderDynamic mDispatchInit;
-    vk::DispatchLoaderDynamic mDispatchInstance;
-    vk::DispatchLoaderDynamic mDispatchDevice;
 
     vk::Queue mGraphicsQueue;
     std::uint32_t mGraphicsQueueFamilyIndex = -1;
@@ -77,20 +78,25 @@ public:
         std::span<Vulkan_GpuPipelineStage> wait_stages,
         std::span<vk::Semaphore> signal_semaphores,
         // each stage flag corresponds to one semaphore
-        std::span<Vulkan_GpuPipelineStage> signal_stages);
+        std::span<Vulkan_GpuPipelineStage> signal_stages,
+        vk::Fence signal_fence = { }
+    );
 
     void submit_graphics_jobs(
         std::span<VulkanCommandListGraphics> cmd_lists,
         std::span<vk::Semaphore> wait_semaphores,
         std::span<GpuPipelineStage> wait_stages,
         std::span<vk::Semaphore> signal_semaphores,
-        std::span<GpuPipelineStage> signal_stages);
+        std::span<GpuPipelineStage> signal_stages,
+        vk::Fence signal_fence = { }
+    );
 
     void thread_queue_submission_unlock();
 
 
     // todo: implement semaphore pool
-    vk::Semaphore allocate_semaphore();
+    VulkanUniqueSemaphore allocate_semaphore();
+    VulkanUniqueFence allocate_fence();
 
     VulkanSwapchain & swapchain(NativeWindow *window);
     void destroy_swapchain(NativeWindow *window);
