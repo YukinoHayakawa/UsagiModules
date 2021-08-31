@@ -1,8 +1,9 @@
 ﻿#include <Usagi/Library/Utility/Pointer.hpp>
 #include <Usagi/Module/Common/Logging/Logging.hpp>
+#include <Usagi/Module/Platform/WinCommon/Windowing/NativeWindowWin32.hpp>
+// including win32 headers will pollute our namespace so put it at the last
 #define VK_USE_PLATFORM_WIN32_KHR
 #include <Usagi/Module/Platform/Vulkan/VulkanGpuDevice.hpp>
-#include <Usagi/Module/Platform/WinCommon/Windowing/NativeWindowWin32.hpp>
 
 namespace usagi
 {
