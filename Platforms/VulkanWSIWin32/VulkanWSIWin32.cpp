@@ -1,7 +1,7 @@
 ﻿#include <Usagi/Library/Utility/Pointer.hpp>
-#include <Usagi/Module/Common/Logging/Logging.hpp>
-#include <Usagi/Module/Platforms/WinCommon/Windowing/NativeWindowWin32.hpp>
-#include <Usagi/Module/Platforms/Vulkan/VulkanGpuDevice.hpp>
+#include <Usagi/Modules/Common/Logging/Logging.hpp>
+#include <Usagi/Modules/Platforms/WinCommon/Windowing/NativeWindowWin32.hpp>
+#include <Usagi/Modules/Platforms/Vulkan/VulkanGpuDevice.hpp>
 
 namespace usagi
 {

@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include <Usagi/Module/Common/Color/Color.hpp>
+#include <Usagi/Modules/Common/Color/Color.hpp>
 
 #include "Vulkan.hpp"
 #include "VulkanEnum.hpp"

@@ -2,8 +2,8 @@
 
 #include <memory>
 
-#include <Usagi/Module/Service/Input/ServiceInputSource.hpp>
-#include <Usagi/Module/Platforms/WinCommon/WindowMessageTarget.hpp>
+#include <Usagi/Modules/Services/Input/ServiceInputSource.hpp>
+#include <Usagi/Modules/Platforms/WinCommon/WindowMessageTarget.hpp>
 
 namespace usagi
 {

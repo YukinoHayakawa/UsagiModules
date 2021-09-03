@@ -2,7 +2,7 @@
 
 #include <vector>
 
-#include <Usagi/Module/Platforms/WinCommon/Win32.hpp>
+#include <Usagi/Modules/Platforms/WinCommon/Win32.hpp>
 #include <Usagi/Runtime/WeakSingleton.hpp>
 
 #include "VirtualKey.hpp"

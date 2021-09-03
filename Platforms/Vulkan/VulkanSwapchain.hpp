@@ -3,7 +3,7 @@
 #include <span>
 
 #include <Usagi/Library/Noncopyable.hpp>
-#include <Usagi/Module/Common/Math/Matrix.hpp>
+#include <Usagi/Modules/Common/Math/Matrix.hpp>
 
 #include "Vulkan.hpp"
 

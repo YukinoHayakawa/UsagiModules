@@ -2,8 +2,8 @@
 
 #include <vector>
 
-#include <Usagi/Module/Platforms/WinCommon/Win32.hpp>
-#include <Usagi/Module/Platforms/WinCommon/WindowMessageTarget.hpp>
+#include <Usagi/Modules/Platforms/WinCommon/Win32.hpp>
+#include <Usagi/Modules/Platforms/WinCommon/WindowMessageTarget.hpp>
 #include <Usagi/Runtime/Memory/VmAllocatorPagefileBacked.hpp>
 
 namespace usagi

@@ -1,6 +1,6 @@
 ﻿#include "VirtualKey.hpp"
 
-#include <Usagi/Module/Platforms/WinCommon/Win32.hpp>
+#include <Usagi/Modules/Platforms/WinCommon/Win32.hpp>
 
 namespace usagi::win32
 {

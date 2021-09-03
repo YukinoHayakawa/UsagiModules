@@ -8,7 +8,7 @@
 #pragma comment(lib, "c4core.lib")
 #pragma comment(lib, "ryml.lib")
 
-#include <Usagi/Module/Service/Asset/Asset.hpp>
+#include <Usagi/Modules/Services/Asset/Asset.hpp>
 
 namespace usagi
 {

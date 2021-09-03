@@ -1,7 +1,7 @@
 ﻿#include "VulkanEnumTranslation.hpp"
 
 #include <Usagi/Runtime/ErrorHandling.hpp>
-#include <Usagi/Module/Service/Graphics/Enum.hpp>
+#include <Usagi/Modules/Services/Graphics/Enum.hpp>
 
 using namespace usagi;
 

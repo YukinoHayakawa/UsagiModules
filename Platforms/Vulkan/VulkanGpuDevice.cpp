@@ -3,7 +3,7 @@
 #include <Usagi/Library/Algorithm/Container.hpp>
 #include <Usagi/Library/Utility/BitMask.hpp>
 #include <Usagi/Library/Utility/String.hpp>
-#include <Usagi/Module/Common/Logging/Logging.hpp>
+#include <Usagi/Modules/Common/Logging/Logging.hpp>
 
 namespace usagi
 {

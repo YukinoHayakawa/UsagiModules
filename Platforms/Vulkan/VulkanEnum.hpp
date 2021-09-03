@@ -5,7 +5,7 @@
 #include <vulkan/vulkan.hpp>
 
 #include <Usagi/Library/Utility/EnumTranslation.hpp>
-#include <Usagi/Module/Service/Graphics/Enum.hpp>
+#include <Usagi/Modules/Services/Graphics/Enum.hpp>
 
 namespace usagi
 {

@@ -1,6 +1,6 @@
 ﻿#include "AssetBuilderYamlObject.hpp"
 
-#include <Usagi/Module/Service/Asset/AssetManager.hpp>
+#include <Usagi/Modules/Services/Asset/AssetManager.hpp>
 
 namespace usagi
 {

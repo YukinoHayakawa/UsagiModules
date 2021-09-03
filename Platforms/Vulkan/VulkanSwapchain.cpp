@@ -2,7 +2,7 @@
 
 #include <ranges>
 
-#include <Usagi/Module/Common/Logging/Logging.hpp>
+#include <Usagi/Modules/Common/Logging/Logging.hpp>
 
 #include "VulkanGpuDevice.hpp"
 

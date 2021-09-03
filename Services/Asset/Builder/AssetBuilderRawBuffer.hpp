@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include <Usagi/Module/Service/Asset/Asset.hpp>
+#include <Usagi/Modules/Services/Asset/Asset.hpp>
 #include <Usagi/Runtime/Memory/Region.hpp>
 
 namespace usagi

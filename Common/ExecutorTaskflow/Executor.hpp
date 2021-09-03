@@ -4,8 +4,8 @@
 
 #include <taskflow/taskflow.hpp>
 
-#include <Usagi/Game/System.hpp>
-#include <Usagi/Game/detail/EntityDatabaseAccessExternal.hpp>
+#include <Usagi/Entity/System.hpp>
+#include <Usagi/Entity/detail/EntityDatabaseAccessExternal.hpp>
 
 namespace usagi
 {

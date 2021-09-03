@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include <Usagi/Module/Common/Math/Matrix.hpp>
+#include <Usagi/Modules/Common/Math/Matrix.hpp>
 
 #include "InputAxis.hpp"
 

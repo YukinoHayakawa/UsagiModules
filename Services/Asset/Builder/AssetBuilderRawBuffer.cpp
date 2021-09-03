@@ -1,7 +1,7 @@
 ﻿#include "AssetBuilderRawBuffer.hpp"
 
-#include <Usagi/Module/Service/Asset/AssetManager.hpp>
-#include <Usagi/Module/Service/Asset/Crc32.hpp>
+#include <Usagi/Modules/Services/Asset/AssetManager.hpp>
+#include <Usagi/Modules/Services/Asset/Crc32.hpp>
 #include <Usagi/Runtime/ErrorHandling.hpp>
 
 namespace usagi
