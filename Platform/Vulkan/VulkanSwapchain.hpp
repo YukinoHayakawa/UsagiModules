@@ -21,6 +21,7 @@ class VulkanSwapchain : Noncopyable
 
     VulkanUniqueSwapchain mSwapchain;
     std::vector<vk::Image> mImages;
+    vk::Result mLastResult = vk::Result::eSuccess;
 
     static vk::SurfaceFormatKHR select_surface_format(
         const std::vector<vk::SurfaceFormatKHR> &surface_formats,

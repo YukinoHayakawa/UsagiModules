@@ -23,6 +23,9 @@ VulkanSwapchain::ImageInfo VulkanSwapchain::acquire_next_image(
 {
     assert(mSwapchain);
 
+    if(mLastResult != vk::Result::eSuccess)
+        create(mSize, mFormat.format);
+
     ImageInfo image;
 
     // bug sometimes hangs when debugging with RenderDoc
@@ -81,7 +84,7 @@ void VulkanSwapchain::present(
 
     // If the swapchain is suboptimal or out-of-date, it will be recreated
     // during next call of acquireNextImage().
-    switch(mDevice->present_queue().presentKHR(
+    switch(mLastResult = mDevice->present_queue().presentKHR(
         &info,
         mDevice->dispatch()))
     {
