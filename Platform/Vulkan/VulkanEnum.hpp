@@ -31,7 +31,7 @@ template <>
 struct EnumMapping<GpuPipelineStage, vk::PipelineStageFlags2KHR>
 {
     constexpr static auto MAPPING = {
-        std::pair { GpuPipelineStage::BEFORE_ALL_COMMANDS, vk::PipelineStageFlagBits2KHR::eNone },
+        std::pair { GpuPipelineStage::NONE, vk::PipelineStageFlagBits2KHR::eNone },
         std::pair { GpuPipelineStage::VERTEX_INPUT, vk::PipelineStageFlagBits2KHR::eVertexInput },
         std::pair { GpuPipelineStage::VERTEX_SHADER, vk::PipelineStageFlagBits2KHR::eVertexShader },
         std::pair { GpuPipelineStage::GEOMETRY_SHADER, vk::PipelineStageFlagBits2KHR::eGeometryShader },
@@ -44,7 +44,7 @@ struct EnumMapping<GpuPipelineStage, vk::PipelineStageFlags2KHR>
         std::pair { GpuPipelineStage::TRANSFER_RESOLVE, vk::PipelineStageFlagBits2KHR::eResolve },
         std::pair { GpuPipelineStage::TRANSFER_BLIT, vk::PipelineStageFlagBits2KHR::eBlit },
         std::pair { GpuPipelineStage::TRANSFER_CLEAR, vk::PipelineStageFlagBits2KHR::eClear },
-        std::pair { GpuPipelineStage::AFTER_ALL_COMMANDS, vk::PipelineStageFlagBits2KHR::eAllCommands },
+        std::pair { GpuPipelineStage::ALL_COMMANDS, vk::PipelineStageFlagBits2KHR::eAllCommands },
         std::pair { GpuPipelineStage::HOST, vk::PipelineStageFlagBits2KHR::eHost },
     };
 };

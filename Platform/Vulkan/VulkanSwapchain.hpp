@@ -34,6 +34,8 @@ class VulkanSwapchain : Noncopyable
     std::uint32_t select_presentation_queue_family() const;
 
     void get_swapchain_images();
+    void skip_image(vk::Semaphore semaphore);
+    void recreate();
 
 public:
     VulkanSwapchain(

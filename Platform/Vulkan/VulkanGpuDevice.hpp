@@ -145,6 +145,7 @@ public:
     vk::PhysicalDevice physical_device() const { return mPhysicalDevice; }
     vk::Device device() const { return mDevice.get(); }
     vk::Queue present_queue() const { return mGraphicsQueue; }
+    vk::Queue graphics_queue() const { return mGraphicsQueue; }
 
     const vk::DispatchLoaderDynamic & dispatch() const { return mDispatch; }
 };

@@ -18,13 +18,37 @@ VulkanSwapchain::VulkanSwapchain(
 {
 }
 
+// https://stackoverflow.com/a/59830015
+void VulkanSwapchain::skip_image(vk::Semaphore semaphore)
+{
+    vk::SubmitInfo2KHR info;
+    info.waitSemaphoreInfoCount = 1;
+    vk::SemaphoreSubmitInfoKHR sem_info;
+    sem_info.semaphore = semaphore;
+    sem_info.deviceIndex = 0;
+    sem_info.stageMask = Vulkan_GpuPipelineStage(
+        GpuPipelineStage::ALL_COMMANDS
+    );
+    info.pWaitSemaphoreInfos = &sem_info;
+    mDevice->graphics_queue().submit2KHR(
+        std::array { info },
+        nullptr,
+        mDevice->dispatch()
+    );
+}
+
+void VulkanSwapchain::recreate()
+{
+    create(mSize, mFormat.format);
+}
+
 VulkanSwapchain::ImageInfo VulkanSwapchain::acquire_next_image(
     vk::Semaphore signal_sem_image_avail)
 {
     assert(mSwapchain);
 
     if(mLastResult != vk::Result::eSuccess)
-        create(mSize, mFormat.format);
+        recreate();
 
     ImageInfo image;
 
@@ -41,6 +65,9 @@ VulkanSwapchain::ImageInfo VulkanSwapchain::acquire_next_image(
     {
         case vk::Result::eSuboptimalKHR:
             LOG(warn, "Suboptimal swapchain");
+            skip_image(signal_sem_image_avail);
+            recreate();
+            return acquire_next_image(signal_sem_image_avail);
         case vk::Result::eSuccess: break;
         case vk::Result::eNotReady:
             USAGI_THROW(std::runtime_error(
