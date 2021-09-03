@@ -15,10 +15,10 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="ComponentTransform.hpp">
+    <ClInclude Include="ComponentTransformation2D.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ComponentPosition.hpp">
+    <ClInclude Include="ComponentPosition2D.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

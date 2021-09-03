@@ -12,8 +12,8 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
-    <ProjectGuid>{345cdbb7-1ec3-4e1c-ad4f-856a774430f5}</ProjectGuid>
-    <RootNamespace>Executive</RootNamespace>
+    <ProjectGuid>{cd325def-b361-4cc5-87ac-bf51588dbf2d}</ProjectGuid>
+    <RootNamespace>WinCommon</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -24,6 +24,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>ClangCL</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -58,14 +59,33 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="AppDatabase.hpp" />
-    <ClInclude Include="AppDirectory.hpp" />
-    <ClInclude Include="AppHost.hpp" />
-    <ClInclude Include="ServiceStateTransitionGraph.hpp" />
-    <ClInclude Include="SystemTaskList.hpp" />
+    <ClInclude Include="Input\InputEventSourceWin32RawInput.hpp" />
+    <ClInclude Include="Input\VirtualKey.hpp" />
+    <ClInclude Include="Input\RawInputSink.hpp" />
+    <ClInclude Include="WindowMessageTarget.hpp" />
+    <ClInclude Include="Windowing\NativeWindowManagerWin32.hpp" />
+    <ClInclude Include="ntos.h" />
+    <ClInclude Include="Win32.hpp" />
+    <ClInclude Include="Windowing\NativeWindowWin32.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="CreateLib.cpp" />
+    <ClCompile Include="File.cpp" />
+    <ClCompile Include="Input\InputEventSourceWin32RawInput.cpp" />
+    <ClCompile Include="Input\RawInputSink.cpp" />
+    <ClCompile Include="Input\VirtualKey.cpp" />
+    <ClCompile Include="Memory.cpp" />
+    <ClCompile Include="Windowing\NativeWindowManagerWin32.cpp" />
+    <ClCompile Include="Win32.cpp" />
+    <ClCompile Include="Windowing\NativeWindowWin32.cpp" />
+    <ClCompile Include="WindowMessageTarget.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\..\Library\Usagi\Usagi.vcxproj">
+      <Project>{f9061c06-bce6-416b-9aeb-31351810b7ba}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Services\Input\Input.vcxproj">
+      <Project>{c87b711a-0036-4d0e-aa0b-501677f198fd}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

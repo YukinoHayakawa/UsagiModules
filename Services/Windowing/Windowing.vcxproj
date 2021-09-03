@@ -12,8 +12,8 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
-    <ProjectGuid>{345cdbb7-1ec3-4e1c-ad4f-856a774430f5}</ProjectGuid>
-    <RootNamespace>Executive</RootNamespace>
+    <ProjectGuid>{bdf27242-7a3c-4dd2-b7c8-62962c96ca08}</ProjectGuid>
+    <RootNamespace>Windowing</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -24,6 +24,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>ClangCL</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -58,11 +59,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="AppDatabase.hpp" />
-    <ClInclude Include="AppDirectory.hpp" />
-    <ClInclude Include="AppHost.hpp" />
-    <ClInclude Include="ServiceStateTransitionGraph.hpp" />
-    <ClInclude Include="SystemTaskList.hpp" />
+    <ClInclude Include="ComponentNativeWindow.hpp" />
+    <ClInclude Include="NativeWindow.hpp" />
+    <ClInclude Include="NativeWindowState.hpp" />
+    <ClInclude Include="ServiceNativeWindowManager.hpp" />
+    <ClInclude Include="SystemNativeWindowCoordinator.hpp" />
+    <ClInclude Include="NativeWindowManager.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CreateLib.cpp" />

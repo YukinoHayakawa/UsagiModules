@@ -12,8 +12,8 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
-    <ProjectGuid>{345cdbb7-1ec3-4e1c-ad4f-856a774430f5}</ProjectGuid>
-    <RootNamespace>Executive</RootNamespace>
+    <ProjectGuid>{c87b711a-0036-4d0e-aa0b-501677f198fd}</ProjectGuid>
+    <RootNamespace>Input</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -24,6 +24,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>ClangCL</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -58,14 +59,28 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="AppDatabase.hpp" />
-    <ClInclude Include="AppDirectory.hpp" />
-    <ClInclude Include="AppHost.hpp" />
-    <ClInclude Include="ServiceStateTransitionGraph.hpp" />
-    <ClInclude Include="SystemTaskList.hpp" />
+    <ClInclude Include="ArchetypeInputEvent.hpp" />
+    <ClInclude Include="ComponentInputEvent.hpp" />
+    <ClInclude Include="InputEventQueue.hpp" />
+    <ClInclude Include="InputEventSource.hpp" />
+    <ClInclude Include="InputAxis.hpp" />
+    <ClInclude Include="InputEventInserter.hpp" />
+    <ClInclude Include="ServiceInputSource.hpp" />
+    <ClInclude Include="SystemInputEventPump.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="CreateLib.cpp" />
+    <ClCompile Include="InputAxis.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\..\Library\Usagi\Usagi.vcxproj">
+      <Project>{f9061c06-bce6-416b-9aeb-31351810b7ba}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Common\Math\Math.vcxproj">
+      <Project>{d4e79012-d153-40c0-b62d-fc9b31495442}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Common\Time\Time.vcxproj">
+      <Project>{61c2c8d3-d6d1-4bea-b122-43142579ba35}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

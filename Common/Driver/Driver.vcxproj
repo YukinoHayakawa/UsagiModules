@@ -62,10 +62,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="DevApp.hpp" />
     <ClInclude Include="ResumableApp.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="DevApp.cpp" />
     <ClCompile Include="ResumableApp.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="README.md" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
