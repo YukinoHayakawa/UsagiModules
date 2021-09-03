@@ -22,28 +22,6 @@ class VulkanSwapchain : Noncopyable
     VulkanUniqueSwapchain mSwapchain;
     std::vector<vk::Image> mImages;
 
-    struct ImageSyncObjects
-    {
-        VulkanUniqueSemaphore sem_image_available;
-        VulkanUniqueSemaphore sem_render_finished;
-        VulkanUniqueFence fence_render_finished;
-
-        ImageSyncObjects(
-            VulkanUniqueSemaphore sem_image_available,
-            VulkanUniqueSemaphore sem_render_finished,
-            VulkanUniqueFence fence_render_finished)
-            : sem_image_available(std::move(sem_image_available))
-            , sem_render_finished(std::move(sem_render_finished))
-            , fence_render_finished(std::move(fence_render_finished))
-        {
-        }
-    };
-    std::vector<ImageSyncObjects> mSyncObjectPool;
-
-    void insert_new_sync_objects();
-
-    ImageSyncObjects & locate_available_sync_objects();
-
     static vk::SurfaceFormatKHR select_surface_format(
         const std::vector<vk::SurfaceFormatKHR> &surface_formats,
         vk::Format preferred_image_format);
@@ -69,27 +47,20 @@ public:
 
     // the exact structure and internal member types of this struct is
     // supposed to be transparent to the user.
-    struct NextImage
+    struct ImageInfo
     {
         vk::Image image;
-        // the rendering commands should wait on this semaphore for the
-        // image to be available
-        vk::Semaphore sem_image_available;
-        // signal this semaphore in rendering commands and pass it to
-        // `present()`
-        // todo: this should not be managed by the swapchain
-        vk::Semaphore sem_render_finished;
-        // pass the message back here so we know that this set of sync
-        // objects can be reused.
-        vk::Fence fence_render_finished;
 
-        std::uint32_t priv_image_index = -1;
+    private:
+        friend class VulkanSwapchain;
+
+        std::uint32_t mImageIndex = -1;
     };
 
-    NextImage acquire_next_image();
+    ImageInfo acquire_next_image(vk::Semaphore signal_sem_image_avail);
 
     void present(
-        const NextImage &image,
+        const ImageInfo &image,
         std::span<vk::Semaphore> wait_semaphores);
 };
 }

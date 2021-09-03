@@ -1,5 +1,6 @@
 ﻿#include "VulkanGpuDevice.hpp"
 
+#include <Usagi/Library/Algorithm/Container.hpp>
 #include <Usagi/Library/Utility/BitMask.hpp>
 #include <Usagi/Library/Utility/String.hpp>
 #include <Usagi/Module/Common/Logging/Logging.hpp>
@@ -171,7 +172,9 @@ void VulkanGpuDevice::create_instance()
         VK_KHR_SURFACE_EXTENSION_NAME,
         // provide feedback from validation layer, etc.
         VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
-        platform_surface_extension_name()
+        platform_surface_extension_name(),
+        // required by VK_KHR_synchronization2
+        VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME,
     };
     instance_create_info.setEnabledExtensionCount(
         static_cast<uint32_t>(instance_extensions.size()));
@@ -179,7 +182,7 @@ void VulkanGpuDevice::create_instance()
 
     // todo: enumerate layers first
     // todo: disable in release
-    const std::vector<const char*> validation_layers
+    const std::vector validation_layers
     {
         "VK_LAYER_KHRONOS_validation"
     };
@@ -287,9 +290,10 @@ void VulkanGpuDevice::create_device_and_queues()
 
     // todo: check device capacity
     // todo: move to instance ext
-    const std::vector<const char *> device_extensions
+    const std::vector device_extensions
     {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+        VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME,
     };
     device_create_info.setEnabledExtensionCount(static_cast<uint32_t>(
         device_extensions.size()));
@@ -307,83 +311,143 @@ void VulkanGpuDevice::create_device_and_queues()
     mGraphicsQueueFamilyIndex = graphics_queue_index;
 }
 
+void VulkanGpuDevice::set_thread_resource_pool_size(std::size_t num_threads)
+{
+    resize_generate(mCommandPools, num_threads, [this]() {
+        vk::CommandPoolCreateInfo info;
+        info.setQueueFamilyIndex(mGraphicsQueueFamilyIndex);
+        return mDevice->createCommandPoolUnique(info, nullptr, mDispatch);
+    });
+}
+
+VulkanCommandListGraphics VulkanGpuDevice::allocate_graphics_command_list(
+    const std::size_t thread_id)
+{
+    assert(thread_id <= mCommandPools.size());
+
+    vk::CommandBufferAllocateInfo info;
+
+    info.setCommandBufferCount(1);
+    info.setCommandPool(mCommandPools[thread_id].get());
+    info.setLevel(vk::CommandBufferLevel::ePrimary);
+
+    return VulkanCommandListGraphics(
+        this,
+        std::move(mDevice->allocateCommandBuffersUnique(
+            info, mDispatch
+        ).front())
+    );
+}
+
+void VulkanGpuDevice::SemaphoreInfo::add(
+    VulkanUniqueSemaphore semaphore,
+    GpuPipelineStage stage)
+{
+    vk::SemaphoreSubmitInfoKHR info;
+
+    info.semaphore = semaphore.get();
+    info.value = 1; // might be other values with timeline semaphores
+    info.stageMask = Vulkan_GpuPipelineStage(stage);
+    info.deviceIndex = 0;
+
+    mInfos.emplace_back(info);
+    mSemaphores.emplace_back(std::move(semaphore));
+}
+
+void VulkanGpuDevice::CommandBufferList::add(
+    VulkanCommandListGraphics cmd_list)
+{
+    auto &info = mInfos.emplace_back();
+    info.commandBuffer = cmd_list.mCommandBuffer.get();
+    info.deviceMask = 0;
+    mCommandBuffers.emplace_back(std::move(cmd_list.mCommandBuffer));
+}
+
 // https://github.com/KhronosGroup/Vulkan-Guide/blob/master/chapters/extensions/VK_KHR_synchronization2.md
 void VulkanGpuDevice::submit_graphics_jobs(
-    std::span<VulkanCommandListGraphics> cmd_lists,
-    std::span<vk::Semaphore> wait_semaphores,
-    std::span<Vulkan_GpuPipelineStage> wait_stages,
-    std::span<vk::Semaphore> signal_semaphores,
-    std::span<Vulkan_GpuPipelineStage> signal_stages,
-    vk::Fence signal_fence)
+    CommandBufferList cmd_lists,
+    SemaphoreInfo wait_semaphores,
+    SemaphoreInfo signal_semaphores)
 {
-    assert(wait_semaphores.size() == wait_stages.size());
-    assert(signal_semaphores.size() == signal_stages.size());
-
     // todo support multiple queues
+
+    BatchResources &res = mOutstandingBatches.emplace_back();
+
+    res.cmd_lists = std::move(cmd_lists);
+    res.wait_semaphores = std::move(wait_semaphores);
+    res.signal_semaphores = std::move(signal_semaphores);
+    res.fence = allocate_fence();
 
     vk::SubmitInfo2KHR submit;
 
-    // todo impl semaphore submit info
+    submit.setCommandBufferInfos(res.cmd_lists.mInfos);
+    submit.setWaitSemaphoreInfos(res.wait_semaphores.mInfos);
+    submit.setSignalSemaphoreInfos(res.signal_semaphores.mInfos);
 
-    submit.setCommandBufferInfoCount(cmd_lists.size());
-    submit.setWaitSemaphoreInfoCount(wait_semaphores.size());
-    submit.setSignalSemaphoreInfoCount(signal_semaphores.size());
-
-    mCmdSubmitInfo.resize(cmd_lists.size());
-    for(std::size_t i = 0; auto &&cmd : cmd_lists)
-    {
-        mCmdSubmitInfo[i].setCommandBuffer(cmd);
-        ++i;
-    }
-    submit.setCommandBufferInfos(mCmdSubmitInfo);
-
-    mGraphicsQueue.submit2KHR({ submit }, signal_fence, mDispatch);
-    mCmdSubmitInfo.clear();
+    mGraphicsQueue.submit2KHR({ submit }, res.fence.get(), mDispatch);
 }
 
-void VulkanGpuDevice::submit_graphics_jobs(
-    std::span<VulkanCommandListGraphics> cmd_lists,
-    std::span<vk::Semaphore> wait_semaphores,
-    std::span<GpuPipelineStage> wait_stages,
-    std::span<vk::Semaphore> signal_semaphores,
-    std::span<GpuPipelineStage> signal_stages,
-    vk::Fence signal_fence)
+void VulkanGpuDevice::reclaim_resources()
 {
-    // todo perf
-    std::vector<Vulkan_GpuPipelineStage> translated;
-    translated.resize(wait_stages.size() + signal_stages.size());
+    for(auto ii = mOutstandingBatches.begin();
+        ii != mOutstandingBatches.end();)
+    {
+        if(mDevice->getFenceStatus(ii->fence.get(), mDispatch)
+            == vk::Result::eSuccess)
+        {
+            release_resources(*ii);
+            ii = mOutstandingBatches.erase(ii);
+        }
+        else
+        {
+            ++ii;
+        }
+    }
+}
 
-    for(auto &&s : wait_stages)
-        translated.emplace_back(s);
-    for(auto &&s: signal_stages)
-        translated.emplace_back(s);
+void VulkanGpuDevice::release_semaphore(VulkanUniqueSemaphore semaphore)
+{
+    mSemaphoreAvail.push_back(std::move(semaphore));
+}
 
-    submit_graphics_jobs(
-        cmd_lists,
-        wait_semaphores,
-        { translated.begin(), translated.begin() + wait_stages.size() },
-        signal_semaphores,
-        { translated.begin() + wait_stages.size(), translated.end() },
-        signal_fence
-    );
+void VulkanGpuDevice::release_fence(VulkanUniqueFence fence)
+{
+    std::array fences { fence.get() };
+    mDevice->resetFences(fences, mDispatch);
+    mFenceAvail.push_back(std::move(fence));
+}
+
+void VulkanGpuDevice::release_resources(BatchResources &batch)
+{
+    release_fence(std::move(batch.fence));
+    for(auto &&s : batch.wait_semaphores.mSemaphores)
+        release_semaphore(std::move(s));
+    for(auto &&s : batch.signal_semaphores.mSemaphores)
+        release_semaphore(std::move(s));
 }
 
 VulkanUniqueSemaphore VulkanGpuDevice::allocate_semaphore()
 {
-    return mDevice->createSemaphoreUnique({ }, nullptr, mDispatch);
+    return pop_or_create(mSemaphoreAvail, [this]() {
+        return mDevice->createSemaphoreUnique({ }, nullptr, mDispatch);
+    });
 }
 
 VulkanUniqueFence VulkanGpuDevice::allocate_fence()
 {
-    return mDevice->createFenceUnique({ }, nullptr, mDispatch);
+    return pop_or_create(mFenceAvail, [this]() {
+        return mDevice->createFenceUnique({ }, nullptr, mDispatch);
+    });
 }
 
 VulkanSwapchain & VulkanGpuDevice::swapchain(NativeWindow * window)
 {
-    const auto find = mSwapchainCache.find(window);
-    if(find == mSwapchainCache.end())
-        return create_swapchain(window);
-    return *find->second.get();
+    auto *swapchain = find_or_create(
+        mSwapchainCache,
+        window,
+        [this](auto&& wnd) -> auto & { return create_swapchain(wnd); }
+    ).get();
+    return *swapchain;
 }
 
 void VulkanGpuDevice::destroy_swapchain(NativeWindow *window)

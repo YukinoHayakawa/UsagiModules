@@ -18,20 +18,20 @@ VulkanSwapchain::VulkanSwapchain(
 {
 }
 
-VulkanSwapchain::NextImage VulkanSwapchain::acquire_next_image()
+VulkanSwapchain::ImageInfo VulkanSwapchain::acquire_next_image(
+    vk::Semaphore signal_sem_image_avail)
 {
     assert(mSwapchain);
 
-    auto& sync_obj = locate_available_sync_objects();
-    NextImage image;
+    ImageInfo image;
 
     // bug sometimes hangs when debugging with RenderDoc
     const auto result = mDevice->device().acquireNextImageKHR(
         mSwapchain.get(),
         UINT64_MAX, // 1000000000u, // 1s
-        sync_obj.sem_image_available.get(),
+        signal_sem_image_avail,
         nullptr,
-        &image.priv_image_index,
+        &image.mImageIndex,
         mDevice->dispatch()
     );
     switch(result)
@@ -49,22 +49,19 @@ VulkanSwapchain::NextImage VulkanSwapchain::acquire_next_image()
         case vk::Result::eErrorOutOfDateKHR:
             LOG(info, "Swapchain is out-of-date, recreating");
             create(mSize, mFormat.format);
-            return acquire_next_image();
+            return acquire_next_image(signal_sem_image_avail);
 
         default: USAGI_THROW(std::runtime_error(
             "acquireNextImageKHR() failed."));
     }
 
-    image.image = mImages[image.priv_image_index];
-    image.sem_image_available = sync_obj.sem_image_available.get();
-    image.sem_render_finished = sync_obj.sem_render_finished.get();
-    image.fence_render_finished = sync_obj.fence_render_finished.get();
+    image.image = mImages[image.mImageIndex];
 
     return image;
 }
 
 void VulkanSwapchain::present(
-    const NextImage &image,
+    const ImageInfo &image,
     const std::span<vk::Semaphore> wait_semaphores)
 {
     vk::PresentInfoKHR info;
@@ -74,7 +71,7 @@ void VulkanSwapchain::present(
     const auto sc_handle = mSwapchain.get();
     info.setSwapchainCount(1);
     info.setPSwapchains(&sc_handle);
-    info.setPImageIndices(&image.priv_image_index);
+    info.setPImageIndices(&image.mImageIndex);
 
     // https://github.com/KhronosGroup/Vulkan-Docs/issues/595
     // Seems that after the semaphores waited on have all signaled,
@@ -97,34 +94,6 @@ void VulkanSwapchain::present(
             break;
         default: ;
     }
-}
-
-void VulkanSwapchain::insert_new_sync_objects()
-{
-    mSyncObjectPool.emplace_back(
-        mDevice->allocate_semaphore(),
-        mDevice->allocate_semaphore(),
-        mDevice->allocate_fence()
-    );
-}
-
-VulkanSwapchain::ImageSyncObjects &
-VulkanSwapchain::locate_available_sync_objects()
-{
-    const auto iter_avail = std::ranges::find_if(
-        mSyncObjectPool,
-        [this](auto&& o) {
-            return mDevice->device().getFenceStatus(
-                o.fence_render_finished.get(),
-                mDevice->dispatch()
-            ) == vk::Result::eSuccess;
-        }
-    );
-
-    if(iter_avail == mSyncObjectPool.end())
-        return insert_new_sync_objects(), mSyncObjectPool.back();
-
-    return *iter_avail;
 }
 
 // todo: allow choosing colorspace

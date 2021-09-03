@@ -7,15 +7,21 @@
 
 namespace usagi
 {
-class VulkanGpuDevice;
-
 class VulkanCommandListGraphics
 {
+    friend class VulkanGpuDevice;
+
     VulkanGpuDevice *mDevice = nullptr;
     VulkanUniqueCommandBuffer mCommandBuffer;
 
 public:
-    // todo ctor
+    VulkanCommandListGraphics(
+        VulkanGpuDevice *device,
+        VulkanUniqueCommandBuffer command_buffer)
+        : mDevice(device)
+        , mCommandBuffer(std::move(command_buffer))
+    {
+    }
 
     void begin_recording();
     void end_recording();
@@ -33,10 +39,5 @@ public:
         Vulkan_GpuPipelineStage dst_stage,
         Vulkan_GpuAccessMask dst_access,
         Vulkan_GpuImageLayout new_layout);
-
-    operator vk::CommandBuffer()
-    {
-        return mCommandBuffer.get();
-    }
 };
 }

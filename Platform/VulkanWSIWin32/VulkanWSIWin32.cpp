@@ -22,7 +22,8 @@ void VulkanGpuDevice::check_queue_presentation_capacity_throw(
     );
 }
 
-VulkanSwapchain & VulkanGpuDevice::create_swapchain(NativeWindow *window)
+std::unique_ptr<VulkanSwapchain> &
+VulkanGpuDevice::create_swapchain(NativeWindow *window)
 {
     auto &win32_window = dynamic_cast_ref_throw<NativeWindowWin32>(window);
 
@@ -65,6 +66,6 @@ VulkanSwapchain & VulkanGpuDevice::create_swapchain(NativeWindow *window)
     );
     assert(snd);
 
-    return *fst->second.get();
+    return fst->second;
 }
 }
