@@ -6,7 +6,7 @@ namespace usagi
 
 enum class GpuPipelineStage
 {
-    BEFORE_ALL_COMMANDS,
+    NONE,
     VERTEX_INPUT,
     VERTEX_SHADER,
     GEOMETRY_SHADER,
@@ -19,7 +19,9 @@ enum class GpuPipelineStage
     TRANSFER_RESOLVE,
     TRANSFER_BLIT,
     TRANSFER_CLEAR,
-    AFTER_ALL_COMMANDS,
+    ALL_COMMANDS,
+    TOP_OF_PIPE,
+    BOTTOM_OF_PIPE,
     HOST,
 };
 
@@ -30,6 +32,8 @@ enum class GpuAccessMask
     HOST_WRITE,
     TRANSFER_READ,
     TRANSFER_WRITE,
+    MEMORY_READ,
+    MEMORY_WRITE,
     VERTEX_ATTRIBUTE_READ,
     INDEX_READ,
     UNIFORM_READ,

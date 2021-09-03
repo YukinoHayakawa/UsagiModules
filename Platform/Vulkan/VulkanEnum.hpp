@@ -46,6 +46,8 @@ struct EnumMapping<GpuPipelineStage, vk::PipelineStageFlags2KHR>
         std::pair { GpuPipelineStage::TRANSFER_CLEAR, vk::PipelineStageFlagBits2KHR::eClear },
         std::pair { GpuPipelineStage::ALL_COMMANDS, vk::PipelineStageFlagBits2KHR::eAllCommands },
         std::pair { GpuPipelineStage::HOST, vk::PipelineStageFlagBits2KHR::eHost },
+        std::pair { GpuPipelineStage::TOP_OF_PIPE, vk::PipelineStageFlagBits2KHR::eTopOfPipe },
+        std::pair { GpuPipelineStage::BOTTOM_OF_PIPE, vk::PipelineStageFlagBits2KHR::eBottomOfPipe },
     };
 };
 using Vulkan_GpuPipelineStage = EnumAcceptor<GpuPipelineStage, vk::PipelineStageFlags2KHR>;
@@ -54,11 +56,13 @@ template <>
 struct EnumMapping<GpuAccessMask, vk::AccessFlags2KHR>
 {
     constexpr static auto MAPPING = {
-        std::pair { GpuAccessMask::NONE, vk::AccessFlagBits2KHR(0) },
+        std::pair { GpuAccessMask::NONE, vk::AccessFlagBits2KHR::eNone },
         std::pair { GpuAccessMask::HOST_READ, vk::AccessFlagBits2KHR::eHostRead },
         std::pair { GpuAccessMask::HOST_WRITE, vk::AccessFlagBits2KHR::eHostWrite },
         std::pair { GpuAccessMask::TRANSFER_READ, vk::AccessFlagBits2KHR::eTransferRead },
         std::pair { GpuAccessMask::TRANSFER_WRITE, vk::AccessFlagBits2KHR::eTransferWrite },
+        std::pair { GpuAccessMask::MEMORY_READ, vk::AccessFlagBits2KHR::eMemoryRead },
+        std::pair { GpuAccessMask::MEMORY_WRITE, vk::AccessFlagBits2KHR::eMemoryWrite },
         std::pair { GpuAccessMask::VERTEX_ATTRIBUTE_READ, vk::AccessFlagBits2KHR::eVertexAttributeRead },
         std::pair { GpuAccessMask::INDEX_READ, vk::AccessFlagBits2KHR::eIndexRead },
         std::pair { GpuAccessMask::UNIFORM_READ, vk::AccessFlagBits2KHR::eUniformRead },

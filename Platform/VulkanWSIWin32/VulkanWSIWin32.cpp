@@ -57,7 +57,7 @@ VulkanGpuDevice::create_swapchain(NativeWindow *window)
     );
     swapchain->create(
         win32_window.surface_size().cast<std::uint32_t>(),
-        vk::Format::eR8G8B8Uint
+        vk::Format::eB8G8R8A8Unorm
     );
 
     const auto [fst, snd] = mSwapchainCache.try_emplace(

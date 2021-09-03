@@ -166,7 +166,7 @@ vk::Extent2D VulkanSwapchain::select_surface_extent(
     if(surface_capabilities.currentExtent.width == 0xFFFFFFFF)
     {
         vk::Extent2D swap_chain_extent = { size.x(), size.y() };
-        swap_chain_extent.width        = std::clamp(swap_chain_extent.width,
+        swap_chain_extent.width = std::clamp(swap_chain_extent.width,
             surface_capabilities.minImageExtent.width,
             surface_capabilities.maxImageExtent.width
         );
