@@ -64,7 +64,13 @@
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="NewFile1.cpp" />
+    <ClCompile Include="ClangJITCompiler.cpp" />
+    <ClCompile Include="RuntimeModule.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="ClangJITCompiler.hpp" />
+    <ClInclude Include="RuntimeModule.hpp" />
+    <ClInclude Include="ServiceRuntimeCompilation.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
