@@ -16,9 +16,10 @@
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/Support/Host.h>
 
-#include <clang/CodeGen/CodeGenAction.h>
+#include <clang/Lex/PreprocessorOptions.h>
 #include <clang/Frontend/CompilerInstance.h>
 #include <clang/Frontend/TextDiagnosticPrinter.h>
+#include <clang/CodeGen/CodeGenAction.h>
 
 bool LLVMinit = false;
 
@@ -49,7 +50,7 @@ void InitializeLLVM()
 }
 
 //void (*compile_and_run(std::string_view source, const std::string &function_name))()
-void compile_and_run(std::string_view source, const std::string &function_name)
+int compile_and_run(std::string_view source, const std::string &function_name)
 {
     InitializeLLVM();
 
@@ -125,6 +126,13 @@ void compile_and_run(std::string_view source, const std::string &function_name)
         { source.data(), source.size() },
         "<input>"
     };
+
+//    header_search_options.UseStandardSystemIncludes = 0;
+//    header_search_options.UseStandardCXXIncludes = 0;
+//    header_search_options.AddPath(llvm::StringRef("D:/Private/Dev/Projects/UsagiBuild/x64/Debug"), clang::frontend::Quoted, false, true);
+    preprocessor_options.ImplicitPCHInclude = "foo.pch";
+    // todo: load from memorys
+    //    preprocessor_options.RemappedFileBuffers.emplace("<PCH>", )
 
     front_end_options.Inputs.clear();
     front_end_options.Inputs.push_back(
@@ -202,8 +210,8 @@ void compile_and_run(std::string_view source, const std::string &function_name)
         throw;
     }
 
-    auto func = reinterpret_cast<void(*)()>(
+    auto func = reinterpret_cast<int(*)()>(
         execution_engine->getFunctionAddress(function_name)
     );
-    func();
+    return func();
 }
