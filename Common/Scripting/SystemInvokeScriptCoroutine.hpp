@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include <Usagi/Entity/EntityDatabase.hpp>
-#include <Usagi/Runtime/Service.hpp>
+#include <Usagi/Runtime/Service/Service.hpp>
 
 #include "ComponentCoroutineContinuation.hpp"
 
@@ -63,9 +63,8 @@ struct SystemInvokeScriptCoroutine
                         compiler.inject_header(/* db interface pch */);
                         compiler.append_source(/* script source */);
                         compiler.append_source(/* template function instantiation */);
-                        auto result = compiler.compile();
-                        result.report_errors();
-                        return std::move(result.bytestream());
+                        auto module_ = compiler.compile();
+                        return std::move(module_);
                     });
                     goto drop_frame;
                 }

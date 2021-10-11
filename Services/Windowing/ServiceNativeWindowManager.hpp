@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include <Usagi/Runtime/Service.hpp>
+#include <Usagi/Runtime/Service/Service.hpp>
 
 #include "NativeWindowManager.hpp"
 

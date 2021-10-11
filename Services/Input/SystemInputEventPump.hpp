@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include <Usagi/Entity/EntityDatabase.hpp>
-#include <Usagi/Runtime/Service.hpp>
+#include <Usagi/Runtime/Service/Service.hpp>
 
 #include "InputEventInserter.hpp"
 #include "ServiceInputSource.hpp"

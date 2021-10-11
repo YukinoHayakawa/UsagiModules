@@ -3,7 +3,7 @@
 #include <Usagi/Entity/EntityDatabase.hpp>
 #include <Usagi/Modules/Common/Executive/ServiceStateTransitionGraph.hpp>
 #include <Usagi/Modules/Common/Math/ComponentRegion2D.hpp>
-#include <Usagi/Runtime/Service.hpp>
+#include <Usagi/Runtime/Service/Service.hpp>
 
 #include "ComponentNativeWindow.hpp"
 #include "NativeWindow.hpp"

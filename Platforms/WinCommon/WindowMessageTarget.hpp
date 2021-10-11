@@ -2,7 +2,7 @@
 
 #include <chrono>
 
-#include <Usagi/Library/Noncopyable.hpp>
+#include <Usagi/Library/Memory/Noncopyable.hpp>
 
 #include "Win32.hpp"
 

@@ -2,7 +2,7 @@
 
 #include <span>
 
-#include <Usagi/Library/Noncopyable.hpp>
+#include <Usagi/Library/Memory/Noncopyable.hpp>
 #include <Usagi/Modules/Common/Math/Matrix.hpp>
 
 #include "Vulkan.hpp"
