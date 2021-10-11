@@ -7,6 +7,7 @@
 
 namespace llvm
 {
+class LLVMContext;
 class ExecutionEngine;
 }
 
@@ -14,12 +15,15 @@ namespace usagi
 {
 class RuntimeModule : Noncopyable
 {
+    std::unique_ptr<llvm::LLVMContext> mContext;
     std::unique_ptr<llvm::ExecutionEngine> mExecutionEngine;
 
     std::uint64_t get_function_address_impl(const std::string &name);
 
 public:
-    RuntimeModule(std::unique_ptr<llvm::ExecutionEngine> execution_engine);
+    RuntimeModule(
+        std::unique_ptr<llvm::LLVMContext> context,
+        std::unique_ptr<llvm::ExecutionEngine> execution_engine);
     ~RuntimeModule();
 
     // string_view is not used for `name` because clang doesn't take it :)

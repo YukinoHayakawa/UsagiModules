@@ -23,8 +23,10 @@ std::uint64_t RuntimeModule::get_function_address_impl(const std::string &name)
 }
 
 RuntimeModule::RuntimeModule(
+    std::unique_ptr<llvm::LLVMContext> context,
     std::unique_ptr<llvm::ExecutionEngine> execution_engine)
-    : mExecutionEngine(std::move(execution_engine))
+    : mContext(std::move(context))
+    , mExecutionEngine(std::move(execution_engine))
 {
 }
 

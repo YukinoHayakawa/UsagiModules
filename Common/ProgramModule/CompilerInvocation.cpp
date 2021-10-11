@@ -46,25 +46,24 @@ void CompilerInvocation::create_invocation()
     auto &diagnostics_engine = mCompilerInstance->getDiagnostics();
     auto &target_options = compiler_invocation.getTargetOpts();
 
-    /* todo seems no need to specify target this way since target option can be directly assigned
-    std::stringstream ss;
-    ss << "-triple=" << llvm::sys::getDefaultTargetTriple();
-
-    llvm::SmallVector<std::string, 128> item_strs;
-    llvm::SmallVector<const char *, 128> item_cstrs;
-
-    for(std::istream_iterator<std::string> i(ss), end; i != end; ++i)
-    {
-        item_strs.push_back(*i);
-    }
-
-    item_cstrs.reserve(item_strs.size());
-    std::ranges::transform(
-        item_strs,
-        std::back_inserter(item_cstrs),
-        [](const std::string &str) { return str.c_str(); }
-    );
-    */
+    // // todo seems no need to specify target this way since target option can be directly assigned
+    // std::stringstream ss;
+    // ss << "-triple=" << llvm::sys::getDefaultTargetTriple();
+    //
+    // llvm::SmallVector<std::string, 128> item_strs;
+    // llvm::SmallVector<const char *, 128> item_cstrs;
+    //
+    // for(std::istream_iterator<std::string> i(ss), end; i != end; ++i)
+    // {
+    //     item_strs.push_back(*i);
+    // }
+    //
+    // item_cstrs.reserve(item_strs.size());
+    // std::ranges::transform(
+    //     item_strs,
+    //     std::back_inserter(item_cstrs),
+    //     [](const std::string &str) { return str.c_str(); }
+    // );
 
     if(!clang::CompilerInvocation::CreateFromArgs(
         compiler_invocation,
@@ -76,6 +75,7 @@ void CompilerInvocation::create_invocation()
 }
 
 CompilerInvocation::CompilerInvocation()
+    : mCompilerInstance { std::make_unique<clang::CompilerInstance>() }
 {
     create_diagnostics();
     create_invocation();
@@ -90,7 +90,7 @@ CompilerInvocation & CompilerInvocation::set_pch(std::string path)
     auto &compiler_invocation = mCompilerInstance->getInvocation();
     auto &preprocessor_options = compiler_invocation.getPreprocessorOpts();
 
-    preprocessor_options.ImplicitPCHInclude = path;
+    preprocessor_options.ImplicitPCHInclude = std::move(path);
 
     return *this;
 }
@@ -102,18 +102,23 @@ CompilerInvocation & CompilerInvocation::add_source(
     auto &compiler_invocation = mCompilerInstance->getInvocation();
     auto &front_end_options = compiler_invocation.getFrontendOpts();
 
+    mStringPool.push_back(std::move(name));
+
     llvm::MemoryBufferRef buffer {
-        { (const char*)source.base_address, source.length },
-        name
+        llvm::StringRef { (const char*)source.base_address, source.length },
+        mStringPool.back()
     };
 
     // header_search_options.UseStandardSystemIncludes = 0;
     // header_search_options.UseStandardCXXIncludes = 0;
     // header_search_options.AddPath(llvm::StringRef("."), clang::frontend::Quoted, false, true);
 
-    // todo: load from memory - this won't work. PCH include doesn't go this path
+    // todo: load from memory doesn't work. PCH include doesn't go this path
+
     // preprocessor_options.RemappedFileBuffers.emplace("<PCH>", )
 
+    // remove reading from stdin
+    front_end_options.Inputs.clear();
     front_end_options.Inputs.push_back(
         clang::FrontendInputFile(buffer, { clang::Language::CXX })
     );
@@ -125,9 +130,8 @@ std::unique_ptr<RuntimeModule> CompilerInvocation::compile()
 {
     assert(mCompilerInstance);
 
-    llvm::LLVMContext context;
-
-    auto action = std::make_unique<clang::EmitLLVMOnlyAction>(&context);
+    auto context = std::make_unique<llvm::LLVMContext>();
+    auto action = std::make_unique<clang::EmitLLVMOnlyAction>(context.get());
 
     if(!mCompilerInstance->ExecuteAction(*action))
         USAGI_THROW(std::runtime_error("Compilation failed."));
@@ -185,6 +189,9 @@ std::unique_ptr<RuntimeModule> CompilerInvocation::compile()
 
     mCompilerInstance.reset();
 
-    return std::make_unique<RuntimeModule>(std::move(engine));
+    return std::make_unique<RuntimeModule>(
+        std::move(context),
+        std::move(engine)
+    );
 }
 }
