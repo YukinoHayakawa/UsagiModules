@@ -15,10 +15,13 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="ClangJITCompiler.cpp">
+    <ClCompile Include="ClangJIT.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="RuntimeModule.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CompilerInvocation.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -26,10 +29,13 @@
     <ClInclude Include="ServiceRuntimeCompilation.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ClangJITCompiler.hpp">
+    <ClInclude Include="ClangJIT.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="RuntimeModule.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CompilerInvocation.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -64,11 +64,13 @@
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="ClangJITCompiler.cpp" />
+    <ClCompile Include="ClangJIT.cpp" />
+    <ClCompile Include="CompilerInvocation.cpp" />
     <ClCompile Include="RuntimeModule.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="ClangJITCompiler.hpp" />
+    <ClInclude Include="ClangJIT.hpp" />
+    <ClInclude Include="CompilerInvocation.hpp" />
     <ClInclude Include="RuntimeModule.hpp" />
     <ClInclude Include="ServiceRuntimeCompilation.hpp" />
   </ItemGroup>
