@@ -31,12 +31,16 @@ void add_file_sink(const std::string &file_path);
  * \param args
  */
 template <typename... Args>
-void log(const LoggingLevel level, std::string_view fmt, Args &&... args)
+void log(const LoggingLevel level, fmt::string_view fmt, Args &&... args)
 {
     if(!should_log(level)) return;
 
     fmt::memory_buffer buffer;
-    fmt::format_to(buffer, fmt, std::forward<Args>(args)...);
+    fmt::detail::vformat_to(
+        buffer,
+        fmt,
+        fmt::make_format_args(args...)
+    );
     do_log(level, { buffer.data(), buffer.size() });
 }
 }

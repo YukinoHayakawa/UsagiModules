@@ -22,10 +22,11 @@ public:
     {
         using namespace std::chrono;
         const duration<double> delta = msg.time - logger_creation_time_;
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-        fmt::format_to(dest, "[{:>15.6f}] ", delta.count());
-#pragma clang diagnostic pop
+        fmt::detail::vformat_to(
+            dest,
+            fmt::string_view("[{:>15.6f}] "),
+            fmt::make_format_args(delta.count())
+        );
     }
 
     std::unique_ptr<formatter> clone() const override
