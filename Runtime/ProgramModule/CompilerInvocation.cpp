@@ -12,12 +12,16 @@
 #include <llvm/ExecutionEngine/SectionMemoryManager.h>
 #include <llvm/Passes/PassBuilder.h>
 #include <llvm/Support/Host.h>
+#include <llvm/Support/VirtualFileSystem.h>
+#include <clang/Basic/FileManager.h>
 #include <clang/Lex/PreprocessorOptions.h>
 #include <clang/Frontend/CompilerInstance.h>
 #include <clang/Frontend/TextDiagnosticPrinter.h>
 #include <clang/CodeGen/CodeGenAction.h>
+#include <clang/Serialization/InMemoryModuleCache.h>
 
 #include <Usagi/Runtime/ErrorHandling.hpp>
+#include <Usagi/Runtime/File/RegularFile.hpp>
 
 #include "RuntimeModule.hpp"
 
@@ -27,6 +31,7 @@ namespace usagi
 {
 void CompilerInvocation::create_diagnostics()
 {
+    // mCompilerInstance->getModuleCache().addBuiltPCM()
     auto &compiler_invocation = mCompilerInstance->getInvocation();
     auto &diagnostic_options = compiler_invocation.getDiagnosticOpts();
     auto text_diagnostic_printer =
@@ -40,30 +45,23 @@ void CompilerInvocation::create_diagnostics()
     );
 }
 
+void CompilerInvocation::create_vfs()
+{
+    // use a vfs to handle the reading of PCH since it only reads from the
+    // file manager.
+    mCompilerInstance->setFileManager(
+        new clang::FileManager(
+            { },
+            mFileSystem = new llvm::vfs::InMemoryFileSystem
+        )
+    );
+}
+
 void CompilerInvocation::create_invocation()
 {
     auto &compiler_invocation = mCompilerInstance->getInvocation();
     auto &diagnostics_engine = mCompilerInstance->getDiagnostics();
     auto &target_options = compiler_invocation.getTargetOpts();
-
-    // // todo seems no need to specify target this way since target option can be directly assigned
-    // std::stringstream ss;
-    // ss << "-triple=" << llvm::sys::getDefaultTargetTriple();
-    //
-    // llvm::SmallVector<std::string, 128> item_strs;
-    // llvm::SmallVector<const char *, 128> item_cstrs;
-    //
-    // for(std::istream_iterator<std::string> i(ss), end; i != end; ++i)
-    // {
-    //     item_strs.push_back(*i);
-    // }
-    //
-    // item_cstrs.reserve(item_strs.size());
-    // std::ranges::transform(
-    //     item_strs,
-    //     std::back_inserter(item_cstrs),
-    //     [](const std::string &str) { return str.c_str(); }
-    // );
 
     if(!clang::CompilerInvocation::CreateFromArgs(
         compiler_invocation,
@@ -78,6 +76,7 @@ CompilerInvocation::CompilerInvocation()
     : mCompilerInstance { std::make_unique<clang::CompilerInstance>() }
 {
     create_diagnostics();
+    create_vfs();
     create_invocation();
 }
 
@@ -85,12 +84,27 @@ CompilerInvocation::~CompilerInvocation()
 {
 }
 
-CompilerInvocation & CompilerInvocation::set_pch(std::string path)
+CompilerInvocation & CompilerInvocation::set_pch(MemoryRegion buffer)
 {
     auto &compiler_invocation = mCompilerInstance->getInvocation();
     auto &preprocessor_options = compiler_invocation.getPreprocessorOpts();
 
-    preprocessor_options.ImplicitPCHInclude = std::move(path);
+    preprocessor_options.ImplicitPCHInclude = "<pch>";
+    // prevent clang from checking the pch with original header source (we
+    // don't have it in the vfs and don't want to deploy it with assets)
+    preprocessor_options.DisablePCHOrModuleValidation =
+        clang::DisableValidationForModuleKind::PCH;
+
+    mFileSystem->addFile(
+        "<pch>",
+        0,
+        llvm::MemoryBuffer::getMemBuffer(
+            llvm::StringRef
+            { (const char *)buffer.base_address, buffer.length },
+            "",
+            false
+        )
+    );
 
     return *this;
 }
@@ -112,10 +126,6 @@ CompilerInvocation & CompilerInvocation::add_source(
     // header_search_options.UseStandardSystemIncludes = 0;
     // header_search_options.UseStandardCXXIncludes = 0;
     // header_search_options.AddPath(llvm::StringRef("."), clang::frontend::Quoted, false, true);
-
-    // todo: load from memory doesn't work. PCH include doesn't go this path
-
-    // preprocessor_options.RemappedFileBuffers.emplace("<PCH>", )
 
     // remove reading from stdin
     front_end_options.Inputs.clear();

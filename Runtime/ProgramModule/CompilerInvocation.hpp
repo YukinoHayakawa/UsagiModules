@@ -11,6 +11,11 @@ namespace clang
 class CompilerInstance;
 }
 
+namespace llvm::vfs
+{
+class InMemoryFileSystem;
+}
+
 namespace usagi
 {
 class RuntimeModule;
@@ -21,8 +26,10 @@ class CompilerInvocation
 
     std::unique_ptr<clang::CompilerInstance> mCompilerInstance;
     std::vector<std::string> mStringPool;
+    llvm::vfs::InMemoryFileSystem *mFileSystem = nullptr;
 
     void create_diagnostics();
+    void create_vfs();
     void create_invocation();
 
     // Only allow ClangJIT service to create this class to ensure that LLVM
@@ -34,7 +41,7 @@ class CompilerInvocation
 public:
     ~CompilerInvocation();
 
-    CompilerInvocation & set_pch(std::string path);
+    CompilerInvocation & set_pch(MemoryRegion buffer);
     CompilerInvocation & add_source(std::string name, MemoryRegion source);
     std::unique_ptr<RuntimeModule> compile();
 };
