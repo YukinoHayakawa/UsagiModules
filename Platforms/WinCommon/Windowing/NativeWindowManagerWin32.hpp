@@ -3,7 +3,7 @@
 #include <vector>
 
 #include <Usagi/Library/Container/FixedCapacityString.hpp>
-#include <Usagi/Modules/Services/Windowing/NativeWindowManager.hpp>
+#include <Usagi/Modules/IO/Windowing/NativeWindowManager.hpp>
 
 namespace usagi
 {

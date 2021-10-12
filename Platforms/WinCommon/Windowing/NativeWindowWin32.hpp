@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include <Usagi/Modules/Platforms/WinCommon/WindowMessageTarget.hpp>
-#include <Usagi/Modules/Services/Windowing/NativeWindow.hpp>
+#include <Usagi/Modules/IO/Windowing/NativeWindow.hpp>
 
 #include "NativeWindowManagerWin32.hpp"
 #include "../Win32.hpp"

@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include <Usagi/Modules/Services/Input/InputAxis.hpp>
+#include <Usagi/Modules/IO/Input/InputAxis.hpp>
 
 struct tagRAWKEYBOARD;
 
