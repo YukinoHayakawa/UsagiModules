@@ -58,20 +58,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Builder\AssetBuilderRawBuffer.cpp" />
-    <ClCompile Include="AssetSourceFilesystem.cpp" />
+    <ClCompile Include="AssetManager.cpp" />
+    <ClCompile Include="Package\AssetPackageFilesystem.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Asset.hpp" />
-    <ClInclude Include="AssetCacheEntry.hpp" />
+    <ClInclude Include="AssetQuery.hpp" />
     <ClInclude Include="AssetManager.hpp" />
-    <ClInclude Include="Builder\AssetBuilderRawBuffer.hpp" />
-    <ClInclude Include="AssetSource.hpp" />
-    <ClInclude Include="AssetSourceFilesystem.hpp" />
-    <ClInclude Include="Crc32.hpp" />
-    <ClInclude Include="RefCounted.hpp" />
-    <ClInclude Include="ServiceAssetManager.hpp" />
-    <ClInclude Include="TypeId.hpp" />
+    <ClInclude Include="Package\AssetPackage.hpp" />
+    <ClInclude Include="Package\AssetPackageFilesystem.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\..\..\Library\Usagi\Usagi.vcxproj">
