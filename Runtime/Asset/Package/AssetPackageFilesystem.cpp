@@ -38,7 +38,13 @@ bool AssetPackageFilesystem::create_query(
     StackPolymorphicObject<AssetQuery> &query)
 {
     std::filesystem::path relative_path = mBasePath / path;
-    relative_path = relative_path.lexically_relative(mBasePath);
+
+    // If base path is empty, the package is allowed to access the full
+    // filesystem.
+    // todo: test
+    if(!mBasePath.empty())
+        relative_path = relative_path.lexically_relative(mBasePath);
+    relative_path = relative_path.lexically_normal();
 
     // trying to escape the folder
     if(*relative_path.begin() == "..")
