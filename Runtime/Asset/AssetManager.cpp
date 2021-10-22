@@ -45,6 +45,7 @@ public:
         mPackage->create_query(mAssetPath, q);
         q->fetch();
         assert(q->prefetched());
+        mEntry->second.region = q->memory_region();
     }
 
     void on_finished() override
@@ -70,8 +71,8 @@ public:
         const auto b = mEntry->secondary.status ==
             AssetStatus::SECONDARY_PENDING;
         const auto c = mEntry->constructor != nullptr;
-
-        return a && b && c;
+        const auto d = !!mEntry->primary_ref->second.region;
+        return a && b && c && d;
     }
 
     void on_started() override
@@ -89,7 +90,15 @@ public:
 
     void on_finished() override
     {
-        mEntry->secondary.status = AssetStatus::SECONDARY_READY;
+        if(mEntry->secondary.object.has_value())
+            mEntry->secondary.status = AssetStatus::SECONDARY_READY;
+        else
+            mEntry->secondary.status = AssetStatus::SECONDARY_FAILED;
+    }
+
+    bool postcondition() override
+    {
+        return mEntry->secondary.status == AssetStatus::SECONDARY_READY;
     }
 };
 
@@ -242,6 +251,8 @@ SecondaryAsset AssetManager::secondary_asset(
     std::unique_ptr<SecondaryAssetConstructor> constructor,
     TaskExecutor *work_queue)
 {
+    assert(constructor && "No secondary asset constructor is provided.");
+
     const bool load = work_queue != nullptr;
     const auto sig = constructor->signature();
 
@@ -300,14 +311,11 @@ SecondaryAsset AssetManager::secondary_asset(
 
     // Now it's sure that we are going to load the asset, ensure that an
     // entry is present. Only newly created entry goes the following path.
-    std::tie(it_sec, std::ignore) = mLoadedSecondaryAssets.emplace(sig);
-
-    // Update the entry with the status of the primary asset.
-    // The actual key (sec.signature) not modified here so it's safe
-    // to do the const_cast.
-    auto &sec = const_cast<SecondaryAsset &>(it_sec->secondary);
-    sec.package = primary.package;
-    sec.status = primary.status;
+    std::tie(it_sec, std::ignore) = mLoadedSecondaryAssets.emplace(
+        it_pri,
+        sig,
+        std::move(constructor)
+    );
 
     // We are done with the table here. Future modifications to the entry
     // must be from the loading task created later.
@@ -328,12 +336,14 @@ SecondaryAsset AssetManager::secondary_asset(
     assert(primary.loading_task_id != TaskExecutor::INVALID_TASK &&
         "The loading task id for the primary asset has been lost.");
 
+    auto &mutable_sec = const_cast<SecondaryAssetAuxInfo &>(*it_sec);
+
     // Loading task for secondary asset won't be created if an entry already
     // exists, so no race condition of changing asset status here.
-    sec.status = AssetStatus::SECONDARY_PENDING;
+    mutable_sec.secondary.status = AssetStatus::SECONDARY_PENDING;
 
     auto task_sec = std::make_unique<SecondaryAssetLoadingTask>(it_sec);
-    sec.loading_task_id = work_queue->submit(
+    mutable_sec.secondary.loading_task_id = work_queue->submit(
         std::move(task_sec),
         primary.status == AssetStatus::PRIMARY_READY
             ? TaskExecutor::INVALID_TASK
@@ -343,6 +353,6 @@ SecondaryAsset AssetManager::secondary_asset(
     // Note that asset status change is possible here. But it doesn't hurt as
     // status consistency is maintained in the loading task. It will only
     // be ready when all the processing is done.
-    return sec;
+    return mutable_sec.secondary;
 }
 }

@@ -49,9 +49,15 @@ class AssetManager
         mutable SecondaryAsset secondary;
         std::unique_ptr<SecondaryAssetConstructor> constructor;
 
-        SecondaryAssetAuxInfo(AssetCacheSignature sig)
+        SecondaryAssetAuxInfo(
+            PrimaryAssetRef primary_ref,
+            AssetCacheSignature sig,
+            std::unique_ptr<SecondaryAssetConstructor> constructor)
+            : primary_ref(primary_ref)
+            , constructor(std::move(constructor))
         {
             secondary.signature = sig;
+            secondary.package = primary_ref->second.package;
         }
 
         friend bool operator<(

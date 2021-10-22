@@ -88,6 +88,8 @@ enum class AssetStatus : std::uint64_t
     // The secondary asset with provided processing parameters is in the cache
     // for use.
     SECONDARY_READY,
+
+    SECONDARY_FAILED,
 };
 
 struct PrimaryAsset
