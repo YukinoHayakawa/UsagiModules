@@ -84,7 +84,8 @@ void check_nt_status(std::u8string_view function, NTSTATUS status);
 /**/
 
 #define USAGI_WIN32_CHECK_ASSERT(function, ...) \
-    do { const auto ret = function(__VA_ARGS__); \
+    do { [[maybe_unused]] \
+        const auto ret = function(__VA_ARGS__); \
         assert(ret); } while(false) \
 /**/
 

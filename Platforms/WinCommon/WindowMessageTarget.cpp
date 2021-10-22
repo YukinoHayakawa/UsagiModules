@@ -4,6 +4,7 @@ namespace usagi::win32
 {
 WindowMessageTarget * target_from_hwnd(const HWND window_handle)
 {
+    [[maybe_unused]]
     const auto proc = reinterpret_cast<void*>(
         GetClassLongPtrW(window_handle, GCLP_WNDPROC)
     );
