@@ -41,8 +41,10 @@ class CompilerInvocation
 public:
     ~CompilerInvocation();
 
-    CompilerInvocation & set_pch(MemoryRegion buffer);
-    CompilerInvocation & add_source(std::string name, MemoryRegion source);
+    CompilerInvocation & set_pch(ReadonlyMemoryRegion buffer);
+    CompilerInvocation & add_source(
+        std::string name,
+        ReadonlyMemoryRegion source);
     std::unique_ptr<RuntimeModule> compile();
 };
 }

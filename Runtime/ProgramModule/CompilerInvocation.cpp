@@ -84,7 +84,7 @@ CompilerInvocation::~CompilerInvocation()
 {
 }
 
-CompilerInvocation & CompilerInvocation::set_pch(MemoryRegion buffer)
+CompilerInvocation & CompilerInvocation::set_pch(ReadonlyMemoryRegion buffer)
 {
     auto &compiler_invocation = mCompilerInstance->getInvocation();
     auto &preprocessor_options = compiler_invocation.getPreprocessorOpts();
@@ -111,7 +111,7 @@ CompilerInvocation & CompilerInvocation::set_pch(MemoryRegion buffer)
 
 CompilerInvocation & CompilerInvocation::add_source(
     std::string name,
-    MemoryRegion source)
+    ReadonlyMemoryRegion source)
 {
     auto &compiler_invocation = mCompilerInstance->getInvocation();
     auto &front_end_options = compiler_invocation.getFrontendOpts();

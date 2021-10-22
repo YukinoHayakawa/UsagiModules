@@ -25,7 +25,7 @@ class ClangJIT : Noncopyable
 public:
     ClangJIT();
 
-    static CompilerInvocation create_compiler()
+    static auto create_compiler()
     {
         return CompilerInvocation();
     }
