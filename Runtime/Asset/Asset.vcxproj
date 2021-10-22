@@ -67,6 +67,8 @@
     <ClInclude Include="AssetManager.hpp" />
     <ClInclude Include="Package\AssetPackage.hpp" />
     <ClInclude Include="Package\AssetPackageFilesystem.hpp" />
+    <ClInclude Include="SecondaryAssetConstructor.hpp" />
+    <ClInclude Include="ServiceAssetManager.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\..\..\Library\Usagi\Usagi.vcxproj">

@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include <any>
 #include <stdexcept>
 #include <string>
 #include <concepts>
@@ -54,10 +55,10 @@ concept AssetBuilder = requires (T t) {
     { T::free(std::declval<const MemoryRegion &>()) };
 };
 
-enum class AssetStatus : std::uint8_t
+enum class AssetStatus : std::uint64_t
 {
     // The asset couldn't be found in any source.
-    MISSING,
+    PRIMARY_MISSING,
 
     // The primary asset exists, but no party has shown intend of loading it
     // into memory.
@@ -73,9 +74,9 @@ enum class AssetStatus : std::uint8_t
     // The primary asset is loaded.
     PRIMARY_READY,
 
-    // The secondary asset with provided processing parameters is in the cache
-    // for use.
-    SECONDARY_READY,
+    // The secondary asset could not be found in the cache. A constructor
+    // must be provided to query its status.
+    SECONDARY_MISSING,
 
     // The secondary asset is in the work queue to be processed.
     SECONDARY_PENDING,
@@ -84,30 +85,42 @@ enum class AssetStatus : std::uint8_t
     // being processed.
     SECONDARY_PROCESSING,
 
-    // The processing of the secondary asset was failed.
-    SECONDARY_FAILED,
-
-
-    // This status is present during the creation of the cache entry or it
-    // can mean that the cache was removed due to memory management.
-    // The reason that the entry is not purged is to audit the memory
-    // usage and detect potential cache thrashing by examining the
-    // last access time, etc.
-    // UNINITIALIZED,
-
-    // This status indicates there is an active job for loading the
-    // content of the asset thus no second job shall be created for it.
-    // LOADING,
-
-    // This status indicates that there is an active copy of the asset
-    // in the memory.
-    // LOADED,
+    // The secondary asset with provided processing parameters is in the cache
+    // for use.
+    SECONDARY_READY,
 };
 
 struct PrimaryAsset
 {
     ReadonlyMemoryRegion region;
     AssetPackage *package = nullptr;
-    AssetStatus status = AssetStatus::MISSING;
+    AssetStatus status:8 = AssetStatus::PRIMARY_MISSING;
+    std::uint64_t loading_task_id:56 = -1;
+};
+
+struct AssetCacheSignature
+{
+    std::uint64_t a, b;
+
+    operator bool() const
+    {
+        return a && b;
+    }
+
+    friend bool operator<(
+        const AssetCacheSignature &lhs,
+        const AssetCacheSignature &rhs)
+    {
+        return std::tie(lhs.a, lhs.b) < std::tie(rhs.a, rhs.b);
+    }
+};
+
+struct SecondaryAsset
+{
+    std::any object;
+    AssetCacheSignature signature;
+    AssetPackage *package = nullptr;
+    AssetStatus status:8 = AssetStatus::SECONDARY_MISSING;
+    std::uint64_t loading_task_id:56 = -1;
 };
 }
