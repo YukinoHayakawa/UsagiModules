@@ -2,7 +2,6 @@
 
 #include <string>
 #include <memory>
-#include <mutex>
 
 #include <Usagi/Library/Memory/Noncopyable.hpp>
 
@@ -16,8 +15,8 @@ namespace usagi
 {
 class RuntimeModule : Noncopyable
 {
-    std::mutex mEngineMutex;
     std::unique_ptr<llvm::LLVMContext> mContext;
+    // MCJIT engine has mutex by itself. no need for extra lock here.
     std::unique_ptr<llvm::ExecutionEngine> mExecutionEngine;
 
     std::uint64_t get_function_address_impl(const std::string &name);

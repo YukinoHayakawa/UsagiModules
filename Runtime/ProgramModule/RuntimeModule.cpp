@@ -16,8 +16,6 @@ namespace usagi
 {
 std::uint64_t RuntimeModule::get_function_address_impl(const std::string &name)
 {
-    std::lock_guard lk(mEngineMutex);
-
     const auto addr = mExecutionEngine->getFunctionAddress(name);
     if(addr == 0)
         USAGI_THROW(std::runtime_error("Function not found."));
