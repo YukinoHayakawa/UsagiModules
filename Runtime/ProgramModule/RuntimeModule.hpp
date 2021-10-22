@@ -2,6 +2,7 @@
 
 #include <string>
 #include <memory>
+#include <mutex>
 
 #include <Usagi/Library/Memory/Noncopyable.hpp>
 
@@ -15,6 +16,7 @@ namespace usagi
 {
 class RuntimeModule : Noncopyable
 {
+    std::mutex mEngineMutex;
     std::unique_ptr<llvm::LLVMContext> mContext;
     std::unique_ptr<llvm::ExecutionEngine> mExecutionEngine;
 
