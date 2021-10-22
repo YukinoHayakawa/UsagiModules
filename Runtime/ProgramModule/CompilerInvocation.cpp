@@ -62,14 +62,13 @@ void CompilerInvocation::create_invocation()
     auto &compiler_invocation = mCompilerInstance->getInvocation();
     auto &diagnostics_engine = mCompilerInstance->getDiagnostics();
     auto &target_options = compiler_invocation.getTargetOpts();
+    target_options.Triple = llvm::sys::getDefaultTargetTriple();
 
     if(!clang::CompilerInvocation::CreateFromArgs(
         compiler_invocation,
         { nullptr, nullptr },
         diagnostics_engine
     )) USAGI_THROW(std::runtime_error("Failed to create compiler invocation"));
-
-    target_options.Triple = llvm::sys::getDefaultTargetTriple();
 }
 
 CompilerInvocation::CompilerInvocation()

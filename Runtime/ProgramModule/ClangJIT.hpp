@@ -25,7 +25,9 @@ class ClangJIT : Noncopyable
 public:
     ClangJIT();
 
-    static auto create_compiler()
+    // To make sure that LLVM is instantiated, this should be not declared
+    // as static.
+    auto create_compiler()
     {
         return CompilerInvocation();
     }
