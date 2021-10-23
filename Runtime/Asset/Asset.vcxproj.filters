@@ -41,7 +41,10 @@
     <ClInclude Include="ServiceAssetManager.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="SecondaryAssetConstructor.hpp">
+    <ClInclude Include="SecondaryAssetHandler.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SecondaryAsset.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

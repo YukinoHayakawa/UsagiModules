@@ -8,7 +8,8 @@
 #include <Usagi/Runtime/Task.hpp>
 
 #include "AssetQuery.hpp"
-#include "SecondaryAssetConstructor.hpp"
+#include "SecondaryAsset.hpp"
+#include "SecondaryAssetHandler.hpp"
 
 namespace usagi
 {
@@ -68,37 +69,37 @@ public:
     {
         const auto a = mEntry->primary_ref->second.status ==
             AssetStatus::PRIMARY_READY;
-        const auto b = mEntry->secondary.status ==
+        const auto b = mEntry->meta.status ==
             AssetStatus::SECONDARY_PENDING;
-        const auto c = mEntry->constructor != nullptr;
+        const auto c = mEntry->handler != nullptr;
         const auto d = !!mEntry->primary_ref->second.region;
         return a && b && c && d;
     }
 
     void on_started() override
     {
-        mEntry->secondary.status = AssetStatus::SECONDARY_PROCESSING;
+        mEntry->meta.status = AssetStatus::SECONDARY_PROCESSING;
     }
 
     void run() override
     {
         // feed the raw memory of primary asset to secondary asset constructor
         const auto raw = mEntry->primary_ref->second.region;
-        auto object = mEntry->constructor->construct(raw);
-        mEntry->secondary.object = std::move(object);
+        auto object = mEntry->handler->construct(raw);
+        mEntry->meta.secondary = std::move(object);
     }
 
     void on_finished() override
     {
-        if(mEntry->secondary.object.has_value())
-            mEntry->secondary.status = AssetStatus::SECONDARY_READY;
+        if(mEntry->meta.secondary)
+            mEntry->meta.status = AssetStatus::SECONDARY_READY;
         else
-            mEntry->secondary.status = AssetStatus::SECONDARY_FAILED;
+            mEntry->meta.status = AssetStatus::SECONDARY_FAILED;
     }
 
     bool postcondition() override
     {
-        return mEntry->secondary.status == AssetStatus::SECONDARY_READY;
+        return mEntry->meta.status == AssetStatus::SECONDARY_READY;
     }
 };
 
@@ -115,6 +116,10 @@ bool AssetManager::create_query(
             return true;
 
     return false;
+}
+
+AssetManager::SecondaryAssetAuxInfo::PseudoMeta::~PseudoMeta()
+{
 }
 
 void AssetManager::add_package(std::shared_ptr<AssetPackage> package)
@@ -166,7 +171,7 @@ AssetManager::PrimaryAssetQueryResult AssetManager::query_primary_asset_nolock(
             // asset not found
             return { };
 
-        const PrimaryAsset asset
+        const PrimaryAssetMeta asset
         {
             .package = query->package(),
             .status = AssetStatus::PRIMARY_FOUND
@@ -209,7 +214,7 @@ AssetManager::PrimaryAssetQueryResult AssetManager::query_primary_asset_nolock(
     return { it->second, it, std::move(task) };
 }
 
-PrimaryAsset AssetManager::primary_asset(
+PrimaryAssetMeta AssetManager::primary_asset(
     const std::string_view asset_path,
     TaskExecutor *work_queue)
 {
@@ -233,7 +238,7 @@ PrimaryAsset AssetManager::primary_asset(
     return primary;
 }
 
-SecondaryAsset AssetManager::secondary_asset(
+SecondaryAssetMeta AssetManager::secondary_asset(
     const AssetCacheSignature signature)
 {
     LockGuard lk(mSecondaryAssetTableMutex);
@@ -243,12 +248,13 @@ SecondaryAsset AssetManager::secondary_asset(
         return { };
 
     // The asset exists in cache. Return is regardless of its state.
-    return it->secondary;
+
+    return it->meta;
 }
 
-SecondaryAsset AssetManager::secondary_asset(
+SecondaryAssetMeta AssetManager::secondary_asset(
     std::string_view primary_asset_path,
-    std::unique_ptr<SecondaryAssetConstructor> constructor,
+    std::unique_ptr<SecondaryAssetHandler> constructor,
     TaskExecutor *work_queue)
 {
     assert(constructor && "No secondary asset constructor is provided.");
@@ -264,9 +270,9 @@ SecondaryAsset AssetManager::secondary_asset(
     // Avoid this kind of query considering its performance burden.
     if(it_sec != mLoadedSecondaryAssets.end())
     {
-        auto sec = it_sec->secondary;
+        SecondaryAssetMeta sec = it_sec->meta;
         // todo pending becomes a useless state?
-        if(it_sec->secondary.status <= AssetStatus::SECONDARY_PENDING)
+        if(it_sec->meta.status <= AssetStatus::SECONDARY_PENDING)
             // don't assign to the original state as it may cause race condition
             sec.status = it_sec->primary_ref->second.status;
         return sec;
@@ -302,10 +308,10 @@ SecondaryAsset AssetManager::secondary_asset(
     {
         assert(!task_pri && "Primary asset query produced a loading task "
             "when the caller doesn't want to load the asset.");
-        SecondaryAsset sec;
+        SecondaryAssetMeta sec;
         sec.signature = sig;
-        sec.package = primary.package;
-        sec.status = primary.status;
+        // sec.package = primary.package;
+        // sec.status = primary.status;
         return sec;
     }
 
@@ -340,10 +346,10 @@ SecondaryAsset AssetManager::secondary_asset(
 
     // Loading task for secondary asset won't be created if an entry already
     // exists, so no race condition of changing asset status here.
-    mutable_sec.secondary.status = AssetStatus::SECONDARY_PENDING;
+    mutable_sec.meta.status = AssetStatus::SECONDARY_PENDING;
 
     auto task_sec = std::make_unique<SecondaryAssetLoadingTask>(it_sec);
-    mutable_sec.secondary.loading_task_id = work_queue->submit(
+    mutable_sec.meta.loading_task_id = work_queue->submit(
         std::move(task_sec),
         primary.status == AssetStatus::PRIMARY_READY
             ? TaskExecutor::INVALID_TASK
@@ -353,6 +359,6 @@ SecondaryAsset AssetManager::secondary_asset(
     // Note that asset status change is possible here. But it doesn't hurt as
     // status consistency is maintained in the loading task. It will only
     // be ready when all the processing is done.
-    return mutable_sec.secondary;
+    return mutable_sec.meta;
 }
 }

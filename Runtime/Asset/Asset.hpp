@@ -1,9 +1,9 @@
 ﻿#pragma once
 
-#include <any>
-#include <stdexcept>
-#include <string>
-#include <concepts>
+// #include <any>
+// #include <stdexcept>
+// #include <string>
+// #include <concepts>
 
 #include <Usagi/Runtime/Memory/Region.hpp>
 
@@ -28,6 +28,7 @@ enum class AssetPriority : std::uint8_t
     AMBIENT             = 1,
 };
 
+/*
 struct AssetNotFound final : std::runtime_error
 {
     const std::string_view asset_path;
@@ -54,45 +55,49 @@ concept AssetBuilder = requires (T t) {
     { t.build() } -> std::same_as<MemoryRegion>;
     { T::free(std::declval<const MemoryRegion &>()) };
 };
+*/
 
 enum class AssetStatus : std::uint64_t
 {
     // The asset couldn't be found in any source.
-    PRIMARY_MISSING,
+    PRIMARY_MISSING         = 0,
 
-    // The primary asset exists, but no party has shown intend of loading it
+    // The primary asset exists, but no party has shown intent of loading it
     // into memory.
-    PRIMARY_FOUND,
+    PRIMARY_FOUND           = 1,
 
-    // The primary asset exists, there is a job loading it into memory created,
-    // but the job is not running.
-    PRIMARY_PENDING,
+    // The primary asset exists, and a task has been created to load it into
+    // memory, but the task is still waiting in the work queue.
+    PRIMARY_PENDING         = 2,
 
-    // A job is actively loading the content of asset into memory.
-    PRIMARY_LOADING,
+    // A task is actively loading the content of asset into memory.
+    PRIMARY_LOADING         = 3,
 
     // The primary asset is loaded.
-    PRIMARY_READY,
+    PRIMARY_READY           = 4,
 
     // The secondary asset could not be found in the cache. A constructor
     // must be provided to query its status.
-    SECONDARY_MISSING,
+    SECONDARY_MISSING       = 5,
 
-    // The secondary asset is in the work queue to be processed.
-    SECONDARY_PENDING,
+    // The secondary asset is in the work queue to be processed. It can also
+    // be waiting for the corresponding primary asset to be loaded. In that
+    // case, user can query the status of primary asset.
+    SECONDARY_PENDING       = 6,
 
     // The secondary asset with provided processing parameters is still
     // being processed.
-    SECONDARY_PROCESSING,
+    SECONDARY_PROCESSING    = 7,
 
     // The secondary asset with provided processing parameters is in the cache
     // for use.
-    SECONDARY_READY,
+    SECONDARY_READY         = 8,
 
-    SECONDARY_FAILED,
+    // Errors occurred while creating the secondary asset.
+    SECONDARY_FAILED        = 9,
 };
 
-struct PrimaryAsset
+struct PrimaryAssetMeta
 {
     ReadonlyMemoryRegion region;
     AssetPackage *package = nullptr;
@@ -102,7 +107,7 @@ struct PrimaryAsset
 
 struct AssetCacheSignature
 {
-    std::uint64_t a, b;
+    std::uint64_t a = 0, b = 0;
 
     operator bool() const
     {
@@ -117,11 +122,11 @@ struct AssetCacheSignature
     }
 };
 
-struct SecondaryAsset
+struct SecondaryAssetMeta
 {
-    std::any object;
+    class SecondaryAsset *asset = nullptr;
     AssetCacheSignature signature;
-    AssetPackage *package = nullptr;
+    // AssetPackage *package = nullptr;
     AssetStatus status:8 = AssetStatus::SECONDARY_MISSING;
     std::uint64_t loading_task_id:56 = -1;
 };
