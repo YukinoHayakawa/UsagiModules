@@ -3,7 +3,6 @@
 #include <thread>
 
 #include <Usagi/Library/Memory/StackPolymorphicObject.hpp>
-#include <Usagi/Runtime/ErrorHandling.hpp>
 #include <Usagi/Library/Memory/LockGuard.hpp>
 #include <Usagi/Runtime/Task.hpp>
 
@@ -26,7 +25,7 @@ public:
         AssetManager::PrimaryAssetRef entry)
         : mAssetPath(std::move(asset_path))
         , mPackage(std::move(package))
-        , mEntry(std::move(entry))
+        , mEntry(entry)
     {
     }
 
@@ -67,13 +66,15 @@ public:
 
     bool precondition() override
     {
-        const auto a = mEntry->primary_ref->second.status ==
-            AssetStatus::PRIMARY_READY;
-        const auto b = mEntry->meta.status ==
+        const auto a = mEntry->meta.status ==
             AssetStatus::SECONDARY_PENDING;
-        const auto c = mEntry->handler != nullptr;
-        const auto d = !!mEntry->primary_ref->second.region;
-        return a && b && c && d;
+        const auto b = mEntry->handler != nullptr;
+        for(auto &&d : mEntry->primary_dependencies)
+            // check primary dependency status if the dependency is set
+            if(d.has_value() &&
+                d.value()->second.status != AssetStatus::PRIMARY_READY)
+                return false;
+        return a && b;
     }
 
     void on_started() override
@@ -83,9 +84,18 @@ public:
 
     void run() override
     {
-        // feed the raw memory of primary asset to secondary asset constructor
-        const auto raw = mEntry->primary_ref->second.region;
-        auto object = mEntry->handler->construct(raw);
+        // todo perf
+        std::vector<std::optional<PrimaryAssetMeta>> meta;
+        meta.reserve(mEntry->primary_dependencies.size());
+        std::ranges::transform(
+            mEntry->primary_dependencies,
+            std::back_inserter(meta),
+            [](auto &&d) -> std::optional<PrimaryAssetMeta> {
+                if(d.has_value()) return d.value()->second;
+                return { };
+            }
+        );
+        auto object = mEntry->handler->construct(meta);
         mEntry->meta.secondary = std::move(object);
     }
 
@@ -248,117 +258,107 @@ SecondaryAssetMeta AssetManager::secondary_asset(
         return { };
 
     // The asset exists in cache. Return is regardless of its state.
-
     return it->meta;
 }
 
 SecondaryAssetMeta AssetManager::secondary_asset(
-    std::string_view primary_asset_path,
-    std::unique_ptr<SecondaryAssetHandler> constructor,
-    TaskExecutor *work_queue)
+    std::unique_ptr<SecondaryAssetHandlerBase> handler,
+    TaskExecutor &work_queue)
 {
-    assert(constructor && "No secondary asset constructor is provided.");
+    assert(handler && "No secondary asset handler is provided.");
 
-    const bool load = work_queue != nullptr;
-    const auto sig = constructor->signature();
+    const auto sig = handler->signature();
 
     LockGuard slk(mSecondaryAssetTableMutex);
 
     auto it_sec = mLoadedSecondaryAssets.find(sig);
     // If an entry exists for the asset, it must be either being constructed
     // or already constructed. Just return the current state of the entry.
-    // Avoid this kind of query considering its performance burden.
+    // Avoid this kind of query considering its performance burden of creating
+    // the handler.
     if(it_sec != mLoadedSecondaryAssets.end())
-    {
-        SecondaryAssetMeta sec = it_sec->meta;
-        // todo pending becomes a useless state?
-        if(it_sec->meta.status <= AssetStatus::SECONDARY_PENDING)
-            // don't assign to the original state as it may cause race condition
-            sec.status = it_sec->primary_ref->second.status;
-        return sec;
-    }
+        return it_sec->meta;
 
-    // If no cache entry was found for the requested secondary asset, query
-    // the status of the corresponding primary asset.
-    // If the caller wants to load the asset, first check whether the primary
-    // asset is loaded. If any loading task is generated, we will be the
-    // unique owner of it here. An entry for the primary will be inserted into
-    // the table and no further loading job will be created. So if we want
-    // to load the asset, this task must not be discarded and be executed
-    // before the job of loading the secondary asset.
-
-    LockGuard plk(mPrimaryAssetTableMutex);
-
-    // Query the status of corresponding primary asset. If no loading task is
-    // returned, it means an task must be already active. Otherwise, the only
-    // opportunity of submitting that task lies below, because only one loading
-    // task will ever be created for each primary asset. So this critical
-    // section doesn't have to last to the point when this task is submitted.
-    // however, secondary table is still locked throughout the whole process.
-    auto [primary, it_pri, task_pri] = query_primary_asset_nolock(
-        primary_asset_path, load);
-
-    plk.unlock();
-
-    // If the caller doesn't want to load the asset, return the status of
-    // the primary asset is returned instead.
-    // The signature is not very useful here as to actually load the asset
-    // this overload of method must be called again.
-    if(!load)
-    {
-        assert(!task_pri && "Primary asset query produced a loading task "
-            "when the caller doesn't want to load the asset.");
-        SecondaryAssetMeta sec;
-        sec.signature = sig;
-        // sec.package = primary.package;
-        // sec.status = primary.status;
-        return sec;
-    }
-
+    const auto handler_ptr = handler.get();
     // Now it's sure that we are going to load the asset, ensure that an
     // entry is present. Only newly created entry goes the following path.
     std::tie(it_sec, std::ignore) = mLoadedSecondaryAssets.emplace(
-        it_pri,
         sig,
-        std::move(constructor)
+        std::move(handler)
     );
 
     // We are done with the table here. Future modifications to the entry
     // must be from the loading task created later.
     slk.unlock();
 
-    if(task_pri)
+    // If no cache entry was found for the requested secondary asset, query the
+    // status of dependent primary assets. If any loading task is generated, we
+    // will be the unique owner of it here. An entry for the primary will be
+    // inserted into the table and no further loading job will be created. So if
+    // we want to load the asset, this task must not be discarded and be
+    // executed before the task of loading the secondary asset.
+
+    // todo perf
+    std::vector<std::uint64_t> wait_on;
+    // Collect primary dependencies.
+    for(std::size_t i = 0;; ++i)
     {
-        it_pri->second.loading_task_id = work_queue->submit(
-            std::move(task_pri));
-    }
-    else
-    {
-        assert(primary.status == AssetStatus::PRIMARY_READY &&
-            "The primary asset was not loaded, but no loading task "
-            "has been created.");
+        const auto dep = handler_ptr->primary_dependencies(i);
+        // no further dependencies
+        if(!dep.has_value()) break;
+
+        // optional dependency set empty
+        if(dep->empty())
+        {
+            it_sec->primary_dependencies.emplace_back();
+            continue;
+        }
+
+        LockGuard plk(mPrimaryAssetTableMutex);
+
+        // Query the status of corresponding primary asset. If no loading task
+        // is returned, it means an task must be already active. Otherwise, the
+        // only opportunity of submitting that task lies below, because only one
+        // loading task will ever be created for each primary asset. So this
+        // critical section doesn't have to last to the point when this task is
+        // submitted. however, secondary table is still locked throughout the
+        // whole process.
+        auto [primary, it_pri, task_pri] = query_primary_asset_nolock(
+            dep.value(),
+            true
+        );
+
+        plk.unlock();
+
+        if(task_pri)
+            it_pri->second.loading_task_id = work_queue.submit(
+                std::move(task_pri));
+        else
+            assert(primary.status == AssetStatus::PRIMARY_READY &&
+                "The primary asset was not loaded, but no loading task "
+                "was created.");
+
+        assert(primary.loading_task_id != TaskExecutor::INVALID_TASK &&
+            "The loading task id for the primary asset has been lost.");
+
+        it_sec->primary_dependencies.emplace_back(it_pri);
+        wait_on.push_back(it_pri->second.loading_task_id);
     }
 
-    assert(primary.loading_task_id != TaskExecutor::INVALID_TASK &&
-        "The loading task id for the primary asset has been lost.");
-
-    auto &mutable_sec = const_cast<SecondaryAssetAuxInfo &>(*it_sec);
+    auto task_sec = std::make_unique<SecondaryAssetLoadingTask>(it_sec);
 
     // Loading task for secondary asset won't be created if an entry already
     // exists, so no race condition of changing asset status here.
-    mutable_sec.meta.status = AssetStatus::SECONDARY_PENDING;
+    it_sec->meta.status = AssetStatus::SECONDARY_PENDING;
 
-    auto task_sec = std::make_unique<SecondaryAssetLoadingTask>(it_sec);
-    mutable_sec.meta.loading_task_id = work_queue->submit(
+    it_sec->meta.loading_task_id = work_queue.submit(
         std::move(task_sec),
-        primary.status == AssetStatus::PRIMARY_READY
-            ? TaskExecutor::INVALID_TASK
-            : it_pri->second.loading_task_id
+        std::move(wait_on)
     );
 
     // Note that asset status change is possible here. But it doesn't hurt as
     // status consistency is maintained in the loading task. It will only
     // be ready when all the processing is done.
-    return mutable_sec.meta;
+    return it_sec->meta;
 }
 }

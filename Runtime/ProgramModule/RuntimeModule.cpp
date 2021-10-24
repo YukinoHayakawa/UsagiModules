@@ -30,6 +30,21 @@ RuntimeModule::RuntimeModule(
 {
 }
 
+RuntimeModule::RuntimeModule(RuntimeModule &&other) noexcept
+    : mContext { std::move(other.mContext) }
+    , mExecutionEngine { std::move(other.mExecutionEngine) }
+{
+}
+
+RuntimeModule & RuntimeModule::operator=(RuntimeModule &&other) noexcept
+{
+    if(this == &other)
+        return *this;
+    mContext = std::move(other.mContext);
+    mExecutionEngine = std::move(other.mExecutionEngine);
+    return *this;
+}
+
 RuntimeModule::~RuntimeModule()
 {
 }

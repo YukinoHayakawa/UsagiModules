@@ -45,6 +45,6 @@ public:
     CompilerInvocation & add_source(
         std::string name,
         ReadonlyMemoryRegion source);
-    std::unique_ptr<RuntimeModule> compile();
+    RuntimeModule compile();
 };
 }

@@ -27,6 +27,9 @@ public:
         std::unique_ptr<llvm::ExecutionEngine> execution_engine);
     ~RuntimeModule();
 
+    RuntimeModule(RuntimeModule &&other) noexcept;
+    RuntimeModule & operator=(RuntimeModule &&other) noexcept;
+
     // string_view is not used for `name` because clang doesn't take it :)
     template <typename FuncT>
     FuncT * get_function_address(

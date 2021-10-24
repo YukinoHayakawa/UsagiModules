@@ -13,7 +13,7 @@
 
 namespace usagi
 {
-class SecondaryAssetHandler;
+class SecondaryAssetHandlerBase;
 
 class AssetManager
 {
@@ -45,8 +45,10 @@ class AssetManager
 
     struct SecondaryAssetAuxInfo
     {
-        mutable PrimaryAssetRef primary_ref;
-        mutable std::unique_ptr<SecondaryAssetHandler> handler;
+        // todo perf
+        mutable std::vector<std::optional<PrimaryAssetRef>>
+            primary_dependencies;
+        mutable std::unique_ptr<SecondaryAssetHandlerBase> handler;
 
         struct PseudoMeta {
             mutable std::unique_ptr<SecondaryAsset> secondary;
@@ -69,11 +71,9 @@ class AssetManager
         static_assert(sizeof(PseudoMeta) == sizeof(SecondaryAssetMeta));
 
         SecondaryAssetAuxInfo(
-            PrimaryAssetRef primary_ref,
             AssetCacheSignature sig,
-            std::unique_ptr<SecondaryAssetHandler> constructor)
-            : primary_ref(primary_ref)
-            , handler(std::move(constructor))
+            std::unique_ptr<SecondaryAssetHandlerBase> constructor)
+            : handler(std::move(constructor))
         {
             meta.signature = sig;
             // secondary.package = primary_ref->second.package;
@@ -126,11 +126,9 @@ public:
     SecondaryAssetMeta secondary_asset(
         AssetCacheSignature signature);
 
-    // Construct a secondary asset using the provided constructor. If a work
-    // queue is not provided, only the signature will be calculated.
+    // Construct a secondary asset using the provided handler.
     SecondaryAssetMeta secondary_asset(
-        std::string_view primary_asset_path,
-        std::unique_ptr<SecondaryAssetHandler> constructor,
-        TaskExecutor *work_queue = nullptr);
+        std::unique_ptr<SecondaryAssetHandlerBase> handler,
+        TaskExecutor &work_queue);
 };
 }

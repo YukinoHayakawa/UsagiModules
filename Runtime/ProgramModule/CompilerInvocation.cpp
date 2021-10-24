@@ -135,7 +135,7 @@ CompilerInvocation & CompilerInvocation::add_source(
     return *this;
 }
 
-std::unique_ptr<RuntimeModule> CompilerInvocation::compile()
+RuntimeModule CompilerInvocation::compile()
 {
     assert(mCompilerInstance);
 
@@ -198,9 +198,9 @@ std::unique_ptr<RuntimeModule> CompilerInvocation::compile()
 
     mCompilerInstance.reset();
 
-    return std::make_unique<RuntimeModule>(
+    return {
         std::move(context),
         std::move(engine)
-    );
+    };
 }
 }
