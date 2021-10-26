@@ -59,49 +59,33 @@ concept AssetBuilder = requires (T t) {
 
 enum class AssetStatus : std::uint64_t
 {
-    // The asset couldn't be found in any source.
-    PRIMARY_MISSING         = 0,
+    // For primary assets, this means the asset couldn't be found in any source.
+    // For secondary assets, this means the asset couldn't be found in the
+    // cache. A secondary asset handler must be provided to rebuild the cache.
+    MISSING = 0,
 
-    // The primary asset exists, but no party has shown intent of loading it
-    // into memory.
-    PRIMARY_FOUND           = 1,
+    // The asset exists, but the current operation will not cause it to be
+    // loaded into memory.
+    EXIST   = 1,
 
-    // The primary asset exists, and a task has been created to load it into
-    // memory, but the task is still waiting in the work queue.
-    PRIMARY_PENDING         = 2,
+    // A task has been queued to load the asset into memory.
+    QUEUED  = 2,
 
     // A task is actively loading the content of asset into memory.
-    PRIMARY_LOADING         = 3,
+    LOADING = 3,
 
-    // The primary asset is loaded.
-    PRIMARY_READY           = 4,
+    // The asset is loaded.
+    READY   = 4,
 
-    // The secondary asset could not be found in the cache. A constructor
-    // must be provided to query its status.
-    SECONDARY_MISSING       = 5,
-
-    // The secondary asset is in the work queue to be processed. It can also
-    // be waiting for the corresponding primary asset to be loaded. In that
-    // case, user can query the status of primary asset.
-    SECONDARY_PENDING       = 6,
-
-    // The secondary asset with provided processing parameters is still
-    // being processed.
-    SECONDARY_PROCESSING    = 7,
-
-    // The secondary asset with provided processing parameters is in the cache
-    // for use.
-    SECONDARY_READY         = 8,
-
-    // Errors occurred while creating the secondary asset.
-    SECONDARY_FAILED        = 9,
+    // A primary dependency could not be found.
+    MISSING_DEPENDENCY = 5,
 };
 
 struct PrimaryAssetMeta
 {
     ReadonlyMemoryRegion region;
     AssetPackage *package = nullptr;
-    AssetStatus status:8 = AssetStatus::PRIMARY_MISSING;
+    AssetStatus status:8 = AssetStatus::MISSING;
     std::uint64_t loading_task_id:56 = -1;
 };
 
@@ -127,7 +111,7 @@ struct SecondaryAssetMeta
     class SecondaryAsset *asset = nullptr;
     AssetCacheSignature signature;
     // AssetPackage *package = nullptr;
-    AssetStatus status:8 = AssetStatus::SECONDARY_MISSING;
+    AssetStatus status:8 = AssetStatus::MISSING;
     std::uint64_t loading_task_id:56 = -1;
 };
 }

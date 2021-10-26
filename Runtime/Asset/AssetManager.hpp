@@ -54,7 +54,7 @@ class AssetManager
             mutable std::unique_ptr<SecondaryAsset> secondary;
             AssetCacheSignature signature;
             // AssetPackage *package = nullptr;
-            mutable AssetStatus status : 8 = AssetStatus::SECONDARY_MISSING;
+            mutable AssetStatus status : 8 = AssetStatus::MISSING;
             mutable std::uint64_t loading_task_id : 56 = -1;
 
             ~PseudoMeta();

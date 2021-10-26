@@ -31,12 +31,12 @@ public:
 
     bool precondition() override
     {
-        return mEntry->second.status == AssetStatus::PRIMARY_PENDING;
+        return mEntry->second.status == AssetStatus::QUEUED;
     }
 
     void on_started() override
     {
-        mEntry->second.status = AssetStatus::PRIMARY_LOADING;
+        mEntry->second.status = AssetStatus::LOADING;
     }
 
     void run() override
@@ -50,7 +50,7 @@ public:
 
     void on_finished() override
     {
-        mEntry->second.status = AssetStatus::PRIMARY_READY;
+        mEntry->second.status = AssetStatus::READY;
     }
 };
 
@@ -67,19 +67,19 @@ public:
     bool precondition() override
     {
         const auto a = mEntry->meta.status ==
-            AssetStatus::SECONDARY_PENDING;
+            AssetStatus::QUEUED;
         const auto b = mEntry->handler != nullptr;
         for(auto &&d : mEntry->primary_dependencies)
             // check primary dependency status if the dependency is set
             if(d.has_value() &&
-                d.value()->second.status != AssetStatus::PRIMARY_READY)
+                d.value()->second.status != AssetStatus::READY)
                 return false;
         return a && b;
     }
 
     void on_started() override
     {
-        mEntry->meta.status = AssetStatus::SECONDARY_PROCESSING;
+        mEntry->meta.status = AssetStatus::LOADING;
     }
 
     void run() override
@@ -102,14 +102,13 @@ public:
     void on_finished() override
     {
         if(mEntry->meta.secondary)
-            mEntry->meta.status = AssetStatus::SECONDARY_READY;
-        else
-            mEntry->meta.status = AssetStatus::SECONDARY_FAILED;
+            mEntry->meta.status = AssetStatus::READY;
+        USAGI_THROW(std::runtime_error("Asset failed to load."));
     }
 
     bool postcondition() override
     {
-        return mEntry->meta.status == AssetStatus::SECONDARY_READY;
+        return mEntry->meta.status == AssetStatus::READY;
     }
 };
 
@@ -128,9 +127,7 @@ bool AssetManager::create_query(
     return false;
 }
 
-AssetManager::SecondaryAssetAuxInfo::PseudoMeta::~PseudoMeta()
-{
-}
+AssetManager::SecondaryAssetAuxInfo::PseudoMeta::~PseudoMeta() = default;
 
 void AssetManager::add_package(std::shared_ptr<AssetPackage> package)
 {
@@ -159,15 +156,15 @@ AssetManager::PrimaryAssetQueryResult AssetManager::query_primary_asset_nolock(
     // todo: update table when packages change.
     if(it != mPrimaryAssets.end())
     {
-        assert((it->second.status == AssetStatus::PRIMARY_FOUND ||
-            it->second.status == AssetStatus::PRIMARY_PENDING ||
-            it->second.status == AssetStatus::PRIMARY_LOADING ||
-            it->second.status == AssetStatus::PRIMARY_READY) &&
+        assert((it->second.status == AssetStatus::EXIST ||
+            it->second.status == AssetStatus::QUEUED ||
+            it->second.status == AssetStatus::LOADING ||
+            it->second.status == AssetStatus::READY) &&
             "Asset not in valid state."
         );
         // If either the client doesn't want to load the asset, or the asset
         // is already being loaded, return its state directly.
-        if(!load || it->second.status != AssetStatus::PRIMARY_FOUND)
+        if(!load || it->second.status != AssetStatus::EXIST)
             return { it->second, it, { } };
     }
 
@@ -184,7 +181,7 @@ AssetManager::PrimaryAssetQueryResult AssetManager::query_primary_asset_nolock(
         const PrimaryAssetMeta asset
         {
             .package = query->package(),
-            .status = AssetStatus::PRIMARY_FOUND
+            .status = AssetStatus::EXIST
         };
 
         bool inserted;
@@ -196,7 +193,7 @@ AssetManager::PrimaryAssetQueryResult AssetManager::query_primary_asset_nolock(
         // The client only wants to query the existence of the asset.
         if(!load)
         {
-            assert(it->second.status == AssetStatus::PRIMARY_FOUND);
+            assert(it->second.status == AssetStatus::EXIST);
             return { it->second, it, { } };
         }
     }
@@ -208,7 +205,7 @@ AssetManager::PrimaryAssetQueryResult AssetManager::query_primary_asset_nolock(
     }
 
     assert(load);
-    it->second.status = AssetStatus::PRIMARY_PENDING;
+    it->second.status = AssetStatus::QUEUED;
 
     // lock.unlock();
 
@@ -286,6 +283,10 @@ SecondaryAssetMeta AssetManager::secondary_asset(
         sig,
         std::move(handler)
     );
+    // Set the queued status here so if further requests arise before the task
+    // is really submitted the user knows not to unnecessarily create more
+    // asset handlers.
+    it_sec->meta.status = AssetStatus::QUEUED;
 
     // We are done with the table here. Future modifications to the entry
     // must be from the loading task created later.
@@ -304,6 +305,7 @@ SecondaryAssetMeta AssetManager::secondary_asset(
     for(std::size_t i = 0;; ++i)
     {
         const auto dep = handler_ptr->primary_dependencies(i);
+
         // no further dependencies
         if(!dep.has_value()) break;
 
@@ -330,31 +332,38 @@ SecondaryAssetMeta AssetManager::secondary_asset(
 
         plk.unlock();
 
-        if(task_pri)
-            it_pri->second.loading_task_id = work_queue.submit(
-                std::move(task_pri));
+        // bug: even if the asset is missing a dependency, the loading tasks for other dependencies will still be created.
+        if(primary.status == AssetStatus::MISSING)
+        {
+            it_sec->meta.status = AssetStatus::MISSING_DEPENDENCY;
+        }
         else
-            assert(primary.status == AssetStatus::PRIMARY_READY &&
-                "The primary asset was not loaded, but no loading task "
-                "was created.");
+        {
+            if(task_pri)
+                it_pri->second.loading_task_id = work_queue.submit(
+                    std::move(task_pri));
+            else
+                assert(primary.status == AssetStatus::READY &&
+                    "The primary asset was not loaded, but no loading task "
+                    "was created.");
 
-        assert(primary.loading_task_id != TaskExecutor::INVALID_TASK &&
-            "The loading task id for the primary asset has been lost.");
+            assert(primary.loading_task_id != TaskExecutor::INVALID_TASK &&
+                "The loading task id for the primary asset has been lost.");
 
-        it_sec->primary_dependencies.emplace_back(it_pri);
-        wait_on.push_back(it_pri->second.loading_task_id);
+            it_sec->primary_dependencies.emplace_back(it_pri);
+            wait_on.push_back(it_pri->second.loading_task_id);
+        }
     }
 
-    auto task_sec = std::make_unique<SecondaryAssetLoadingTask>(it_sec);
+    if(it_sec->meta.status != AssetStatus::MISSING_DEPENDENCY)
+    {
+        auto task_sec = std::make_unique<SecondaryAssetLoadingTask>(it_sec);
 
-    // Loading task for secondary asset won't be created if an entry already
-    // exists, so no race condition of changing asset status here.
-    it_sec->meta.status = AssetStatus::SECONDARY_PENDING;
-
-    it_sec->meta.loading_task_id = work_queue.submit(
-        std::move(task_sec),
-        std::move(wait_on)
-    );
+        it_sec->meta.loading_task_id = work_queue.submit(
+            std::move(task_sec),
+            std::move(wait_on)
+        );
+    }
 
     // Note that asset status change is possible here. But it doesn't hurt as
     // status consistency is maintained in the loading task. It will only
