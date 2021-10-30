@@ -1,10 +1,8 @@
 ﻿#pragma once
 
-#include <Usagi/Entity/EntityDatabase.hpp>
-#include <Usagi/Runtime/Memory/PagedStorage.hpp>
-
 #include "AppDatabase.hpp"
 #include "AppDirectory.hpp"
+#include "DatabaseTraits.hpp"
 
 namespace usagi
 {
@@ -18,26 +16,26 @@ namespace usagi
 template <
     typename Services,
     typename Systems,
+    typename AdditionalComponents = C<>,
     typename EdbConfig = entity::EntityDatabaseConfiguration<>
 >
-class AppHost : AppDirectory
+class AppHost
+    : AppDirectory
+    , public DatabaseTraits<
+        typename Systems::EnabledComponents,
+        AdditionalComponents,
+        EdbConfig
+    >
 {
+public:
+    using DatabaseTraits = DatabaseTraits<
+        typename Systems::EnabledComponents,
+        AdditionalComponents,
+        EdbConfig
+    >;
+
 protected:
-    struct DatabaseConfig : EdbConfig
-    {
-        template <typename T>
-        using StorageT = PagedStorageFileBacked<T>;
-    };
-
-    using EnabledComponents = typename Systems::EnabledComponents;
-
-    template <Component... C>
-    using DatabaseBaseT = EntityDatabase<DatabaseConfig, C...>;
-
-    using WorldDatabaseT =
-        typename EnabledComponents::template apply<DatabaseBaseT>;
-
-    AppDatabase<WorldDatabaseT> mDatabaseWorld;
+    AppDatabase<typename DatabaseTraits::WorldDatabaseT> mDatabaseWorld;
     Services mServices;
     Systems mSystems;
 

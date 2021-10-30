@@ -59,6 +59,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="AppDatabase.hpp" />
+    <ClInclude Include="DatabaseTraits.hpp" />
     <ClInclude Include="AppDirectory.hpp" />
     <ClInclude Include="AppHost.hpp" />
     <ClInclude Include="ServiceStateTransitionGraph.hpp" />
