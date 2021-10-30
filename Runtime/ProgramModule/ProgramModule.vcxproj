@@ -72,7 +72,7 @@
     <ClInclude Include="ClangJIT.hpp" />
     <ClInclude Include="CompilerInvocation.hpp" />
     <ClInclude Include="RuntimeModule.hpp" />
-    <ClInclude Include="ServiceRuntimeCompilation.hpp" />
+    <ClInclude Include="ServiceJitCompilation.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

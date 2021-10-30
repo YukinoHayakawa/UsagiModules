@@ -30,14 +30,15 @@ public:
     RuntimeModule(RuntimeModule &&other) noexcept;
     RuntimeModule & operator=(RuntimeModule &&other) noexcept;
 
-    // string_view is not used for `name` because clang doesn't take it :)
-    template <typename FuncT>
-    FuncT * get_function_address(
+    // string_view is not used for `name` due to the function signature found
+    // in original clang source only accepts a const string &.
+    template <typename FuncPtrT>
+    FuncPtrT get_function_address(
         const std::string &name)
-        requires std::is_function_v<FuncT>
+        requires std::is_function_v<std::remove_pointer_t<FuncPtrT>>
     {
         // todo: type safety not checked
-        return reinterpret_cast<FuncT *>(get_function_address_impl(name));
+        return reinterpret_cast<FuncPtrT>(get_function_address_impl(name));
     }
 };
 }
