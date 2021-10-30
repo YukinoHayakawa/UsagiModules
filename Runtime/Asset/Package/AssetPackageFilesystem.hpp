@@ -25,6 +25,9 @@ class AssetPackageFilesystem final : public AssetPackage
         // todo: fix
         bool mFetched = false;
 
+        [[nodiscard]]
+        AssetFingerprint fingerprint_impl() override;
+
     public:
         Query(AssetPackageFilesystem *package, MappedFileView &mapping)
             : mPackage(package)
@@ -32,9 +35,14 @@ class AssetPackageFilesystem final : public AssetPackage
         {
         }
 
+        [[nodiscard]]
         AssetPackage * package() const override { return mPackage; }
+
+        [[nodiscard]]
         bool prefetched() const override;
+
         void fetch() override;
+
         ReadonlyMemoryRegion memory_region() override;
         // void evict() override;
     };

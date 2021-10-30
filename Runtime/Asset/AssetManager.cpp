@@ -2,6 +2,8 @@
 
 #include <thread>
 
+#include "External/xxhash/xxhash64.h"
+
 #include <Usagi/Library/Memory/StackPolymorphicObject.hpp>
 #include <Usagi/Library/Memory/LockGuard.hpp>
 #include <Usagi/Runtime/Task.hpp>
@@ -46,6 +48,8 @@ public:
         q->fetch();
         assert(q->prefetched());
         mEntry->second.region = q->memory_region();
+        mEntry->second.fingerprint = q->fingerprint();
+        assert(mEntry->second.fingerprint != 0);
     }
 
     void on_finished() override
@@ -84,19 +88,35 @@ public:
 
     void run() override
     {
-        // todo perf
+        XXHash64 hasher(0);
+
+        // fetch primary dependencies & build the dependency fingerprint
+        // todo meme & perf
         std::vector<std::optional<PrimaryAssetMeta>> meta;
         meta.reserve(mEntry->primary_dependencies.size());
         std::ranges::transform(
             mEntry->primary_dependencies,
             std::back_inserter(meta),
-            [](auto &&d) -> std::optional<PrimaryAssetMeta> {
-                if(d.has_value()) return d.value()->second;
+            [&](auto &&d) -> std::optional<PrimaryAssetMeta> {
+                if(d.has_value())
+                {
+                    // todo should the order be significant? (probably not assuming the SAH has a stable behavior)
+                    assert(d.value()->second.fingerprint != 0);
+                    hasher.add(
+                        d.value()->second.fingerprint,
+                        sizeof(decltype(d.value()->second.fingerprint))
+                    );
+                    return d.value()->second;
+
+                }
                 return { };
             }
         );
+
+        // build the secondary asset
         auto object = mEntry->handler->construct(meta);
         mEntry->meta.secondary = std::move(object);
+        mEntry->meta.fingerprint_dep_content = hasher.hash();
     }
 
     void on_finished() override
@@ -246,7 +266,7 @@ PrimaryAssetMeta AssetManager::primary_asset(
 }
 
 SecondaryAssetMeta AssetManager::secondary_asset(
-    const AssetCacheSignature signature)
+    const AssetFingerprint signature)
 {
     LockGuard lk(mSecondaryAssetTableMutex);
 
@@ -264,11 +284,34 @@ SecondaryAssetMeta AssetManager::secondary_asset(
 {
     assert(handler && "No secondary asset handler is provided.");
 
-    const auto sig = handler->signature();
+    struct Xxh64Hasher : SecondaryAssetHandlerBase::Hasher
+    {
+        XXHash64 hasher { 0 };
+
+        void append(const void *data, const std::size_t size) override
+        {
+            hasher.add(data, size);
+        }
+    } hasher;
+
+    const auto type_hash = typeid(*handler).hash_code();
+    hasher.append(&type_hash, sizeof(type_hash));
+    handler->append_build_parameters(hasher);
+
+    // Include asset ref paths in the fingerprint
+    for(std::size_t i = 0;; ++i)
+    {
+        const auto dep = handler->primary_dependencies(i);
+        if(!dep.has_value()) break;
+        if(!dep->empty())
+            hasher.append(dep->data(), dep->size());
+    }
+
+    const auto fingerprint_build = hasher.hasher.hash();
 
     LockGuard slk(mSecondaryAssetTableMutex);
 
-    auto it_sec = mLoadedSecondaryAssets.find(sig);
+    auto it_sec = mLoadedSecondaryAssets.find(fingerprint_build);
     // If an entry exists for the asset, it must be either being constructed
     // or already constructed. Just return the current state of the entry.
     // Avoid this kind of query considering its performance burden of creating
@@ -280,7 +323,7 @@ SecondaryAssetMeta AssetManager::secondary_asset(
     // Now it's sure that we are going to load the asset, ensure that an
     // entry is present. Only newly created entry goes the following path.
     std::tie(it_sec, std::ignore) = mLoadedSecondaryAssets.emplace(
-        sig,
+        fingerprint_build,
         std::move(handler)
     );
     // Set the queued status here so if further requests arise before the task

@@ -50,9 +50,11 @@ class AssetManager
             primary_dependencies;
         mutable std::unique_ptr<SecondaryAssetHandlerBase> handler;
 
-        struct PseudoMeta {
+        struct PseudoMeta
+        {
             mutable std::unique_ptr<SecondaryAsset> secondary;
-            AssetCacheSignature signature;
+            AssetFingerprint fingerprint_build = 0;
+            mutable AssetFingerprint fingerprint_dep_content = 0;
             // AssetPackage *package = nullptr;
             mutable AssetStatus status : 8 = AssetStatus::MISSING;
             mutable std::uint64_t loading_task_id : 56 = -1;
@@ -71,11 +73,11 @@ class AssetManager
         static_assert(sizeof(PseudoMeta) == sizeof(SecondaryAssetMeta));
 
         SecondaryAssetAuxInfo(
-            AssetCacheSignature sig,
+            AssetFingerprint fingerprint,
             std::unique_ptr<SecondaryAssetHandlerBase> constructor)
             : handler(std::move(constructor))
         {
-            meta.signature = sig;
+            meta.fingerprint_build = fingerprint;
             // secondary.package = primary_ref->second.package;
         }
 
@@ -83,21 +85,21 @@ class AssetManager
             const SecondaryAssetAuxInfo &lhs,
             const SecondaryAssetAuxInfo &rhs)
         {
-            return lhs.meta.signature < rhs.meta.signature;
+            return lhs.meta.fingerprint_build < rhs.meta.fingerprint_build;
         }
 
         friend bool operator<(
             const SecondaryAssetAuxInfo &lhs,
-            const AssetCacheSignature &rhs)
+            const AssetFingerprint &rhs)
         {
-            return lhs.meta.signature < rhs;
+            return lhs.meta.fingerprint_build < rhs;
         }
 
         friend bool operator<(
-            const AssetCacheSignature &lhs,
+            const AssetFingerprint &lhs,
             const SecondaryAssetAuxInfo &rhs)
         {
-            return lhs < rhs.meta.signature;
+            return lhs < rhs.meta.fingerprint_build;
         }
     };
 
@@ -124,7 +126,7 @@ public:
     // Otherwise, only the signature of the secondary asset will be calculated
     // from the construction configuration, provided by the constructor.
     SecondaryAssetMeta secondary_asset(
-        AssetCacheSignature signature);
+        AssetFingerprint fingerprint_build);
 
     // Construct a secondary asset using the provided handler.
     SecondaryAssetMeta secondary_asset(

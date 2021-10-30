@@ -78,38 +78,42 @@ enum class AssetStatus : std::uint64_t
     READY   = 4,
 
     // A primary dependency could not be found.
+    // Although missing a dependency could be a critical error, it is not hard
+    // to fix once detected. A status flag provides an opportunity for the
+    // caller to decide how to react to the incident. On the other hand,
+    // the failure of secondary asset handler in processing the asset usually
+    // indicates more serious errors such as bugs. So in that case, it's
+    // more suitable to throw an exception.
     MISSING_DEPENDENCY = 5,
 };
+
+// Asset fingerprint is used for validate the content of assets. For primary
+// assets, it is the hash of the asset content. For secondary assets, it
+// reflects the content of primary dependencies and secondary asset build
+// parameters.
+using AssetFingerprint = std::uint64_t;
 
 struct PrimaryAssetMeta
 {
     ReadonlyMemoryRegion region;
+    AssetFingerprint fingerprint = 0;
     AssetPackage *package = nullptr;
     AssetStatus status:8 = AssetStatus::MISSING;
     std::uint64_t loading_task_id:56 = -1;
 };
 
-struct AssetCacheSignature
-{
-    std::uint64_t a = 0, b = 0;
-
-    operator bool() const
-    {
-        return a && b;
-    }
-
-    friend bool operator<(
-        const AssetCacheSignature &lhs,
-        const AssetCacheSignature &rhs)
-    {
-        return std::tie(lhs.a, lhs.b) < std::tie(rhs.a, rhs.b);
-    }
-};
-
 struct SecondaryAssetMeta
 {
     class SecondaryAsset *asset = nullptr;
-    AssetCacheSignature signature;
+    // Secondary asset fingerprint consists of two parts. The build fingerprint
+    // is the hash of secondary asset handler type and build parameters, which
+    // is used for querying in the cache for the secondary asset. The
+    // dependency fingerprint is the hash of fingerprints of primary assets
+    // used when building the secondary asset. It can be used to detect outdated
+    // secondary cache entries when the content of dependent primary assets
+    // changes.
+    AssetFingerprint fingerprint_build = 0;
+    AssetFingerprint fingerprint_dep_content = 0;
     // AssetPackage *package = nullptr;
     AssetStatus status:8 = AssetStatus::MISSING;
     std::uint64_t loading_task_id:56 = -1;

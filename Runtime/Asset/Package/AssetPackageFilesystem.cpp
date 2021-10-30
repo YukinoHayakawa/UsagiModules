@@ -1,5 +1,6 @@
 ﻿#include "AssetPackageFilesystem.hpp"
 
+
 #include <Usagi/Library/Memory/LockGuard.hpp>
 #include <Usagi/Runtime/ErrorHandling.hpp>
 #include <Usagi/Runtime/File/RegularFile.hpp>
@@ -15,6 +16,11 @@ void AssetPackageFilesystem::Query::fetch()
 {
     mMapping.prefetch();
     mFetched = true;
+}
+
+AssetFingerprint AssetPackageFilesystem::Query::fingerprint_impl()
+{
+    return hash_memory_region(memory_region());
 }
 
 ReadonlyMemoryRegion AssetPackageFilesystem::Query::memory_region()

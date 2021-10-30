@@ -59,12 +59,14 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AssetManager.cpp" />
+    <ClCompile Include="AssetQuery.cpp" />
     <ClCompile Include="Package\AssetPackageFilesystem.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Asset.hpp" />
     <ClInclude Include="AssetQuery.hpp" />
     <ClInclude Include="AssetManager.hpp" />
+    <ClInclude Include="ComponentSecondaryAssetRef.hpp" />
     <ClInclude Include="Package\AssetPackage.hpp" />
     <ClInclude Include="Package\AssetPackageFilesystem.hpp" />
     <ClInclude Include="SecondaryAsset.hpp" />

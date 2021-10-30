@@ -1,6 +1,8 @@
 ﻿#pragma once
 
-#include <Usagi/Runtime/Memory/Region.hpp>
+#include <optional>
+
+#include "Asset.hpp"
 
 namespace usagi
 {
@@ -8,6 +10,15 @@ class AssetPackage;
 
 class AssetQuery
 {
+protected:
+    std::optional<AssetFingerprint> mFingerprint;
+
+    [[nodiscard]]
+    static AssetFingerprint hash_memory_region(ReadonlyMemoryRegion region);
+
+    [[nodiscard]]
+    virtual AssetFingerprint fingerprint_impl() = 0;
+
 public:
     virtual ~AssetQuery() = default;
 
@@ -22,6 +33,9 @@ public:
 
     // Load specified asset pages into memory.
     virtual void fetch() = 0;
+
+    [[nodiscard]]
+    AssetFingerprint fingerprint();
 
     // Get a readonly reference to the memory region.
     [[nodiscard]]
