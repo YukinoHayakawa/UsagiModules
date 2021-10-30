@@ -103,7 +103,7 @@ public:
                     // todo should the order be significant? (probably not assuming the SAH has a stable behavior)
                     assert(d.value()->second.fingerprint != 0);
                     hasher.add(
-                        d.value()->second.fingerprint,
+                        &d.value()->second.fingerprint,
                         sizeof(decltype(d.value()->second.fingerprint))
                     );
                     return d.value()->second;
@@ -294,7 +294,8 @@ SecondaryAssetMeta AssetManager::secondary_asset(
         }
     } hasher;
 
-    const auto type_hash = typeid(*handler).hash_code();
+    const auto handler_ptr = handler.get();
+    const auto type_hash = typeid(handler_ptr).hash_code();
     hasher.append(&type_hash, sizeof(type_hash));
     handler->append_build_parameters(hasher);
 
@@ -319,7 +320,6 @@ SecondaryAssetMeta AssetManager::secondary_asset(
     if(it_sec != mLoadedSecondaryAssets.end())
         return it_sec->meta;
 
-    const auto handler_ptr = handler.get();
     // Now it's sure that we are going to load the asset, ensure that an
     // entry is present. Only newly created entry goes the following path.
     std::tie(it_sec, std::ignore) = mLoadedSecondaryAssets.emplace(
