@@ -1,0 +1,3 @@
+[submodule "Runtime/Asset/External/xxhash"]
+	path = Runtime/Asset/External/xxhash
+	url = git@github.com:stbrumme/xxhash.git
