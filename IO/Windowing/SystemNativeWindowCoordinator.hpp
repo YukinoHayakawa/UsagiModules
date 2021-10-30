@@ -57,7 +57,7 @@ struct SystemNativeWindowCoordinator
                     case Action::NOTIFY_EXIT:
                         tg.should_exit = true;
                         break;
-                    default: USAGI_UNREACHABLE();
+                    default: USAGI_INVALID_ENUM_VALUE();
                 }
             }
             // synchronize the window state

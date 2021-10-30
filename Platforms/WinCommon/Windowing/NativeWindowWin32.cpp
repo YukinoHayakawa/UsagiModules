@@ -86,7 +86,7 @@ void NativeWindowWin32::sync_window_state()
         case NativeWindowState::HIDDEN: flag = SW_HIDE; break;
         case NativeWindowState::MINIMIZED: flag = SW_SHOWMINIMIZED; break;
         case NativeWindowState::MAXIMIZED: flag = SW_SHOWMAXIMIZED; break;
-        default: USAGI_UNREACHABLE();
+        default: USAGI_INVALID_ENUM_VALUE();
     }
     USAGI_WIN32_CHECK_THROW(ShowWindow, mWindowHandle, flag);
 }
