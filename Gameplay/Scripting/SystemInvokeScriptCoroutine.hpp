@@ -2,6 +2,12 @@
 
 #include <Usagi/Entity/EntityDatabase.hpp>
 #include <Usagi/Runtime/Service/Service.hpp>
+#include <Usagi/Modules/Assets/SahProgramModule/SahProgramModule.hpp>
+#include <Usagi/Modules/Runtime/Asset/SecondaryAsset.hpp>
+#include <Usagi/Modules/Runtime/Asset/ComponentSecondaryAssetRef.hpp>
+#include <Usagi/Modules/Runtime/Asset/ServiceAssetManager.hpp>
+#include <Usagi/Modules/Runtime/ProgramModule/RuntimeModule.hpp>
+#include <Usagi/Modules/Runtime/ProgramModule/ServiceJitCompilation.hpp>
 
 #include "ComponentCoroutineContinuation.hpp"
 
@@ -13,111 +19,115 @@ struct SystemInvokeScriptCoroutine
     using ReadAccess = C<>;
 
     using ScriptFilterT = C<
-        ComponentCoroutineContinuation
+        ComponentCoroutineContinuation,
+        ComponentSecondaryAssetRef
     >;
 
     void update(auto &&rt, auto &&db)
     {
-        auto &asset = USAGI_SERVICE(rt, ServiceAssetManager);
-        auto &modules = USAGI_SERVICE(rt, ServiceProgramModule);
-        auto &toolchain = USAGI_SERVICE(rt, ServiceCompilerToolchain);
-        auto &heaps = USAGI_SERVICE(rt, ServiceHeapManager);
-        auto &executive = USAGI_SERVICE(rt, ServiceExecutive);
+        auto &asset_manager = USAGI_SERVICE(rt, ServiceAssetManager);
+        auto &jit = USAGI_SERVICE(rt, ServiceJitCompilation);
+        auto &work_queue = USAGI_SERVICE(rt, ServiceAsyncWorker);
+        // auto &heaps = USAGI_SERVICE(rt, ServiceHeapManager);
+        // auto &executive = USAGI_SERVICE(rt, ServiceExecutive);
+        auto &executive = USAGI_SERVICE(rt, ServiceStateTransitionGraph);
 
-        using CoroutineT = std::uint64_t(*)(std::uint64_t entry, decltype(db));
+        using ModuleT = SahProgramModule::SecondaryAssetT;
+        using CoroutineT =
+            std::pair<
+                std::uint64_t,
+                ComponentCoroutineContinuation::ResumeCondition
+            >(*)(std::uint64_t entry, decltype(db));
 
         // todo: decide the execution order of scripts
         for(auto &&e : db.view(ScriptFilterT()))
         {
-            const auto &c_asset = USAGI_COMPONENT(e, ComponentAssetMetadata);
-            auto &c_script = USAGI_COMPONENT(e, ComponentCoroutineContinuation);
-            auto name = build_module_name(c_asset.name);
+            auto &module_fp = USAGI_COMPONENT(e, ComponentSecondaryAssetRef);
+            auto &script = USAGI_COMPONENT(e, ComponentCoroutineContinuation);
 
-            auto asset_agent = asset.find(name);
-            const auto status = asset_agent.status();
+            SecondaryAssetMeta module_cache =
+                asset_manager.secondary_asset(module_fp.fingerprint_build);
 
-            // make sure the script is loaded
-            switch(status)
+            switch(module_cache.status)
             {
-                // the asset couldn't be found in any source
-                case MISSING:
+                case AssetStatus::READY:
                 {
-                    // depending on user options, the program may quit or
-                    // it can be ignored at the cost of compromising the
-                    // correctness of computation
-                    executive.report_critical_asset_missing_throw(c_asset);
-                    continue;
-                }
-                // the asset exists, but not loaded
-                case FOUND:
-                {
-                    asset_agent.load();
-                    goto drop_frame;
-                }
-                // the raw asset is cached in the memory for use
-                case READY:
-                {
-                    asset_agent.postprocess_bytestream([&](auto &bytestream) {
-                        auto compiler = toolchain.compiler();
-                        compiler.set_pch(asset.find(/* pch */));
-                        compiler.inject_header(/* db interface pch */);
-                        compiler.append_source(/* script source */);
-                        compiler.append_source(/* template function instantiation */);
-                        auto module_ = compiler.compile();
-                        return std::move(module_);
-                    });
-                    goto drop_frame;
-                }
-                // the asset has been postprocessed and the product is ready
-                // for use
-                case POSTPROCESSED_READY:
-                {
-                    // loading dynamic library is an blocking action as in
-                    // program initialization
-                    auto module_agent = modules.find(name);
-                    if(!module_agent.loaded())
-                        module_agent.load(asset_agent.postprocessed_bytestream());
-                    // postcondition: script module loaded
+                    // todo validate source.
+                    module_fp.fingerprint_dep_content = module_cache.fingerprint_dep_content;
                     break;
                 }
-                default:
+                case AssetStatus::MISSING_DEPENDENCY:
                 {
-                    assert(asset_agent.pending());
-                drop_frame:
-                    // todo: capture the callstack
-                    executive.drop_current_frame(ASSET_NOT_READY);
+                    // depending on user options, the program may quit or this
+                    // event can be ignored at the cost of compromising the
+                    // correctness of computation
+                    // executive.report_critical_asset_missing_throw(module_fp);
+                    USAGI_THROW(std::runtime_error("")); // todo
+                }
+                // the module is not loaded into asset cache. try to load the
+                // script source and compile it.
+                case AssetStatus::MISSING:
+                {
+                    // todo real parameters
+                    auto handler = std::make_unique<SahProgramModule>(
+                        jit,
+                        "Database.pch", // db interface pch asset path
+                        "Script.cpp"    // script source asset path
+                    );
+                    module_cache = asset_manager.secondary_asset(
+                        std::move(handler),
+                        work_queue
+                    );
+                    module_fp.fingerprint_build = module_cache.fingerprint_build;
+                    [[fallthrough]];
+                }
+                case AssetStatus::QUEUED: [[fallthrough]];
+                case AssetStatus::LOADING:
+                {
+                    // todo: capture the call stack
+                    // executive.drop_current_frame(ASSET_NOT_READY);
                     continue;
                 }
+                default: USAGI_UNREACHABLE("Incorrect asset state.");
             }
 
             bool resume;
-            switch(c_script.resume_condition)
+            switch(script.resume_condition)
             {
                 case ComponentCoroutineContinuation::NEVER:
                 {
                     resume = false;
+                    // todo remove
+                    executive.should_exit = true;
                     break;
                 }
-                case ComponentCoroutineContinuation::USER_INPUT:
-                {
-                    auto &input = USAGI_SERVICE(rt, ServiceUserInput);
-                    resume = input.user_prompted_to_continue;
-                    break;
-                }
+                // todo
+                // case ComponentCoroutineContinuation::USER_INPUT:
+                // {
+                //     auto &input = USAGI_SERVICE(rt, ServiceUserInput);
+                //     resume = input.user_prompted_to_continue;
+                //     break;
+                // }
                 case ComponentCoroutineContinuation::NEXT_FRAME:
                 {
                     resume = true;
                     break;
                 }
-                default: USAGI_UNREACHABLE();
+                default: USAGI_INVALID_ENUM_VALUE();
             }
+
             if(resume)
             {
-                auto script_module = modules.find(name);
-                auto script_coroutine = script_module.proc<CoroutineT>("script");
+                auto *module_bin = module_cache.asset->as<ModuleT>();
+                // getting the JIT-compiled function may involves code
+                // generation which could affect the performance.
+                auto script_coroutine =
+                    module_bin->get_function_address<CoroutineT>(
+                        "script_main"
+                    );
                 // todo provide heaps
-                std::tie(c_script.next_entry_point, c_script.resume_condition) =
-                    script_coroutine(c_script.next_entry_point, db);
+                std::tie(script.next_entry_point, script.resume_condition) =
+                    script_coroutine(script.next_entry_point, db);
             }
         }
     }

@@ -8,7 +8,7 @@ struct ComponentCoroutineContinuation
 {
     std::uint64_t next_entry_point = 0;
 
-    enum ResumeCondition
+    enum ResumeCondition : std::uint8_t
     {
         NEVER,
         USER_INPUT,
