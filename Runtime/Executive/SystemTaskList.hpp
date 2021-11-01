@@ -15,9 +15,17 @@ struct SystemTaskList
     template <System S>
     void update_system(auto &&rt, auto &&db, auto &&observer)
     {
-        auto access = db.template create_access<
+        // If the System declares WriteAccess = AllComponents, pass
+        // ComponentAccessAllowAll instead of reading SystemAttribute.
+        // This allows scripting system to invoke the script without
+        // having to expose the definition of itself to the scripts,
+        // which complicates the JIT compilation.
+        using AccessT = std::conditional_t<
+            SystemDeclaresWriteAllAccess<S>,
+            ComponentAccessAllowAll,
             ComponentAccessSystemAttribute<S>
-        >();
+        >;
+        auto access = db.template create_access<AccessT>();
         auto &sys = std::get<S>(systems);
         if constexpr(std::is_same_v<void, decltype(sys.update(rt, access))>)
         {
