@@ -27,6 +27,7 @@ class CompilerInvocation
     std::unique_ptr<clang::CompilerInstance> mCompilerInstance;
     std::vector<std::string> mStringPool;
     llvm::vfs::InMemoryFileSystem *mFileSystem = nullptr;
+    std::string src;
 
     void create_diagnostics();
     void create_vfs();

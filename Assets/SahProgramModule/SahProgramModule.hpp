@@ -14,6 +14,7 @@ class SahProgramModule
 {
     ClangJIT &mJit;
     std::string mPch, mSource;
+    std::string mAdditional;
 
 public:
     SahProgramModule(ClangJIT &jit, std::string pch, std::string src);
@@ -27,5 +28,11 @@ public:
         std::span<std::optional<PrimaryAssetMeta>> primary_assets) override;
 
     void append_build_parameters(Hasher &hasher) override;
+
+    // todo remove
+    void set_additional(const std::string &additional)
+    {
+        mAdditional = additional;
+    }
 };
 }

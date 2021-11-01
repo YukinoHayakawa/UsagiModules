@@ -11,8 +11,41 @@
 
 #include "ComponentCoroutineContinuation.hpp"
 
+// #include <cxxabi.h>
+
+// namespace __cxxabiv1
+// {
+// extern "C" {
+//     extern  char *__cxa_demangle(const char *mangled_name,
+//         char *output_buffer,
+//         size_t *length, int *status);
+// }
+// }
+//
+// namespace abi = __cxxabiv1;
+
+
+#include <llvm/Demangle/Demangle.h>
+
+#include <memory>
+
 namespace usagi
 {
+// template<typename T>
+// std::string type_name()
+// {
+//     int status = 0;
+//
+//     std::unique_ptr<char, void(*)(void *)> res {
+//         abi::__cxa_demangle(typeid(T).name(), NULL, NULL, &status),
+//         std::free
+//     };
+//
+//     if(status != 0) throw status; // stub
+//
+//     return res.get();
+// }
+
 struct SystemInvokeScriptCoroutine
 {
     using WriteAccess = AllComponents;
@@ -71,9 +104,52 @@ struct SystemInvokeScriptCoroutine
                     // todo real parameters
                     auto handler = std::make_unique<SahProgramModule>(
                         jit,
+                        // todo
                         "Database.pch", // db interface pch asset path
                         "Script.cpp"    // script source asset path
                     );
+                    // append code for instantiating the script entry template
+
+
+                    // std::stringstream ss, filtered;
+                    // ss <<
+                    auto demangled = llvm::demangle(typeid(decltype(db)).name());
+                    // https://stackoverflow.com/a/20412841
+                    auto replace_all = [](std::string &str, std::string_view s, std::string_view t) {
+                        std::string::size_type n = 0;
+                        while((n = str.find(s, n)) != std::string::npos)
+                        {
+                            str.replace(n, s.size(), t);
+                            n += t.size();
+                        }
+                    };
+                    replace_all(demangled, "class ", "");
+                    replace_all(demangled, "struct ", "");
+                    replace_all(demangled, "usagi::PagedStorageInMemory,1", "usagi::PagedStorageInMemory,usagi::entity::InsertionPolicy::REUSE_ARCHETYPE_PAGE");
+                    // for(std::istream_iterator<std::string> i(ss), end; i != end; ++i)
+                    // {
+                    //     auto token = *i;
+                    //     if(token != "class" && token != "struct")
+                    //         filtered << token;
+                    // }
+
+                    auto instantiation = fmt::format(
+                        R"(
+extern "C"
+{{
+std::pair<std::uint64_t, ResumeCondition>
+script_main(std::uint64_t entry, {} db)
+{{
+    return script(entry, db);
+}}
+}}
+)", demangled);
+
+
+                    std::cout << instantiation;
+
+                    handler->set_additional(instantiation);
+
                     module_cache = asset_manager.secondary_asset(
                         std::move(handler),
                         work_queue

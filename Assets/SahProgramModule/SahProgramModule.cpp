@@ -39,6 +39,7 @@ std::unique_ptr<SecondaryAsset> SahProgramModule::construct(
         compiler.set_pch(primary_assets[0]->region);
     }
     compiler.add_source("<source>", primary_assets[1]->region);
+    compiler.add_source("additional", { mAdditional.data(), mAdditional.size() });
 
     auto mdl = compiler.compile();
 
