@@ -123,7 +123,8 @@ public:
     {
         if(mEntry->meta.secondary)
             mEntry->meta.status = AssetStatus::READY;
-        USAGI_THROW(std::runtime_error("Asset failed to load."));
+        else
+            USAGI_THROW(std::runtime_error("Asset failed to load."));
     }
 
     bool postcondition() override
