@@ -3,6 +3,7 @@
 #include <tuple>
 
 #include <Usagi/Entity/System.hpp>
+#include <Usagi/Entity/detail/ComponentAccessAllowAll.hpp>
 #include <Usagi/Entity/detail/ComponentAccessSystemAttribute.hpp>
 
 namespace usagi
