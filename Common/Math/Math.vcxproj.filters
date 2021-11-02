@@ -32,7 +32,7 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Lib.cpp">
+    <ClCompile Include="CreateLib.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
