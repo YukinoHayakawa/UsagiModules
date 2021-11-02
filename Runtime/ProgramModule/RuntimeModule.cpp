@@ -24,16 +24,20 @@ std::uint64_t RuntimeModule::get_function_address_impl(const std::string &name)
 
 RuntimeModule::RuntimeModule(
     std::unique_ptr<llvm::LLVMContext> context,
-    std::unique_ptr<llvm::ExecutionEngine> execution_engine)
+    std::unique_ptr<llvm::ExecutionEngine> execution_engine,
+    llvm::Module *module)
     : mContext(std::move(context))
     , mExecutionEngine(std::move(execution_engine))
+    , mModule(module)
 {
 }
 
 RuntimeModule::RuntimeModule(RuntimeModule &&other) noexcept
     : mContext { std::move(other.mContext) }
     , mExecutionEngine { std::move(other.mExecutionEngine) }
+    , mModule { std::move(other.mModule) }
 {
+    other.mModule = nullptr;
 }
 
 RuntimeModule & RuntimeModule::operator=(RuntimeModule &&other) noexcept
@@ -43,6 +47,15 @@ RuntimeModule & RuntimeModule::operator=(RuntimeModule &&other) noexcept
     mContext = std::move(other.mContext);
     mExecutionEngine = std::move(other.mExecutionEngine);
     return *this;
+}
+
+std::optional<std::string> RuntimeModule::search_function(std::string_view name)
+{
+    for(auto &&func : mModule->getFunctionList())
+        if(func.getName().find(llvm::StringRef(name.data(), name.size()))
+            != std::string::npos)
+            return func.getName().str();
+    return { };
 }
 
 RuntimeModule::~RuntimeModule()
