@@ -19,6 +19,8 @@ std::uint64_t RuntimeModule::get_function_address_impl(const std::string &name)
     const auto addr = mExecutionEngine->getFunctionAddress(name);
     if(addr == 0)
         USAGI_THROW(std::runtime_error("Function not found."));
+    if(mExecutionEngine->hasError())
+        USAGI_THROW(std::runtime_error(mExecutionEngine->getErrorMessage()));
     return addr;
 }
 
