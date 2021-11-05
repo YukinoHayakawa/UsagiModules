@@ -89,7 +89,7 @@ void CompilerInvocation::create_invocation()
         // { nullptr, nullptr },
         item_cstrs,
         diagnostics_engine
-    )) USAGI_THROW(std::runtime_error("Failed to create compiler invocation"));
+    )) USAGI_THROW(std::runtime_error("Failed to create compiler invocation."));
 
     // remove reading from stdin
     auto &front_end_options = compiler_invocation.getFrontendOpts();

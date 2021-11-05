@@ -32,7 +32,7 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
-    <IncludePath>$(Dir_IncludePath);$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)External\llvm-jit-pdb\include;$(Dir_IncludePath);$(IncludePath)</IncludePath>
     <LibraryPath>$(Dir_LibraryPath);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -66,11 +66,41 @@
   <ItemGroup>
     <ClCompile Include="ClangJIT.cpp" />
     <ClCompile Include="CompilerInvocation.cpp" />
+    <ClCompile Include="External\llvm-jit-pdb\lib\JITPDB\EMBEDDED_DLL.cpp">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">TurnOffAllWarnings</WarningLevel>
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">TurnOffAllWarnings</WarningLevel>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">-Xclang -Wno-everything %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">-Xclang -Wno-everything %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <ClCompile Include="External\llvm-jit-pdb\lib\JITPDB\EMBEDDED_PDB.cpp">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">TurnOffAllWarnings</WarningLevel>
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">TurnOffAllWarnings</WarningLevel>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">-Xclang -Wno-everything %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">-Xclang -Wno-everything %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <ClCompile Include="External\llvm-jit-pdb\lib\JITPDB\JITPDBFileBuilder.cpp">
+      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="External\llvm-jit-pdb\lib\JITPDB\JITPDBMemoryManager.cpp">
+      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+    </ClCompile>
     <ClCompile Include="RuntimeModule.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ClangJIT.hpp" />
     <ClInclude Include="CompilerInvocation.hpp" />
+    <ClInclude Include="External\llvm-jit-pdb\include\llvm\JITPDB\JITPDBFileBuilder.h" />
+    <ClInclude Include="External\llvm-jit-pdb\include\llvm\JITPDB\JITPDBMemoryManager.h" />
     <ClInclude Include="RuntimeModule.hpp" />
     <ClInclude Include="ServiceJitCompilation.hpp" />
   </ItemGroup>
