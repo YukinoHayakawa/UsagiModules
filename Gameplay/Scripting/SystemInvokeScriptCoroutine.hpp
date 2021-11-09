@@ -3,49 +3,18 @@
 #include <Usagi/Entity/EntityDatabase.hpp>
 #include <Usagi/Runtime/Service/Service.hpp>
 #include <Usagi/Modules/Assets/SahProgramModule/SahProgramModule.hpp>
+#include <Usagi/Modules/Common/Logging/Logging.hpp>
 #include <Usagi/Modules/Runtime/Asset/SecondaryAsset.hpp>
 #include <Usagi/Modules/Runtime/Asset/ComponentSecondaryAssetRef.hpp>
 #include <Usagi/Modules/Runtime/Asset/ServiceAssetManager.hpp>
 #include <Usagi/Modules/Runtime/ProgramModule/RuntimeModule.hpp>
 #include <Usagi/Modules/Runtime/ProgramModule/ServiceJitCompilation.hpp>
+#include <Usagi/Modules/Runtime/ProgramModule/Util.hpp>
 
 #include "ComponentCoroutineContinuation.hpp"
 
-// #include <cxxabi.h>
-
-// namespace __cxxabiv1
-// {
-// extern "C" {
-//     extern  char *__cxa_demangle(const char *mangled_name,
-//         char *output_buffer,
-//         size_t *length, int *status);
-// }
-// }
-//
-// namespace abi = __cxxabiv1;
-
-
-#include <llvm/Demangle/Demangle.h>
-
-#include <memory>
-
 namespace usagi
 {
-// template<typename T>
-// std::string type_name()
-// {
-//     int status = 0;
-//
-//     std::unique_ptr<char, void(*)(void *)> res {
-//         abi::__cxa_demangle(typeid(T).name(), NULL, NULL, &status),
-//         std::free
-//     };
-//
-//     if(status != 0) throw status; // stub
-//
-//     return res.get();
-// }
-
 struct SystemInvokeScriptCoroutine
 {
     using WriteAccess = AllComponents;
@@ -101,60 +70,33 @@ struct SystemInvokeScriptCoroutine
                 // script source and compile it.
                 case AssetStatus::MISSING:
                 {
-                    // todo real parameters
+                    // todo read from component
                     auto handler = std::make_unique<SahProgramModule>(
                         jit,
-                        // todo
-                        "Database.pch", // db interface pch asset path
-                        "Script.cpp"    // script source asset path
+                        "Database.i",
+                        "Database.pch",
+                        "Script.cpp"
                     );
-                    // append code for instantiating the script entry template
 
-
-                    // std::stringstream ss, filtered;
-                    // ss <<
-                    auto demangled = llvm::demangle(typeid(decltype(db)).name());
-                    // https://stackoverflow.com/a/20412841
-                    auto replace_all = [](std::string &str, std::string_view s, std::string_view t) {
-                        std::string::size_type n = 0;
-                        while((n = str.find(s, n)) != std::string::npos)
-                        {
-                            str.replace(n, s.size(), t);
-                            n += t.size();
-                        }
-                    };
-                    replace_all(demangled, "class ", "");
-                    replace_all(demangled, "struct ", "");
-                    replace_all(demangled, "usagi::PagedStorageInMemory,1", "usagi::PagedStorageInMemory,usagi::entity::InsertionPolicy::REUSE_ARCHETYPE_PAGE");
-                    // for(std::istream_iterator<std::string> i(ss), end; i != end; ++i)
-                    // {
-                    //     auto token = *i;
-                    //     if(token != "class" && token != "struct")
-                    //         filtered << token;
-                    // }
-
+                    // Append code for instantiating the script entry template
+#ifdef _MSC_VER
+                    auto demangled = demangle(typeid(decltype(db)).raw_name());
+#else
+                    USAGI_UNREACHABLE("unimplemented");
+#endif
                     auto instantiation = fmt::format(
-                        R"(
-extern "C"
-{{
-std::pair<std::uint64_t, ResumeCondition>
-script_main(std::uint64_t entry, {} db)
-{{
-    return script(entry, db);
-}}
-}}
-)", demangled);
-
-
-                    std::cout << instantiation;
-
-                    handler->set_additional(instantiation);
+                        #include "EntrySourceTemplate.inc"
+                        , demangled
+                    );
+                    LOG(debug, "Entry point source: \n{}", instantiation);
+                    handler->set_additional_source_text(instantiation);
 
                     module_cache = asset_manager.secondary_asset(
                         std::move(handler),
                         work_queue
                     );
-                    module_fp.fingerprint_build = module_cache.fingerprint_build;
+                    module_fp.fingerprint_build =
+                        module_cache.fingerprint_build;
                     [[fallthrough]];
                 }
                 case AssetStatus::QUEUED: [[fallthrough]];
@@ -195,11 +137,14 @@ script_main(std::uint64_t entry, {} db)
             if(resume)
             {
                 auto *module_bin = module_cache.asset->as<ModuleT>();
+
+                auto entry_name = module_bin->search_function("script_main");
+                assert(entry_name.has_value());
                 // getting the JIT-compiled function may involves code
                 // generation which could affect the performance.
                 auto script_coroutine =
                     module_bin->get_function_address<CoroutineT>(
-                        "script_main"
+                        entry_name.value()
                     );
                 // todo provide heaps
                 std::tie(script.next_entry_point, script.resume_condition) =

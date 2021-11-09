@@ -65,6 +65,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="ClangJIT.cpp" />
+    <ClCompile Include="CompilerFlagBuilder.cpp" />
     <ClCompile Include="CompilerInvocation.cpp" />
     <ClCompile Include="External\llvm-jit-pdb\lib\JITPDB\EMBEDDED_DLL.cpp">
       <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
@@ -95,14 +96,17 @@
       <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
     </ClCompile>
     <ClCompile Include="RuntimeModule.cpp" />
+    <ClCompile Include="Util.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ClangJIT.hpp" />
+    <ClInclude Include="CompilerFlagBuilder.hpp" />
     <ClInclude Include="CompilerInvocation.hpp" />
     <ClInclude Include="External\llvm-jit-pdb\include\llvm\JITPDB\JITPDBFileBuilder.h" />
     <ClInclude Include="External\llvm-jit-pdb\include\llvm\JITPDB\JITPDBMemoryManager.h" />
     <ClInclude Include="RuntimeModule.hpp" />
     <ClInclude Include="ServiceJitCompilation.hpp" />
+    <ClInclude Include="Util.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

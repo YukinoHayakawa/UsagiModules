@@ -1,8 +1,8 @@
 ﻿#pragma once
 
 #include <memory>
+#include <optional>
 #include <string>
-#include <vector>
 
 #include <Usagi/Runtime/Memory/Region.hpp>
 
@@ -25,13 +25,16 @@ class CompilerInvocation
     // todo output diagnostics to log
 
     std::unique_ptr<clang::CompilerInstance> mCompilerInstance;
-    std::vector<std::string> mStringPool;
     llvm::vfs::InMemoryFileSystem *mFileSystem = nullptr;
-    std::string src;
+    std::string mPchName { "<pch>" };
+    std::string mSourceName { "<source>" };
+    std::string mSourceText;
 
     void create_diagnostics();
     void create_vfs();
     void create_invocation();
+
+    void add_virtual_file(std::string_view name, ReadonlyMemoryRegion bin);
 
     // Only allow ClangJIT service to create this class to ensure that LLVM
     // is initialized.
@@ -42,10 +45,12 @@ class CompilerInvocation
 public:
     ~CompilerInvocation();
 
-    CompilerInvocation & set_pch(ReadonlyMemoryRegion buffer);
-    CompilerInvocation & add_source(
-        std::string name,
-        ReadonlyMemoryRegion source);
+    CompilerInvocation & set_source_name(std::string name);
+    CompilerInvocation & set_pch(
+        ReadonlyMemoryRegion source,
+        ReadonlyMemoryRegion binary,
+        std::optional<std::string> name = { });
+    CompilerInvocation & append_source(ReadonlyMemoryRegion source);
     RuntimeModule compile();
 };
 }

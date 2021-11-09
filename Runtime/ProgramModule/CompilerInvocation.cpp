@@ -8,11 +8,12 @@
 #include "CompilerInvocation.hpp"
 
 #include <iostream>
+#include <fstream>
+
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/ExecutionEngine/ExecutionEngine.h>
 #include <llvm/ExecutionEngine/SectionMemoryManager.h>
 #include <llvm/Passes/PassBuilder.h>
-#include <llvm/Support/Host.h>
 #include <llvm/Support/VirtualFileSystem.h>
 #include <clang/Basic/FileManager.h>
 #include <clang/Lex/PreprocessorOptions.h>
@@ -21,25 +22,28 @@
 #include <clang/CodeGen/CodeGenAction.h>
 #include <clang/Serialization/InMemoryModuleCache.h>
 
+#include <llvm/JITPDB/JITPDBMemoryManager.h>
+
+#include <Usagi/Modules/Common/Logging/Logging.hpp>
 #include <Usagi/Runtime/ErrorHandling.hpp>
 #include <Usagi/Runtime/File/RegularFile.hpp>
 
+#include "CompilerFlagBuilder.hpp"
 #include "RuntimeModule.hpp"
 
-// steps of invocation to clang were learned from https://blog.audio-tk.com/2018/09/18/compiling-c-code-in-memory-with-clang/
+// Ref: https://blog.audio-tk.com/2018/09/18/compiling-c-code-in-memory-with-clang/
 
 namespace usagi
 {
 void CompilerInvocation::create_diagnostics()
 {
-    // mCompilerInstance->getModuleCache().addBuiltPCM()
     auto &compiler_invocation = mCompilerInstance->getInvocation();
     auto &diagnostic_options = compiler_invocation.getDiagnosticOpts();
     auto text_diagnostic_printer =
         std::make_unique<clang::TextDiagnosticPrinter>(
             llvm::errs(),
             &diagnostic_options
-            );
+        );
     mCompilerInstance->createDiagnostics(
         text_diagnostic_printer.release(),
         true
@@ -48,8 +52,19 @@ void CompilerInvocation::create_diagnostics()
 
 void CompilerInvocation::create_vfs()
 {
-    // use a vfs to handle the reading of PCH since it only reads from the
-    // file manager.
+    // Use a virtual filesystem to intercept the request of PCH source and
+    // binary. Since PCH source always has a reference to its source in
+    // an absolute path, we also have to find a platform-independent way
+    // to fool clang when it wants the source. With clang, two types of
+    // absolute path are handled. One is native filesystem path, which may
+    // vary with system (e.g. on Windows it always starts with a drive name).
+    // Therefore, even if we pass a remapping option to map the source of PCH
+    // to root directory when compiling it, it will always be bound with
+    // the drive name of the working directory of the compiler, which is not
+    // what we want. Fortunately, clang also accepts network paths beginning
+    // with "//net/", so we remap the PCH source to some name under that
+    // directory and will be able to provide its source via our virtual
+    // file system.
     mCompilerInstance->setFileManager(
         new clang::FileManager(
             { },
@@ -62,20 +77,15 @@ void CompilerInvocation::create_invocation()
 {
     auto &compiler_invocation = mCompilerInstance->getInvocation();
     auto &diagnostics_engine = mCompilerInstance->getDiagnostics();
-    auto &target_options = compiler_invocation.getTargetOpts();
-    target_options.Triple = llvm::sys::getDefaultTargetTriple();
 
-    std::stringstream ss;
-    // ss << "-triple=" << llvm::sys::getDefaultTargetTriple();
-    ss << "-cc1 -triple x86_64-pc-windows-msvc19.29.30136 -mrelax-all -mincremental-linker-compatible --mrelax-relocations -disable-free -disable-llvm-verifier -discard-value-names -mrelocation-model pic -pic-level 2 -mframe-pointer=none -relaxed-aliasing -fmath-errno -fno-rounding-math -mconstructor-aliases -munwind-tables -target-cpu haswell -mllvm -x86-asm-syntax=intel -D_DEBUG -D_MT -flto-visibility-public-std --dependent-lib=libcmtd --dependent-lib=oldnames -stack-protector 2 -fcxx-exceptions -fexceptions -fexternc-nounwind -fms-volatile -fdefault-calling-conv=cdecl -fdiagnostics-format msvc -gno-column-info -gcodeview -debug-info-kind=limited -D _UNICODE -D UNICODE -D _HAS_CXX17 -D _HAS_CXX20  -O0 -Wall -Werror -Wno-pragma-pack -fdeprecated-macro -ferror-limit 19 -fno-use-cxa-atexit -fms-extensions -fms-compatibility -fms-compatibility-version=19.29.30136 -std=c++20 -fdelayed-template-parsing -fno-implicit-modules -fno-caret-diagnostics -std=c++20 -faddrsig -x c++";
+    std::stringstream opts = CompilerFlagBuilder::jit_options();
+    LOG(info, "JIT options: {}", opts.str());
 
     llvm::SmallVector<std::string, 128> item_strs;
     llvm::SmallVector<const char *, 128> item_cstrs;
 
-    for(std::istream_iterator<std::string> i(ss), end; i != end; ++i)
-    {
+    for(std::istream_iterator<std::string> i(opts), end; i != end; ++i)
         item_strs.push_back(*i);
-    }
 
     item_cstrs.reserve(item_strs.size());
     std::ranges::transform(
@@ -86,14 +96,23 @@ void CompilerInvocation::create_invocation()
 
     if(!clang::CompilerInvocation::CreateFromArgs(
         compiler_invocation,
-        // { nullptr, nullptr },
         item_cstrs,
         diagnostics_engine
     )) USAGI_THROW(std::runtime_error("Failed to create compiler invocation."));
 
-    // remove reading from stdin
+    // Prevent clang from trying to read from stdin.
     auto &front_end_options = compiler_invocation.getFrontendOpts();
     front_end_options.Inputs.clear();
+}
+
+void CompilerInvocation::add_virtual_file(
+    std::string_view name,
+    ReadonlyMemoryRegion bin)
+{
+    const llvm::StringRef ref_bin { bin.as_chars(), bin.length };
+    // This won't copy the content of our memory region.
+    auto buffer = llvm::MemoryBuffer::getMemBuffer(ref_bin, "", false);
+    mFileSystem->addFile(name.data(), 0, std::move(buffer));
 }
 
 CompilerInvocation::CompilerInvocation()
@@ -106,137 +125,101 @@ CompilerInvocation::CompilerInvocation()
 
 CompilerInvocation::~CompilerInvocation()
 {
+    // dtors of llvm objects invoked here.
 }
 
-CompilerInvocation & CompilerInvocation::set_pch(ReadonlyMemoryRegion buffer)
+CompilerInvocation & CompilerInvocation::set_source_name(std::string name)
+{
+    mSourceName = std::move(name);
+    return *this;
+}
+
+CompilerInvocation & CompilerInvocation::set_pch(
+    const ReadonlyMemoryRegion source,
+    const ReadonlyMemoryRegion binary,
+    std::optional<std::string> name)
 {
     auto &compiler_invocation = mCompilerInstance->getInvocation();
     auto &preprocessor_options = compiler_invocation.getPreprocessorOpts();
 
-    preprocessor_options.ImplicitPCHInclude = "<pch>";
-    // // prevent clang from checking the pch with original header source (we
-    // // don't have it in the vfs and don't want to deploy it with assets)
+    if(name) mPchName = std::move(name.value());
+    auto &pch_name = preprocessor_options.ImplicitPCHInclude
+        = std::move(mPchName);
+
     // preprocessor_options.DisablePCHOrModuleValidation =
-    // clang::DisableValidationForModuleKind::PCH;
-    mFileSystem->addFile(
-        "<pch>",
-        0,
-        llvm::MemoryBuffer::getMemBuffer(
-            llvm::StringRef
-            { (const char *)buffer.base_address, buffer.length },
-            "",
-            false
-        )
-    );
+    //     clang::DisableValidationForModuleKind::PCH;
 
+    // Add the source and binary of PCH to the vfs so clang can find it.
+    add_virtual_file(fmt::format("//net/{}", pch_name), source);
+    add_virtual_file(pch_name, binary);
 
-    const auto path = "D:\\Private\\Dev\\Projects\\UsagiBuild\\Demos\\DemoScripting\\Database.i";
-    auto file = new RegularFile(path);
-    auto view = new MappedFileView(file->create_view());
-    auto region = view->memory_region();
-    // auto buf = llvm::MemoryBuffer::getMemBuffer(llvm::StringRef { (const char *)region.base_address, region.length }).release();
-    auto file_time = std::filesystem::last_write_time(path);
-    const auto systemTime = std::chrono::clock_cast<std::chrono::system_clock>(file_time);
-    const auto time = std::chrono::system_clock::to_time_t(systemTime);
-
-    // preprocessor_options.addRemappedFile(path, buf);
-    mFileSystem->addFile(
-        path,
-        // 0,
-        time,
-        llvm::MemoryBuffer::getMemBuffer(
-            llvm::StringRef
-            { (const char *)region.base_address, region.length },
-            "",
-            false
-        )
-    );
+    // auto file_time = std::filesystem::last_write_time(path);
+    // const auto systemTime = std::chrono::clock_cast<std::chrono::system_clock>(file_time);
+    // const auto time = std::chrono::system_clock::to_time_t(systemTime);
 
     return *this;
 }
 
-CompilerInvocation & CompilerInvocation::add_source(
-    std::string name,
+CompilerInvocation & CompilerInvocation::append_source(
     ReadonlyMemoryRegion source)
 {
-    src += std::string_view((const char *)source.base_address, source.length);
-    //
-    // auto &compiler_invocation = mCompilerInstance->getInvocation();
-    // auto &front_end_options = compiler_invocation.getFrontendOpts();
-    //
-    // mStringPool.push_back(std::move(name));
-    //
-    // llvm::MemoryBufferRef buffer {
-    //     llvm::StringRef { (const char*)source.base_address, source.length },
-    //     mStringPool.back()
-    // };
-    //
-    // // header_search_options.UseStandardSystemIncludes = 0;
-    // // header_search_options.UseStandardCXXIncludes = 0;
-    // // header_search_options.AddPath(llvm::StringRef("."), clang::frontend::Quoted, false, true);
-    //
-    // front_end_options.Inputs.push_back(
-    //     clang::FrontendInputFile(buffer, { clang::Language::CXX })
-    // );
-
+    mSourceText += source.to_string_view();
     return *this;
 }
 
 RuntimeModule CompilerInvocation::compile()
 {
-    assert(mCompilerInstance);
-
-
-    auto &compiler_invocation = mCompilerInstance->getInvocation();
-    auto &front_end_options = compiler_invocation.getFrontendOpts();
-
-    mStringPool.push_back("source");
-
-    llvm::MemoryBufferRef buffer {
-        src,
-        mStringPool.back()
-    };
-
-    // header_search_options.UseStandardSystemIncludes = 0;
-    // header_search_options.UseStandardCXXIncludes = 0;
-    // header_search_options.AddPath(llvm::StringRef("."), clang::frontend::Quoted, false, true);
-
-    front_end_options.Inputs.push_back(
-        clang::FrontendInputFile(buffer, { clang::Language::CXX })
+    USAGI_ASSERT_THROW(
+        mCompilerInstance,
+        std::logic_error("The compiler should not be reused.")
     );
+
+    // Add source code.
+    {
+        auto &compiler_invocation = mCompilerInstance->getInvocation();
+        auto &front_end_options = compiler_invocation.getFrontendOpts();
+        llvm::MemoryBufferRef buffer { mSourceText, mSourceName };
+        front_end_options.Inputs.push_back(
+            clang::FrontendInputFile(buffer, { clang::Language::CXX })
+        );
+    }
 
     auto context = std::make_unique<llvm::LLVMContext>();
     auto action = std::make_unique<clang::EmitLLVMOnlyAction>(context.get());
 
-    if(!mCompilerInstance->ExecuteAction(*action))
-        USAGI_THROW(std::runtime_error("Compilation failed."));
+    USAGI_ASSERT_THROW(
+        mCompilerInstance->ExecuteAction(*action),
+        std::runtime_error("Compilation failed.")
+    );
 
     std::unique_ptr<llvm::Module> module = action->takeModule();
 
-    if(!module)
-        USAGI_THROW(std::runtime_error("Unable to take IR module."));
+    USAGI_ASSERT_THROW(
+        module,
+        std::runtime_error("Unable to take IR module.")
+    );
 
-    for(auto &&func : module->getFunctionList())
+    // The global symbols are by default declared as COMDAT to allow the linker
+    // to remove unused symbols. Doing so results in multiple .text/etc sections
+    // which makes debugging harder. Solely removing COMDAT from the symbols
+    // causes them to become weak, so manually set their linkages, too.
+    auto remove_comdat = [](auto &&rng)
     {
-        std::cout << func.getName().str() << std::endl;
-    }
-
-    // auto &compiler_invocation = mCompilerInstance->getInvocation();
-    auto &code_gen_options = compiler_invocation.getCodeGenOpts();
+        for(auto &o : rng)
+        {
+            o.setComdat(nullptr);
+            o.setLinkage(llvm::GlobalValue::ExternalLinkage);
+        }
+    };
+    remove_comdat(module->globals());
+    remove_comdat(module->global_objects());
+    remove_comdat(module->functions());
 
     llvm::PassBuilder pass_builder;
-    llvm::LoopAnalysisManager loop_analysis_manager(
-        code_gen_options.DebugPassManager
-    );
-    llvm::FunctionAnalysisManager function_analysis_manager(
-        code_gen_options.DebugPassManager
-    );
-    llvm::CGSCCAnalysisManager cgscc_analysis_manager(
-        code_gen_options.DebugPassManager
-    );
-    llvm::ModuleAnalysisManager module_analysis_manager(
-        code_gen_options.DebugPassManager
-    );
+    llvm::LoopAnalysisManager loop_analysis_manager(false);
+    llvm::FunctionAnalysisManager function_analysis_manager(false);
+    llvm::CGSCCAnalysisManager cgscc_analysis_manager(false);
+    llvm::ModuleAnalysisManager module_analysis_manager(false);
 
     pass_builder.registerModuleAnalyses(module_analysis_manager);
     pass_builder.registerCGSCCAnalyses(cgscc_analysis_manager);
@@ -249,29 +232,44 @@ RuntimeModule CompilerInvocation::compile()
         module_analysis_manager
     );
 
-    // do the optimization
+    // Do the optimization but preserve debuggability.
     llvm::ModulePassManager module_pass_manager =
         pass_builder.buildPerModuleDefaultPipeline(
-            llvm::PassBuilder::OptimizationLevel::O3
-        );
+            llvm::PassBuilder::OptimizationLevel::O1);
     module_pass_manager.run(*module, module_analysis_manager);
 
+    // Create execution engine.
+
+    // todo fix path. put in cache folder?
+    auto memory_manager = std::make_unique<llvm::JITPDBMemoryManager>(
+        "jit.pdb"
+    );
+    memory_manager->setVerbose(true);
+
+    // doesn't work. visual studio simply doesn't read source from pdb
+    // memory_manager->getPDBFileBuilder().addNatvisBuffer(
+    //     "<source>",
+    //     llvm::MemoryBuffer::getMemBufferCopy(mSource)
+    // );
+
+    const auto module_ptr = module.get();
     llvm::EngineBuilder builder(std::move(module));
     builder.setMCJITMemoryManager(
-        std::make_unique<llvm::SectionMemoryManager>()
+        // todo: diff config for debug/rel?
+        // std::make_unique<llvm::SectionMemoryManager>()
+        std::move(memory_manager)
     );
-    builder.setOptLevel(llvm::CodeGenOpt::Level::Aggressive);
+    builder.setOptLevel(llvm::CodeGenOpt::Level::None);
     builder.setEngineKind(llvm::EngineKind::JIT);
 
     std::unique_ptr<llvm::ExecutionEngine> engine(builder.create());
-    if(!engine)
-        USAGI_THROW(std::runtime_error("Failed to build JIT engine."));
+    USAGI_ASSERT_THROW(
+        engine,
+        std::runtime_error("Failed to build JIT engine.")
+    );
 
     mCompilerInstance.reset();
 
-    return {
-        std::move(context),
-        std::move(engine)
-    };
+    return { std::move(context), std::move(engine), module_ptr };
 }
 }

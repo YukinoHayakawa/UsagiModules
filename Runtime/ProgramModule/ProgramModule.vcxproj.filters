@@ -36,6 +36,12 @@
     <ClCompile Include="External\llvm-jit-pdb\lib\JITPDB\EMBEDDED_PDB.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="CompilerFlagBuilder.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Util.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ServiceJitCompilation.hpp">
@@ -54,6 +60,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="External\llvm-jit-pdb\include\llvm\JITPDB\JITPDBMemoryManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CompilerFlagBuilder.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Util.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
