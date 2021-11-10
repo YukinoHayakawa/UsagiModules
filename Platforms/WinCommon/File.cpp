@@ -129,6 +129,7 @@ auto nt_map(MemoryMapping &mapping, std::uint64_t length, std::uint64_t commit)
 // https://docs.microsoft.com/en-us/windows/win32/memory/creating-named-shared-memory
 // https://github.com/reactos/reactos/blob/893a3c9d030fd8b078cbd747eeefd3f6ce57e560/dll/win32/kernel32/client/file/filemap.c#L45
 // bug: cannot create read-only mappings
+// bug: can't create view of empty file
 MemoryMapping map(
     NativeFileHandle file,
     MemoryMappingMode mode,
