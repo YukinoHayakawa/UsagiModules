@@ -29,6 +29,7 @@ public:
         );
     }
 
+    [[nodiscard]]
     std::unique_ptr<formatter> clone() const override
     {
         return std::make_unique<logger_elapsed_formatter>(*this);

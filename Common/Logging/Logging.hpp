@@ -45,7 +45,13 @@ void log(const LoggingLevel level, fmt::string_view fmt, Args &&... args)
 }
 }
 
+// The level passed in is a variable name.
+#define LOG_V(level, ...) \
+    ::usagi::logging::log(level, __VA_ARGS__) \
+/**/
+
 #define LOG(level, ...) \
-    ::usagi::logging::log(\
-        ::usagi::logging::LoggingLevel::level, __VA_ARGS__) \
+    LOG_V( \
+        ::usagi::logging::LoggingLevel::level, __VA_ARGS__ \
+    ) \
 /**/
