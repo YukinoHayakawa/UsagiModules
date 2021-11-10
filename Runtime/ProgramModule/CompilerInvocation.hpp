@@ -22,8 +22,6 @@ class RuntimeModule;
 
 class CompilerInvocation
 {
-    // todo output diagnostics to log
-
     std::unique_ptr<clang::CompilerInstance> mCompilerInstance;
     llvm::vfs::InMemoryFileSystem *mFileSystem = nullptr;
     std::string mPchName { "<pch>" };

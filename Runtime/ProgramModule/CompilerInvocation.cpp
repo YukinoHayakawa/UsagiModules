@@ -35,15 +35,62 @@
 
 namespace usagi
 {
+namespace
+{
+class OutputToLogDiagnosticConsumer : public clang::TextDiagnosticPrinter
+{
+    llvm::SmallString<228> mOutStr;
+    llvm::raw_svector_ostream mStream { mOutStr };
+
+public:
+    OutputToLogDiagnosticConsumer(clang::DiagnosticOptions *diags)
+        : TextDiagnosticPrinter(mStream, diags, false)
+    {
+    }
+
+    void HandleDiagnostic(
+        const clang::DiagnosticsEngine::Level diag_level,
+        const clang::Diagnostic &info) override
+    {
+        using namespace clang;
+        using namespace logging;
+
+        mOutStr.clear();
+        TextDiagnosticPrinter::HandleDiagnostic(diag_level, info);
+
+        LoggingLevel level = LoggingLevel::off;
+        switch(diag_level)
+        {
+            // It's fatal for the compiler doesn't mean it's fatal for the
+            // engine.
+            case DiagnosticsEngine::Fatal:
+            case DiagnosticsEngine::Error:
+                level = LoggingLevel::error;
+                break;
+            case DiagnosticsEngine::Warning:
+                level = LoggingLevel::warn;
+                break;
+            case DiagnosticsEngine::Remark:
+            case DiagnosticsEngine::Note:
+                level = LoggingLevel::info;
+                break;
+            case DiagnosticsEngine::Ignored:
+            default: break;
+        }
+
+        LOG_V(level, "{}", mOutStr.c_str());
+    }
+};
+}
 void CompilerInvocation::create_diagnostics()
 {
     auto &compiler_invocation = mCompilerInstance->getInvocation();
     auto &diagnostic_options = compiler_invocation.getDiagnosticOpts();
+    diagnostic_options.ShowCategories = 2;
+    diagnostic_options.ShowOptionNames = 1;
+
     auto text_diagnostic_printer =
-        std::make_unique<clang::TextDiagnosticPrinter>(
-            llvm::errs(),
-            &diagnostic_options
-        );
+        std::make_unique<OutputToLogDiagnosticConsumer>(&diagnostic_options);
     mCompilerInstance->createDiagnostics(
         text_diagnostic_printer.release(),
         true
@@ -152,10 +199,6 @@ CompilerInvocation & CompilerInvocation::set_pch(
     // Add the source and binary of PCH to the vfs so clang can find it.
     add_virtual_file(fmt::format("//net/{}", pch_name), source);
     add_virtual_file(pch_name, binary);
-
-    // auto file_time = std::filesystem::last_write_time(path);
-    // const auto systemTime = std::chrono::clock_cast<std::chrono::system_clock>(file_time);
-    // const auto time = std::chrono::system_clock::to_time_t(systemTime);
 
     return *this;
 }
