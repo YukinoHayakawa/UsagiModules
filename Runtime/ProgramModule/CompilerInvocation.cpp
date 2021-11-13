@@ -126,7 +126,7 @@ void CompilerInvocation::create_invocation()
     auto &diagnostics_engine = mCompilerInstance->getDiagnostics();
 
     std::stringstream opts = CompilerFlagBuilder::jit_options();
-    LOG(debug, "JIT options: {}", opts.str());
+    LOG(info, "JIT options: {}", opts.str());
 
     llvm::SmallVector<std::string, 128> item_strs;
     llvm::SmallVector<const char *, 128> item_cstrs;
@@ -205,7 +205,7 @@ CompilerInvocation & CompilerInvocation::add_source(
 {
     // Add a source location marker for our code section so we can pretend to
     // have multiple sources for our compilation unit :)
-    LOG(debug, "JIT: Adding source {}", name);
+    LOG(info, "JIT: Adding source {}", name);
     fmt::vformat_to(
         std::back_insert_iterator(mSourceText),
         "# 1 \"{}\"\n",
@@ -213,7 +213,15 @@ CompilerInvocation & CompilerInvocation::add_source(
         fmt::make_format_args(name)
         // ReSharper restore CppPossiblyUnintendedObjectSlicing
     );
-    mSourceText += source.to_string_view();
+    auto view = source.to_string_view();
+    // Try to detect UTF-8 BOM and remove it.
+    if(source.length >= 3)
+    {
+        if(view.substr(0, 3) == "\xef\xbb\xbf")
+            view = view.substr(3);
+        LOG(info, "JIT: Source detected with BOM, removing it.");
+    }
+    mSourceText += view;
     return *this;
 }
 
@@ -237,7 +245,7 @@ RuntimeModule CompilerInvocation::compile()
     auto context = std::make_unique<llvm::LLVMContext>();
     auto action = std::make_unique<clang::EmitLLVMOnlyAction>(context.get());
 
-    LOG(debug, "JIT: Compiling...");
+    LOG(info, "JIT: Compiling...");
 
     USAGI_ASSERT_THROW(
         mCompilerInstance->ExecuteAction(*action),
@@ -296,7 +304,7 @@ RuntimeModule CompilerInvocation::compile()
     auto memory_manager = std::make_unique<llvm::JITPDBMemoryManager>(
         "jit.pdb"
     );
-    memory_manager->setVerbose(true);
+    // memory_manager->setVerbose(true);
 
     // doesn't work. visual studio simply doesn't read source from pdb
     // memory_manager->getPDBFileBuilder().addNatvisBuffer(
