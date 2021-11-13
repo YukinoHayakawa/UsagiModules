@@ -59,6 +59,15 @@ std::string demangle_msvc(std::string_view mangled)
     return demangled;
 }
 
+std::string demangle_typeid(const std::type_info &ti)
+{
+#ifdef _MSC_VER
+    return demangle(ti.raw_name());
+#else
+    USAGI_UNREACHABLE("unimplemented");
+#endif
+}
+
 std::string demangle(std::string_view mangled)
 {
 #ifdef _MSC_VER

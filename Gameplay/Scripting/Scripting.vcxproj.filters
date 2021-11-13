@@ -24,6 +24,15 @@
     <ClInclude Include="EntrySourceTemplate.inc">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ServiceDatabaseInterfaceProvider.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ComponentScript.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ComponentScriptPCH.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CreateLib.cpp">

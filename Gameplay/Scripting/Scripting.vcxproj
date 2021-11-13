@@ -59,7 +59,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="ComponentCoroutineContinuation.hpp" />
+    <ClInclude Include="ComponentScript.hpp" />
+    <ClInclude Include="ComponentScriptPCH.hpp" />
     <ClInclude Include="EntrySourceTemplate.inc" />
+    <ClInclude Include="ServiceDatabaseInterfaceProvider.hpp" />
     <ClInclude Include="SystemInvokeScriptCoroutine.hpp" />
   </ItemGroup>
   <ItemGroup>
