@@ -26,7 +26,7 @@ struct SystemNativeWindowCoordinator
             auto &c_wnd = USAGI_COMPONENT(e, ComponentNativeWindow);
             auto &c_region = USAGI_COMPONENT(e, ComponentRegion2D);
 
-            const auto id = c_wnd.identifier.str();
+            const auto id = c_wnd.identifier.to_string_view();
             // create the window if a corresponding window can't be found
             // for the entity
             if(const auto h_wnd = wnd_mgr.window(id); !h_wnd)
