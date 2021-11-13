@@ -15,6 +15,10 @@ class SecondaryAssetHandlerBase : Noncopyable
 public:
     virtual ~SecondaryAssetHandlerBase() = default;
 
+protected:
+    friend class AssetManager;
+    friend class SecondaryAssetLoadingTask;
+
     // AssetManager will call this function to collect the primary assets
     // required during building the secondary asset. The function will be
     // called multiple times with `index` increasing sequentially from 0,
@@ -35,7 +39,12 @@ public:
     {
         virtual ~Hasher() = default;
 
-        virtual void append(const void *data, std::size_t size) = 0;
+        virtual Hasher & append(const void *data, std::size_t size) = 0;
+
+        Hasher & append(std::string_view str)
+        {
+            return append(str.data(), str.size());
+        }
     };
 
     virtual void append_build_parameters(Hasher &hasher) = 0;

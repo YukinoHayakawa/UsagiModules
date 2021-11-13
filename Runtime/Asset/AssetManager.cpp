@@ -283,15 +283,16 @@ SecondaryAssetMeta AssetManager::secondary_asset(
     std::unique_ptr<SecondaryAssetHandlerBase> handler,
     TaskExecutor &work_queue)
 {
-    assert(handler && "No secondary asset handler is provided.");
+    assert(handler && "No secondary asset handler was provided.");
 
     struct Xxh64Hasher : SecondaryAssetHandlerBase::Hasher
     {
         XXHash64 hasher { 0 };
 
-        void append(const void *data, const std::size_t size) override
+        Hasher & append(const void *data, const std::size_t size) override
         {
             hasher.add(data, size);
+            return *this;
         }
     } hasher;
 
