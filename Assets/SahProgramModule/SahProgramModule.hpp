@@ -1,6 +1,8 @@
 ﻿#pragma once
 
+#include <vector>
 #include <string>
+#include <variant>
 
 #include <Usagi/Modules/Runtime/Asset/SecondaryAssetHandler.hpp>
 
@@ -13,11 +15,21 @@ class SahProgramModule
     : public SecondaryAssetHandler<RuntimeModule>
 {
     ClangJIT &mJit;
-    std::string mPch, mSource;
-    std::string mAdditional;
 
-public:
-    SahProgramModule(ClangJIT &jit, std::string pch, std::string src);
+    std::string mPchSource;
+    std::string mPchBinary;
+
+    struct StringSource
+    {
+        std::string name, text;
+    };
+
+    struct AssetSource
+    {
+        std::string name;
+    };
+
+    std::vector<std::variant<StringSource, AssetSource>> mSources;
 
     [[nodiscard]]
     std::optional<std::string_view> primary_dependencies(
@@ -29,10 +41,18 @@ public:
 
     void append_build_parameters(Hasher &hasher) override;
 
-    // todo remove
-    void set_additional(const std::string &additional)
-    {
-        mAdditional = additional;
-    }
+public:
+    explicit SahProgramModule(ClangJIT &jit);
+
+    SahProgramModule & set_pch(
+        std::string asset_name_source,
+        std::string asset_name_bin);
+
+    SahProgramModule & add_asset_source(
+        std::string asset_name);
+
+    SahProgramModule & add_string_source(
+        std::string name,
+        std::string text);
 };
 }
