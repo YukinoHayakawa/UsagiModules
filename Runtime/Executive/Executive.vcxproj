@@ -63,10 +63,12 @@
     <ClInclude Include="AppDirectory.hpp" />
     <ClInclude Include="AppHost.hpp" />
     <ClInclude Include="ServiceStateTransitionGraph.hpp" />
+    <ClInclude Include="ServiceAsyncWorker.hpp" />
     <ClInclude Include="SystemTaskList.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CreateLib.cpp" />
+    <ClCompile Include="ServiceAsyncWorker.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -33,9 +33,15 @@
     <ClInclude Include="DatabaseTraits.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ServiceAsyncWorker.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CreateLib.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ServiceAsyncWorker.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
