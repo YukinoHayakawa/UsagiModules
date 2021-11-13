@@ -24,8 +24,7 @@ class CompilerInvocation
 {
     std::unique_ptr<clang::CompilerInstance> mCompilerInstance;
     llvm::vfs::InMemoryFileSystem *mFileSystem = nullptr;
-    std::string mPchName { "<pch>" };
-    std::string mSourceName { "<source>" };
+
     std::string mSourceText;
 
     void create_diagnostics();
@@ -43,12 +42,18 @@ class CompilerInvocation
 public:
     ~CompilerInvocation();
 
-    CompilerInvocation & set_source_name(std::string name);
     CompilerInvocation & set_pch(
         ReadonlyMemoryRegion source,
         ReadonlyMemoryRegion binary,
         std::optional<std::string> name = { });
-    CompilerInvocation & append_source(ReadonlyMemoryRegion source);
+
+    // The name for source is meant for identifying code snippets. They don't
+    // necessarily correspond to asset names.
+    CompilerInvocation & add_source(
+        std::string_view name,
+        ReadonlyMemoryRegion source
+    );
+
     RuntimeModule compile();
 };
 }

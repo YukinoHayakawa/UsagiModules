@@ -175,12 +175,6 @@ CompilerInvocation::~CompilerInvocation()
     // dtors of llvm objects invoked here.
 }
 
-CompilerInvocation & CompilerInvocation::set_source_name(std::string name)
-{
-    mSourceName = std::move(name);
-    return *this;
-}
-
 CompilerInvocation & CompilerInvocation::set_pch(
     const ReadonlyMemoryRegion source,
     const ReadonlyMemoryRegion binary,
@@ -189,23 +183,30 @@ CompilerInvocation & CompilerInvocation::set_pch(
     auto &compiler_invocation = mCompilerInstance->getInvocation();
     auto &preprocessor_options = compiler_invocation.getPreprocessorOpts();
 
-    if(name) mPchName = std::move(name.value());
-    auto &pch_name = preprocessor_options.ImplicitPCHInclude
-        = std::move(mPchName);
-
-    // preprocessor_options.DisablePCHOrModuleValidation =
-    //     clang::DisableValidationForModuleKind::PCH;
+    auto &pch_name = preprocessor_options.ImplicitPCHInclude;
+    pch_name = name ? std::move(name.value()) : "<PCH>";
 
     // Add the source and binary of PCH to the vfs so clang can find it.
-    add_virtual_file(fmt::format("//net/{}", pch_name), source);
+    // Also see create_vfs().
+    add_virtual_file(fmt::format("//net/pch_source/{}", pch_name), source);
     add_virtual_file(pch_name, binary);
 
     return *this;
 }
 
-CompilerInvocation & CompilerInvocation::append_source(
+CompilerInvocation & CompilerInvocation::add_source(
+    std::string_view name,
     ReadonlyMemoryRegion source)
 {
+    // Add a source location marker for our code section so we can pretend to
+    // have multiple sources for our compilation unit :)
+    fmt::vformat_to(
+        std::back_insert_iterator(mSourceText),
+        "# 1 \"{}\"\n",
+        // ReSharper disable CppPossiblyUnintendedObjectSlicing
+        fmt::make_format_args(name)
+        // ReSharper restore CppPossiblyUnintendedObjectSlicing
+    );
     mSourceText += source.to_string_view();
     return *this;
 }
@@ -221,7 +222,7 @@ RuntimeModule CompilerInvocation::compile()
     {
         auto &compiler_invocation = mCompilerInstance->getInvocation();
         auto &front_end_options = compiler_invocation.getFrontendOpts();
-        llvm::MemoryBufferRef buffer { mSourceText, mSourceName };
+        llvm::MemoryBufferRef buffer { mSourceText, "source"};
         front_end_options.Inputs.push_back(
             clang::FrontendInputFile(buffer, { clang::Language::CXX })
         );
