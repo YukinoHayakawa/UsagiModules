@@ -16,8 +16,9 @@ class SahProgramModule
 {
     ClangJIT &mJit;
 
-    std::string mPchSource;
-    std::string mPchBinary;
+    std::string mAssetPathPchSource;
+    std::string mAssetPathPchBinary;
+    std::string mPchSourceRemappedName;
 
     struct StringSource
     {
@@ -39,14 +40,15 @@ class SahProgramModule
     std::unique_ptr<SecondaryAsset> construct(
         std::span<std::optional<PrimaryAssetMeta>> primary_assets) override;
 
-    void append_build_parameters(Hasher &hasher) override;
+    void append_build_parameters(Hasher &h) override;
 
 public:
     explicit SahProgramModule(ClangJIT &jit);
 
     SahProgramModule & set_pch(
         std::string asset_name_source,
-        std::string asset_name_bin);
+        std::string asset_name_bin,
+        std::string source_remapped_name);
 
     SahProgramModule & add_asset_source(
         std::string asset_name);

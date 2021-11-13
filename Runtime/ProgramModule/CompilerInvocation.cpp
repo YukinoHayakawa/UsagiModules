@@ -126,7 +126,7 @@ void CompilerInvocation::create_invocation()
     auto &diagnostics_engine = mCompilerInstance->getDiagnostics();
 
     std::stringstream opts = CompilerFlagBuilder::jit_options();
-    LOG(info, "JIT options: {}", opts.str());
+    LOG(debug, "JIT options: {}", opts.str());
 
     llvm::SmallVector<std::string, 128> item_strs;
     llvm::SmallVector<const char *, 128> item_cstrs;
@@ -159,6 +159,7 @@ void CompilerInvocation::add_virtual_file(
     const llvm::StringRef ref_bin { bin.as_chars(), bin.length };
     // This won't copy the content of our memory region.
     auto buffer = llvm::MemoryBuffer::getMemBuffer(ref_bin, "", false);
+    LOG(debug, "JIT: Adding virtual file {}", name.data());
     mFileSystem->addFile(name.data(), 0, std::move(buffer));
 }
 
@@ -178,18 +179,22 @@ CompilerInvocation::~CompilerInvocation()
 CompilerInvocation & CompilerInvocation::set_pch(
     const ReadonlyMemoryRegion source,
     const ReadonlyMemoryRegion binary,
-    std::optional<std::string> name)
+    std::string source_name)
 {
     auto &compiler_invocation = mCompilerInstance->getInvocation();
     auto &preprocessor_options = compiler_invocation.getPreprocessorOpts();
 
-    auto &pch_name = preprocessor_options.ImplicitPCHInclude;
-    pch_name = name ? std::move(name.value()) : "<PCH>";
-
     // Add the source and binary of PCH to the vfs so clang can find it.
     // Also see create_vfs().
-    add_virtual_file(fmt::format("//net/pch_source/{}", pch_name), source);
-    add_virtual_file(pch_name, binary);
+
+    // The file path of PCH source must match to the specified name during
+    // compiling the PCH.
+    add_virtual_file(fmt::format("//net/{}", source_name), source);
+    // On the other hand, the name for PCH itself is insignificant as long
+    // as this name matches to the corresponding preprocessor option.
+    add_virtual_file(source_name, binary);
+
+    preprocessor_options.ImplicitPCHInclude = std::move(source_name);
 
     return *this;
 }
@@ -200,6 +205,7 @@ CompilerInvocation & CompilerInvocation::add_source(
 {
     // Add a source location marker for our code section so we can pretend to
     // have multiple sources for our compilation unit :)
+    LOG(debug, "JIT: Adding source {}", name);
     fmt::vformat_to(
         std::back_insert_iterator(mSourceText),
         "# 1 \"{}\"\n",
@@ -230,6 +236,8 @@ RuntimeModule CompilerInvocation::compile()
 
     auto context = std::make_unique<llvm::LLVMContext>();
     auto action = std::make_unique<clang::EmitLLVMOnlyAction>(context.get());
+
+    LOG(debug, "JIT: Compiling...");
 
     USAGI_ASSERT_THROW(
         mCompilerInstance->ExecuteAction(*action),

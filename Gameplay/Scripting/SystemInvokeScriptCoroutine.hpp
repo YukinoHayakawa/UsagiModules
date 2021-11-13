@@ -36,7 +36,6 @@ struct SystemInvokeScriptCoroutine
             process_single(rt, db, e);
     }
 
-    template <auto, auto>
     void process_single(auto &&rt, auto &&db, auto &&e)
     {
         auto &asset_manager = USAGI_SERVICE(rt, ServiceAssetManager);
@@ -72,13 +71,13 @@ struct SystemInvokeScriptCoroutine
         }
         else if(status == AssetStatus::MISSING_DEPENDENCY)
         {
-            // depending on user options, the program may quit or this
+            // Depending on user options, the program may quit or this
             // event can be ignored at the cost of compromising the
             // correctness of computation
             // executive.report_critical_asset_missing_throw(module_fp);
             USAGI_THROW(std::runtime_error("")); // todo
         }
-        // the module is not loaded into asset cache. try to load the
+        // The module is not loaded into asset cache. try to load the
         // script source and compile it.
         else if(status == AssetStatus::MISSING)
         {
@@ -86,12 +85,13 @@ struct SystemInvokeScriptCoroutine
             auto handler = std::make_unique<SahProgramModule>(jit);
 
             // If the script specified a PCH to use, load it.
-            if(e.template has_component<ComponentScriptPCH>())
+            if(e.template include<ComponentScriptPCH>())
             {
                 auto &pch = USAGI_COMPONENT(e, ComponentScriptPCH);
                 handler->set_pch(
                     pch.src_asset_path.to_string(),
-                    pch.bin_asset_path.to_string()
+                    pch.bin_asset_path.to_string(),
+                    pch.source_remapped_name.to_string()
                 );
             }
 
@@ -105,7 +105,10 @@ struct SystemInvokeScriptCoroutine
                 , demangled
             );
             handler->add_string_source(
-                fmt::format("script_entry/{}", script.source_asset_path),
+                fmt::format(
+                    "script_entry/{}",
+                    script.source_asset_path.to_string_view()
+                ),
                 instantiation
             );
             LOG(debug, "Entry point source: \n{}", instantiation);
@@ -153,12 +156,12 @@ struct SystemInvokeScriptCoroutine
         if(resume)
         {
             auto *module_bin = module_cache.asset->as<ModuleT>();
-            auto entry_name = module_bin->search_function("script_main");
+            const auto entry_name = module_bin->search_function("script_main");
             USAGI_ASSERT_THROW(
                 entry_name,
                 std::runtime_error("Script has no entry point.")
             );
-            // getting the JIT-compiled function may involves code
+            // Getting the JIT-compiled function may involves code
             // generation which could affect the performance.
             auto script_coroutine =
                 module_bin->get_function_address<CoroutineT>(

@@ -8,5 +8,6 @@ struct ComponentScriptPCH
 {
     FixedCapacityString<32> src_asset_path;
     FixedCapacityString<32> bin_asset_path;
+    FixedCapacityString<32> source_remapped_name;
 };
 }

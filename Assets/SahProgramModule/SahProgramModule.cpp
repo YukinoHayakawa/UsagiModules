@@ -17,10 +17,12 @@ SahProgramModule::SahProgramModule(ClangJIT &jit)
 
 SahProgramModule & SahProgramModule::set_pch(
     std::string asset_name_source,
-    std::string asset_name_bin)
+    std::string asset_name_bin,
+    std::string source_remapped_name)
 {
-    mPchSource = std::move(asset_name_source);
-    mPchBinary = std::move(asset_name_bin);
+    mAssetPathPchSource = std::move(asset_name_source);
+    mAssetPathPchBinary = std::move(asset_name_bin);
+    mPchSourceRemappedName = std::move(source_remapped_name);
 
     return *this;
 }
@@ -53,8 +55,8 @@ std::optional<std::string_view> SahProgramModule::primary_dependencies(
             return std::get<AssetSource>(src).name;
         return std::string_view { };
     }
-    if(index == mSources.size()) return mPchSource;
-    if(index == mSources.size() + 1) return mPchBinary;
+    if(index == mSources.size()) return mAssetPathPchSource;
+    if(index == mSources.size() + 1) return mAssetPathPchBinary;
 
     return { };
 }
@@ -66,25 +68,25 @@ std::unique_ptr<SecondaryAsset> SahProgramModule::construct(
 
     auto compiler = mJit.create_compiler();
 
-    if(!mPchSource.empty())
+    if(!mAssetPathPchSource.empty())
     {
-        assert(!mPchBinary.empty());
+        assert(!mAssetPathPchBinary.empty());
         const auto idx_src = mSources.size();
         const auto idx_bin = idx_src + 1;
         const auto reg_src = primary_assets[idx_src]->region;
         const auto reg_bin = primary_assets[idx_bin]->region;
         assert(reg_src && reg_bin);
-        compiler.set_pch(reg_src, reg_bin, mPchBinary);
+        compiler.set_pch(reg_src, reg_bin, mPchSourceRemappedName);
     }
 
     for(std::size_t idx = 0; auto &&s : mSources)
     {
         auto [name, source] = visit_element(s,
-            [&](StringSource &ss) { return std::pair {
+            [&](const StringSource &ss) { return std::pair {
                 std::string_view(ss.name),
                 ReadonlyMemoryRegion::from_string_view(ss.text)
             }; },
-            [&](AssetSource &as) { return std::pair {
+            [&](const AssetSource &as) { return std::pair {
                 std::string_view(as.name),
                 primary_assets[idx]->region
             }; }
@@ -100,16 +102,15 @@ std::unique_ptr<SecondaryAsset> SahProgramModule::construct(
     );
 }
 
-void SahProgramModule::append_build_parameters(Hasher &hasher)
+void SahProgramModule::append_build_parameters(Hasher &h)
 {
-    hasher.append(mPchSource);
-    hasher.append(mPchBinary);
+    h.append(mAssetPathPchSource).append(mAssetPathPchBinary);
 
     for(auto &&s : mSources)
     {
         visit_element(s,
-            [&](StringSource &ss) { hasher.append(ss.name).append(ss.text); },
-            [&](AssetSource &as) { hasher.append(as.name); }
+            [&](const StringSource &ss) { h.append(ss.name).append(ss.text); },
+            [&](const AssetSource &as) { h.append(as.name); }
         );
     }
 }

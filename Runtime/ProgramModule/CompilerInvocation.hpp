@@ -1,7 +1,6 @@
 ﻿#pragma once
 
 #include <memory>
-#include <optional>
 #include <string>
 
 #include <Usagi/Runtime/Memory/Region.hpp>
@@ -45,7 +44,7 @@ public:
     CompilerInvocation & set_pch(
         ReadonlyMemoryRegion source,
         ReadonlyMemoryRegion binary,
-        std::optional<std::string> name = { });
+        std::string source_name);
 
     // The name for source is meant for identifying code snippets. They don't
     // necessarily correspond to asset names.
