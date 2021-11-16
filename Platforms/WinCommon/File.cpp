@@ -105,6 +105,7 @@ auto nt_map(MemoryMapping &mapping, std::uint64_t length, std::uint64_t commit)
         &map_offset,
         &view_size,
         ViewShare,
+        // bug: do not use MEM_RESERVE if the mapped file is not supposed to be modified
         // note that MEM_RESERVE requires PAGE_READWRITE (see ntoskrnl source).
         // violation of it causes 0xC000004E STATUS_SECTION_PROTECTION.
         MEM_RESERVE,

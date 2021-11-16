@@ -1,9 +1,7 @@
 ﻿#include "ServiceAsyncWorker.hpp"
 
-#include <cassert>
-#include <iostream>
-
 #include <Usagi/Library/Memory/LockGuard.hpp>
+#include <Usagi/Modules/Common/Logging/Logging.hpp>
 #include <Usagi/Modules/Common/Time/Clock.hpp>
 #include <Usagi/Runtime/Task.hpp>
 
@@ -44,7 +42,7 @@ std::uint64_t StdTaskExecutor::submit(
             if(!t->postcondition())
                 throw std::runtime_error("");
 
-            std::cout << clk.realtime_elapsed() << std::endl;
+            LOG(info, "Task consumed {} seconds.", clk.realtime_elapsed());
         }
     );
 

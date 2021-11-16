@@ -1,5 +1,6 @@
 ﻿#include "AssetPackageFilesystem.hpp"
 
+#include <format>
 
 #include <Usagi/Library/Memory/LockGuard.hpp>
 #include <Usagi/Runtime/ErrorHandling.hpp>
@@ -82,6 +83,12 @@ bool AssetPackageFilesystem::create_query(
 
     return true;
 }
+
+std::string AssetPackageFilesystem::name() const
+{
+    return std::format("FilesystemFolder: {}", mBasePath.string());
+}
+
 //
 // bool AssetPackageFilesystem::has_asset(
 //     const std::u8string_view name) const

@@ -4,11 +4,14 @@
 #include <memory>
 #include <mutex>
 #include <set>
-#include <vector>
+#include <variant>
+#include <deque>
+#include <future>
 
 #include <Usagi/Runtime/TaskExecutor.hpp>
 
 #include "Asset.hpp"
+#include "AssetDependencyGraph.hpp"
 #include "Package/AssetPackage.hpp"
 
 namespace usagi
@@ -17,15 +20,37 @@ class SecondaryAssetHandlerBase;
 
 class AssetManager
 {
-    std::mutex mPackageMutex;
-    std::vector<std::shared_ptr<AssetPackage>> mPackages;
+    // ============================== Packages ============================== //
+
+    struct PackageEntry
+    {
+        std::uint64_t vertex = -1;
+        std::unique_ptr<AssetPackage> package;
+    };
+
+    std::deque<PackageEntry> mPackages;
+    using PackageRef = decltype(mPackages)::iterator;
 
     bool create_query(
         std::string_view path,
         StackPolymorphicObject<AssetQuery> &query);
 
+    // =========================== Primary Assets =========================== //
+
+    struct PrimaryAssetEntry : PrimaryAssetMeta
+    {
+        std::uint64_t loading_task_id = -1;
+        std::uint64_t vertex_idx = -1;
+        std::shared_future<PrimaryAssetMeta> future;
+
+        PrimaryAssetMeta meta() const
+        {
+            return static_cast<PrimaryAssetMeta>(*this);
+        }
+    };
+
     std::mutex mPrimaryAssetTableMutex;
-    std::map<std::string, PrimaryAssetMeta, std::less<>> mPrimaryAssets;
+    std::map<std::string, PrimaryAssetEntry, std::less<>> mPrimaryAssets;
     using PrimaryAssetRef = decltype(mPrimaryAssets)::iterator;
 
     friend class PrimaryAssetLoadingTask;
@@ -41,75 +66,72 @@ class AssetManager
         std::string_view asset_path,
         bool load);
 
+    PrimaryAssetQueryResult ensure_primary_asset_entry(
+        std::string_view asset_path,
+        TaskExecutor *work_queue = nullptr);
+
+    // ========================== Secondary Assets ========================== //
+
     std::mutex mSecondaryAssetTableMutex;
 
-    struct SecondaryAssetAuxInfo
+    struct SecondaryAssetEntry
     {
-        // todo perf
-        mutable std::vector<std::optional<PrimaryAssetRef>>
-            primary_dependencies;
-        mutable std::unique_ptr<SecondaryAssetHandlerBase> handler;
+        std::unique_ptr<SecondaryAsset> asset;
+        // AssetFingerprint fingerprint_build = 0;
+        AssetFingerprint fingerprint_dep_content = 0;
+        AssetStatus status = AssetStatus::MISSING;
 
-        struct PseudoMeta
-        {
-            mutable std::unique_ptr<SecondaryAsset> secondary;
-            AssetFingerprint fingerprint_build = 0;
-            mutable AssetFingerprint fingerprint_dep_content = 0;
-            // AssetPackage *package = nullptr;
-            mutable AssetStatus status : 8 = AssetStatus::MISSING;
-            mutable std::uint64_t loading_task_id : 56 = -1;
+        std::uint64_t loading_task_id = -1;
+        std::uint64_t vertex_idx = -1;
+        std::unique_ptr<SecondaryAssetHandlerBase> handler;
+        std::shared_future<SecondaryAssetMeta> future;
 
-            ~PseudoMeta();
-
-            operator SecondaryAssetMeta() const
-            {
-                // Slice the state directly as it is isomorphic with the
-                // return type.
-                // (unique_ptr is zero-cost abstraction over raw ptr)
-                return reinterpret_cast<const SecondaryAssetMeta &>(*this);
-            }
-        } meta;
-
-        static_assert(sizeof(PseudoMeta) == sizeof(SecondaryAssetMeta));
-
-        SecondaryAssetAuxInfo(
-            AssetFingerprint fingerprint,
-            std::unique_ptr<SecondaryAssetHandlerBase> constructor)
-            : handler(std::move(constructor))
-        {
-            meta.fingerprint_build = fingerprint;
-            // secondary.package = primary_ref->second.package;
-        }
-
-        friend bool operator<(
-            const SecondaryAssetAuxInfo &lhs,
-            const SecondaryAssetAuxInfo &rhs)
-        {
-            return lhs.meta.fingerprint_build < rhs.meta.fingerprint_build;
-        }
-
-        friend bool operator<(
-            const SecondaryAssetAuxInfo &lhs,
-            const AssetFingerprint &rhs)
-        {
-            return lhs.meta.fingerprint_build < rhs;
-        }
-
-        friend bool operator<(
-            const AssetFingerprint &lhs,
-            const SecondaryAssetAuxInfo &rhs)
-        {
-            return lhs < rhs.meta.fingerprint_build;
-        }
+        SecondaryAssetEntry() = default;
+        SecondaryAssetEntry(SecondaryAssetEntry &&other) noexcept = default;
+        SecondaryAssetEntry & operator=(
+            SecondaryAssetEntry &&other) noexcept = default;
+        ~SecondaryAssetEntry();
     };
 
-    std::set<SecondaryAssetAuxInfo, std::less<>> mLoadedSecondaryAssets;
-    using SecondaryAssetRef = decltype(mLoadedSecondaryAssets)::iterator;
+    std::map<AssetFingerprint, SecondaryAssetEntry> mSecondaryAssets;
+    using SecondaryAssetRef = decltype(mSecondaryAssets)::iterator;
+
+    static SecondaryAssetMeta meta_from_entry(SecondaryAssetRef entry);
+
+    SecondaryAssetRef ensure_secondary_asset_entry(
+        std::unique_ptr<SecondaryAssetHandlerBase> handler,
+        TaskExecutor &work_queue);
+
+    // ========================== Dependency Graph ========================== //
+
+    std::mutex mDependencyMutex;
 
     friend class SecondaryAssetLoadingTask;
 
+    using VertexT = std::variant<
+        PackageRef,
+        PrimaryAssetRef,
+        SecondaryAssetRef
+    >;
+
+    // Whenever there is any change that can invalidate an asset, or would
+    // resolve an asset to another package, it's necessary to remove the
+    // affected assets to reflect that change. Specifically, when a package is
+    // added, all loaded assets should be checked with the new package to see
+    // if any asset is overridden by it and remove the corresponding assets
+    // from the loaded asset cache. All secondary assets built with the removed
+    // primary assets should also be recursively removed from the cache, and
+    // they will be rebuilt upon the next request of access.
+    AssetDependencyGraph<VertexT> mDependencyGraph;
+
+    PrimaryAssetRef invalidate_primary_asset(PrimaryAssetRef asset);
+    void invalidate_secondary_asset(SecondaryAssetRef asset);
+    void invalidate_secondary_asset_helper(std::uint64_t start_v);
+
 public:
-    void add_package(std::shared_ptr<AssetPackage> package);
+    // todo: adding/removing an asset package should not happen while there is any active asset loading task, or during any request of assets. because loading tasks may hold references to asset entries and changes in packages may invalidate them.
+    void add_package(std::unique_ptr<AssetPackage> package);
+    void remove_package(AssetPackage *package);
 
     // When work queue set to nullptr, the asset will not be loaded.
     // The state of primary asset is copy-returned to prevent the returned
@@ -130,6 +152,14 @@ public:
 
     // Construct a secondary asset using the provided handler.
     SecondaryAssetMeta secondary_asset(
+        std::unique_ptr<SecondaryAssetHandlerBase> handler,
+        TaskExecutor &work_queue);
+
+    std::shared_future<PrimaryAssetMeta> primary_asset_async(
+        std::string_view asset_path,
+        TaskExecutor &work_queue);
+
+    std::shared_future<SecondaryAssetMeta> secondary_asset_async(
         std::unique_ptr<SecondaryAssetHandlerBase> handler,
         TaskExecutor &work_queue);
 };

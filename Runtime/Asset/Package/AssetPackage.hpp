@@ -7,9 +7,7 @@
 namespace usagi
 {
 // Provide access to raw binary data of assets.
-class AssetPackage
-    : Noncopyable
-    , public std::enable_shared_from_this<AssetPackage>
+class AssetPackage : Noncopyable
 {
 public:
     AssetPackage() = default;
@@ -21,5 +19,7 @@ public:
     virtual bool create_query(
         std::string_view path,
         StackPolymorphicObject<AssetQuery> &query) = 0;
+
+    virtual std::string name() const = 0;
 };
 }

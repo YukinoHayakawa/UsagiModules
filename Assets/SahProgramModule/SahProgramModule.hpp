@@ -32,15 +32,11 @@ class SahProgramModule
 
     std::vector<std::variant<StringSource, AssetSource>> mSources;
 
-    [[nodiscard]]
-    std::optional<std::string_view> primary_dependencies(
-        std::size_t index) override;
-
-    [[nodiscard]]
     std::unique_ptr<SecondaryAsset> construct(
-        std::span<std::optional<PrimaryAssetMeta>> primary_assets) override;
+        AssetManager &asset_manager,
+        TaskExecutor &work_queue) override;
 
-    void append_build_parameters(Hasher &h) override;
+    void append_features(Hasher &h) override;
 
 public:
     explicit SahProgramModule(ClangJIT &jit);

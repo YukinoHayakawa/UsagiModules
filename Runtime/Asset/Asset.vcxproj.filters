@@ -53,5 +53,8 @@
     <ClInclude Include="ComponentSecondaryAssetRef.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="AssetDependencyGraph.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

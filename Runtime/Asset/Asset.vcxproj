@@ -64,6 +64,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Asset.hpp" />
+    <ClInclude Include="AssetDependencyGraph.hpp" />
     <ClInclude Include="AssetQuery.hpp" />
     <ClInclude Include="AssetManager.hpp" />
     <ClInclude Include="ComponentSecondaryAssetRef.hpp" />
@@ -72,11 +73,6 @@
     <ClInclude Include="SecondaryAsset.hpp" />
     <ClInclude Include="SecondaryAssetHandler.hpp" />
     <ClInclude Include="ServiceAssetManager.hpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\..\..\..\Library\Usagi\Usagi.vcxproj">
-      <Project>{f9061c06-bce6-416b-9aeb-31351810b7ba}</Project>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

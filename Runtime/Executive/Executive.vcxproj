@@ -70,6 +70,11 @@
     <ClCompile Include="CreateLib.cpp" />
     <ClCompile Include="ServiceAsyncWorker.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Common\Logging\Logging.vcxproj">
+      <Project>{e13613a3-b719-4bc5-991a-507402d14c25}</Project>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

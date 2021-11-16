@@ -56,5 +56,7 @@ public:
     bool create_query(
         std::string_view path,
         StackPolymorphicObject<AssetQuery> &query) override;
+
+    std::string name() const override;
 };
 }

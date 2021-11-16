@@ -3,6 +3,7 @@
 #include <cassert>
 
 #include <Usagi/Library/Utility/Variant.hpp>
+#include <Usagi/Modules/Runtime/Asset/AssetManager.hpp>
 #include <Usagi/Modules/Runtime/Asset/SecondaryAsset.hpp>
 #include <Usagi/Modules/Runtime/ProgramModule/ClangJIT.hpp>
 #include <Usagi/Modules/Runtime/ProgramModule/RuntimeModule.hpp>
@@ -46,35 +47,52 @@ SahProgramModule & SahProgramModule::add_string_source(
     return *this;
 }
 
-std::optional<std::string_view> SahProgramModule::primary_dependencies(
-    std::size_t index)
-{
-    if(index < mSources.size())
-    {
-        if(auto &src = mSources[index]; src.index() == 1)
-            return std::get<AssetSource>(src).name;
-        return std::string_view { };
-    }
-    if(index == mSources.size()) return mAssetPathPchSource;
-    if(index == mSources.size() + 1) return mAssetPathPchBinary;
-
-    return { };
-}
-
 std::unique_ptr<SecondaryAsset> SahProgramModule::construct(
-    const std::span<std::optional<PrimaryAssetMeta>> primary_assets)
+    AssetManager &asset_manager,
+    TaskExecutor &work_queue)
 {
-    assert(primary_assets.size() == mSources.size() + 2);
+    // Prepare assets
+
+    std::vector<std::shared_future<PrimaryAssetMeta>> assets;
+    assets.resize(mSources.size() + 2);
+
+    auto load = [&](std::uint64_t idx, std::string_view path) {
+        assets[idx] = asset_manager.primary_asset_async(path, work_queue);
+    };
+
+    for(std::size_t idx = 0; auto &&s : mSources)
+    {
+        visit_element(s,
+            [&](const StringSource &ss) { },
+            [&](const AssetSource &as) { load(idx, as.name); }
+        );
+        ++idx;
+    }
+
+    if(!mAssetPathPchSource.empty())
+    {
+        const auto idx_src = mSources.size();
+        const auto idx_bin = idx_src + 1;
+        assert(!mAssetPathPchBinary.empty());
+        load(idx_src, mAssetPathPchSource);
+        load(idx_bin, mAssetPathPchBinary);
+    }
+
+    for(auto &&f : assets)
+        if(f.valid()) f.wait();
+
+    // Compile the source
+
+    auto get = [&](std::uint64_t idx) { return assets[idx].get().region; };
 
     auto compiler = mJit.create_compiler();
 
     if(!mAssetPathPchSource.empty())
     {
-        assert(!mAssetPathPchBinary.empty());
         const auto idx_src = mSources.size();
         const auto idx_bin = idx_src + 1;
-        const auto reg_src = primary_assets[idx_src]->region;
-        const auto reg_bin = primary_assets[idx_bin]->region;
+        const auto reg_src = get(idx_src);
+        const auto reg_bin = get(idx_bin);
         assert(reg_src && reg_bin);
         compiler.set_pch(reg_src, reg_bin, mPchSourceRemappedName);
     }
@@ -88,7 +106,7 @@ std::unique_ptr<SecondaryAsset> SahProgramModule::construct(
             }; },
             [&](const AssetSource &as) { return std::pair {
                 std::string_view(as.name),
-                primary_assets[idx]->region
+                get(idx)
             }; }
         );
         compiler.add_source(name, source);
@@ -102,7 +120,7 @@ std::unique_ptr<SecondaryAsset> SahProgramModule::construct(
     );
 }
 
-void SahProgramModule::append_build_parameters(Hasher &h)
+void SahProgramModule::append_features(Hasher &h)
 {
     h.append(mAssetPathPchSource).append(mAssetPathPchBinary);
 

@@ -1,10 +1,5 @@
 ﻿#pragma once
 
-// #include <any>
-// #include <stdexcept>
-// #include <string>
-// #include <concepts>
-
 #include <Usagi/Runtime/Memory/Region.hpp>
 
 namespace usagi
@@ -27,35 +22,6 @@ enum class AssetPriority : std::uint8_t
     // model details.
     AMBIENT             = 1,
 };
-
-/*
-struct AssetNotFound final : std::runtime_error
-{
-    const std::string_view asset_path;
-
-    explicit AssetNotFound(std::string_view asset_path)
-        : runtime_error("Requested asset was not found in any asset package.")
-        , asset_path(std::move(asset_path))
-    {
-    }
-};
-
-using AssetFeatureChecksum = std::uint64_t;
-
-template <typename T>
-concept AssetBuilder = requires (T t) {
-    typename T::OutputT;
-    // Cache identifier is a number used together with the processor type
-    // to index the processed asset caches. The identifier should reflect the
-    // parameters of the processor. For example, for an image decoder, the
-    // identifier should uniquely reflect the pixel formal, number of channels,
-    // etc. For video decoder, it should be able to index the caches by video
-    // chunks so the video could be partially loaded.
-    { t.hash() } -> std::same_as<AssetFeatureChecksum>;
-    { t.build() } -> std::same_as<MemoryRegion>;
-    { T::free(std::declval<const MemoryRegion &>()) };
-};
-*/
 
 enum class AssetStatus : std::uint64_t
 {
@@ -98,8 +64,7 @@ struct PrimaryAssetMeta
     ReadonlyMemoryRegion region;
     AssetFingerprint fingerprint = 0;
     AssetPackage *package = nullptr;
-    AssetStatus status:8 = AssetStatus::MISSING;
-    std::uint64_t loading_task_id:56 = -1;
+    AssetStatus status = AssetStatus::MISSING;
 };
 
 struct SecondaryAssetMeta
@@ -110,12 +75,9 @@ struct SecondaryAssetMeta
     // is used for querying in the cache for the secondary asset. The
     // dependency fingerprint is the hash of fingerprints of primary assets
     // used when building the secondary asset. It can be used to detect outdated
-    // secondary cache entries when the content of dependent primary assets
-    // changes.
+    // secondary cache entries when the content of dependent assets changes.
     AssetFingerprint fingerprint_build = 0;
     AssetFingerprint fingerprint_dep_content = 0;
-    // AssetPackage *package = nullptr;
-    AssetStatus status:8 = AssetStatus::MISSING;
-    std::uint64_t loading_task_id:56 = -1;
+    AssetStatus status = AssetStatus::MISSING;
 };
 }

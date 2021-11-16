@@ -1,11 +1,13 @@
 ﻿#include "AssetManager.hpp"
 
 #include <thread>
+#include <future>
 
 #include "External/xxhash/xxhash64.h"
 
 #include <Usagi/Library/Memory/StackPolymorphicObject.hpp>
 #include <Usagi/Library/Memory/LockGuard.hpp>
+#include <Usagi/Modules/Common/Logging/Logging.hpp>
 #include <Usagi/Runtime/Task.hpp>
 
 #include "AssetQuery.hpp"
@@ -17,18 +19,24 @@ namespace usagi
 class PrimaryAssetLoadingTask : public Task
 {
     std::string mAssetPath;
-    std::shared_ptr<AssetPackage> mPackage;
+    AssetPackage *mPackage;
     AssetManager::PrimaryAssetRef mEntry;
+    std::promise<PrimaryAssetMeta> mPromise;
 
 public:
     PrimaryAssetLoadingTask(
         std::string asset_path,
-        std::shared_ptr<AssetPackage> package,
+        AssetPackage *package,
         AssetManager::PrimaryAssetRef entry)
         : mAssetPath(std::move(asset_path))
-        , mPackage(std::move(package))
+        , mPackage(package)
         , mEntry(entry)
     {
+    }
+
+    std::future<PrimaryAssetMeta> future()
+    {
+        return mPromise.get_future();
     }
 
     bool precondition() override
@@ -50,6 +58,7 @@ public:
         mEntry->second.region = q->memory_region();
         mEntry->second.fingerprint = q->fingerprint();
         assert(mEntry->second.fingerprint != 0);
+        mPromise.set_value(mEntry->second);
     }
 
     void on_finished() override
@@ -60,76 +69,65 @@ public:
 
 class SecondaryAssetLoadingTask : public Task
 {
+    AssetManager *mManager = nullptr;
+    TaskExecutor *mExecutor = nullptr;
     AssetManager::SecondaryAssetRef mEntry;
+    std::promise<SecondaryAssetMeta> mPromise;
 
 public:
-    SecondaryAssetLoadingTask(AssetManager::SecondaryAssetRef entry)
-        : mEntry(entry)
+    SecondaryAssetLoadingTask(
+        AssetManager *manager,
+        TaskExecutor *executor,
+        AssetManager::SecondaryAssetRef entry)
+        : mManager(manager)
+        , mExecutor(executor)
+        , mEntry(std::move(entry))
     {
+    }
+
+    std::future<SecondaryAssetMeta> future()
+    {
+        return mPromise.get_future();
     }
 
     bool precondition() override
     {
-        const auto a = mEntry->meta.status ==
-            AssetStatus::QUEUED;
-        const auto b = mEntry->handler != nullptr;
-        for(auto &&d : mEntry->primary_dependencies)
-            // check primary dependency status if the dependency is set
-            if(d.has_value() &&
-                d.value()->second.status != AssetStatus::READY)
-                return false;
+        const auto a = mEntry->second.status == AssetStatus::QUEUED;
+        const auto b = mEntry->second.handler != nullptr;
         return a && b;
     }
 
     void on_started() override
     {
-        mEntry->meta.status = AssetStatus::LOADING;
+        mEntry->second.status = AssetStatus::LOADING;
     }
 
     void run() override
     {
-        XXHash64 hasher(0);
+        // XXHash64 hasher(0);
 
-        // fetch primary dependencies & build the dependency fingerprint
-        // todo meme & perf
-        std::vector<std::optional<PrimaryAssetMeta>> meta;
-        meta.reserve(mEntry->primary_dependencies.size());
-        std::ranges::transform(
-            mEntry->primary_dependencies,
-            std::back_inserter(meta),
-            [&](auto &&d) -> std::optional<PrimaryAssetMeta> {
-                if(d.has_value())
-                {
-                    // todo should the order be significant? (probably not assuming the SAH has a stable behavior)
-                    assert(d.value()->second.fingerprint != 0);
-                    hasher.add(
-                        &d.value()->second.fingerprint,
-                        sizeof(decltype(d.value()->second.fingerprint))
-                    );
-                    return d.value()->second;
-
-                }
-                return { };
-            }
-        );
+        // mEntry->meta().fingerprint_dep_content = hasher.hash();
+        // mPromise.set_value(mEntry->meta());
 
         // build the secondary asset
-        auto object = mEntry->handler->construct(meta);
-        mEntry->meta.secondary = std::move(object);
-        mEntry->meta.fingerprint_dep_content = hasher.hash();
+        auto object = mEntry->second.handler->construct(*mManager, *mExecutor);
+        mEntry->second.asset = std::move(object);
+        // mEntry->fingerprint_dep_content = hasher.hash();
     }
 
     void on_finished() override
     {
-        if(mEntry->meta.secondary)
-            mEntry->meta.status = AssetStatus::READY;
+        if(mEntry->second.asset)
+            mEntry->second.status = AssetStatus::READY;
         else
             USAGI_THROW(std::runtime_error("Asset failed to load."));
+
+        mPromise.set_value(AssetManager::meta_from_entry(mEntry));
     }
 
     bool postcondition() override
     {
-        return mEntry->meta.status == AssetStatus::READY;
+        return mEntry->second.status == AssetStatus::READY;
     }
 };
 
@@ -137,24 +135,129 @@ bool AssetManager::create_query(
     const std::string_view path,
     StackPolymorphicObject<AssetQuery> &query)
 {
-    std::lock_guard lock(mPackageMutex);
+    // Locks the dependency graph so no packages may be added or removed
+    // during our operation.
+    std::lock_guard lock(mDependencyMutex);
 
     // search in reverse order of added packages, so that packages added later
     // override those added earlier.
     for(auto it = mPackages.rbegin(); it != mPackages.rend(); ++it)
-        if((*it)->create_query(path, query))
+        if((*it).package->create_query(path, query))
             return true;
 
     return false;
 }
 
-AssetManager::SecondaryAssetAuxInfo::PseudoMeta::~PseudoMeta() = default;
+AssetManager::SecondaryAssetEntry::~SecondaryAssetEntry() = default;
 
-void AssetManager::add_package(std::shared_ptr<AssetPackage> package)
+SecondaryAssetMeta AssetManager::meta_from_entry(SecondaryAssetRef entry)
 {
-    std::lock_guard lock(mPackageMutex);
+    SecondaryAssetMeta meta;
+    meta.fingerprint_build = entry->first;
+    meta.status = entry->second.status;
+    meta.asset = entry->second.asset.get();
+    // meta.fingerprint_dep_content
+    return meta;
+}
 
-    mPackages.emplace_back(std::move(package));
+void AssetManager::invalidate_secondary_asset_helper(std::uint64_t start_v)
+{
+    // Find outgoing edges to depending secondary assets.
+    const auto out_edges = mDependencyGraph.adjacent_vertices(start_v);
+
+    // Recursively invalidate affected secondary assets.
+    for(auto &&sec_v : out_edges)
+    {
+        auto &sec_vtx_data = mDependencyGraph.vertex(sec_v);
+        // Check consistency (see VertexT definition)
+        assert(sec_vtx_data.index() == 2);
+        invalidate_secondary_asset(std::get<2>(sec_vtx_data));
+    }
+
+    // Remove the vertex from the dependency graph..
+    mDependencyGraph.erase_vertex(start_v);
+}
+
+AssetManager::PrimaryAssetRef AssetManager::invalidate_primary_asset(
+    PrimaryAssetRef asset)
+{
+    const auto &meta = asset->second;
+
+    // Check graph consistency
+    const auto &pri_back_ref = mDependencyGraph.vertex(meta.vertex_idx);
+    assert(pri_back_ref.index() == 1);
+    assert(std::get<1>(pri_back_ref) == asset);
+
+    invalidate_secondary_asset_helper(meta.vertex_idx);
+
+    LOG(debug, "[Asset] Unloading asset: {}", asset->first);
+
+    // Remove the asset from cache. Next request to the same asset will
+    // trigger a reload.
+    return mPrimaryAssets.erase(asset);
+}
+
+// todo generalize to bfs traversal and put in graph lib & visitor
+void AssetManager::invalidate_secondary_asset(SecondaryAssetRef asset)
+{
+    const auto &meta = asset->second;
+
+    // Check graph consistency
+    const auto &sec_back_ref = mDependencyGraph.vertex(meta.vertex_idx);
+    assert(sec_back_ref.index() == 2);
+    assert(std::get<2>(sec_back_ref) == asset);
+
+    invalidate_secondary_asset_helper(meta.vertex_idx);
+
+    LOG(debug, "[Asset] Unloading asset: {:16x}", asset->first);
+
+    // Remove the asset from cache.
+    mSecondaryAssets.erase(asset);
+}
+
+void AssetManager::add_package(std::unique_ptr<AssetPackage> package)
+{
+    const auto pkg = package.get();
+    auto name = pkg->name();
+
+    // Locks all the mutexes since we may erase asset entries.
+    std::lock_guard lk0 { mDependencyMutex };
+    std::lock_guard lk1 { mPrimaryAssetTableMutex };
+    std::lock_guard lk2 { mSecondaryAssetTableMutex };
+
+    // Allocate a vertex on the dependency graph for the package.
+    const auto idx = mDependencyGraph.add_vertex();
+    auto &v = mDependencyGraph.vertex(idx);
+
+    PackageEntry pkg_meta;
+    pkg_meta.vertex = idx;
+    pkg_meta.package = std::move(package);
+    {
+        auto iter = mPackages.emplace(mPackages.end(), std::move(pkg_meta));
+        v = iter;
+    }
+
+    LOG(debug, "[Asset] Package \"{}\" added {{v={}}}", name, idx);
+
+    // Scan over all loaded assets and invalidate any overridden assets.
+    for(auto iter = mPrimaryAssets.begin(); iter != mPrimaryAssets.end();)
+    {
+        auto &[path, meta] = *iter;
+        StackPolymorphicObject<AssetQuery> query;
+        // The new package overrides a loaded primary asset.
+        if(pkg->create_query(path, query))
+        {
+            LOG(info, "Package \"{}\" overrides asset \"{}\"", name, path);
+            iter = invalidate_primary_asset(iter);
+            continue;
+        }
+        ++iter;
+    }
+}
+
+void AssetManager::remove_package(AssetPackage *package)
+{
+    // todo
 }
 
 AssetManager::PrimaryAssetQueryResult AssetManager::query_primary_asset_nolock(
@@ -186,7 +289,7 @@ AssetManager::PrimaryAssetQueryResult AssetManager::query_primary_asset_nolock(
         // If either the client doesn't want to load the asset, or the asset
         // is already being loaded, return its state directly.
         if(!load || it->second.status != AssetStatus::EXIST)
-            return { it->second, it, { } };
+            return { it->second.meta(), it, { } };
     }
 
     StackPolymorphicObject<AssetQuery> query;
@@ -199,23 +302,27 @@ AssetManager::PrimaryAssetQueryResult AssetManager::query_primary_asset_nolock(
             // asset not found
             return { };
 
-        const PrimaryAssetMeta asset
         {
-            .package = query->package(),
-            .status = AssetStatus::EXIST
-        };
+            PrimaryAssetEntry asset;
+            asset.package = query->package();
+            asset.status = AssetStatus::EXIST;
 
-        bool inserted;
-        std::tie(it, inserted) = mPrimaryAssets.try_emplace(
-            std::string(asset_path), asset);
+            bool inserted;
+            std::tie(it, inserted) = mPrimaryAssets.try_emplace(
+                std::string(asset_path), asset);
+            assert(inserted);
+        }
 
-        assert(inserted);
+        // Insert dependency graph vertex.
+        it->second.vertex_idx = mDependencyGraph.add_vertex();
+        mDependencyGraph.vertex(it->second.vertex_idx) = it;
+
 
         // The client only wants to query the existence of the asset.
         if(!load)
         {
             assert(it->second.status == AssetStatus::EXIST);
-            return { it->second, it, { } };
+            return { it->second.meta(), it, { } };
         }
     }
     // The asset is already in the table, but not loaded. We have to create
@@ -228,24 +335,24 @@ AssetManager::PrimaryAssetQueryResult AssetManager::query_primary_asset_nolock(
     assert(load);
     it->second.status = AssetStatus::QUEUED;
 
-    // lock.unlock();
-
     // The three paths where the asset will not be loaded are dealt with.
     // Now create the task of loading the asset.
 
     auto task = std::make_unique<PrimaryAssetLoadingTask>(
         std::string(asset_path),
-        query->package()->shared_from_this(),
+        query->package(),
         it
     );
 
-    return { it->second, it, std::move(task) };
+    return { it->second.meta(), it, std::move(task) };
 }
 
-PrimaryAssetMeta AssetManager::primary_asset(
+AssetManager::PrimaryAssetQueryResult AssetManager::ensure_primary_asset_entry(
     const std::string_view asset_path,
     TaskExecutor *work_queue)
 {
+    // No need to lock the dependency mutex since package operations also
+    // lock this mutex.
     LockGuard lock(mPrimaryAssetTableMutex);
 
     const bool load = work_queue != nullptr;
@@ -253,6 +360,7 @@ PrimaryAssetMeta AssetManager::primary_asset(
 
     if(task)
     {
+        it->second.future = task->future();
         const auto task_id = work_queue->submit(std::move(task));
         // assignment of task id must be lock-protected. because a secondary
         // asset loading request may find that a primary asset is in a loading
@@ -263,23 +371,32 @@ PrimaryAssetMeta AssetManager::primary_asset(
         it->second.loading_task_id = task_id;
     }
 
+    return { primary, it, { } };
+}
+
+PrimaryAssetMeta AssetManager::primary_asset(
+    const std::string_view asset_path,
+    TaskExecutor *work_queue)
+{
+    auto [primary, it, _] = ensure_primary_asset_entry(asset_path, work_queue);
+
     return primary;
 }
 
 SecondaryAssetMeta AssetManager::secondary_asset(
-    const AssetFingerprint signature)
+    const AssetFingerprint fingerprint_build)
 {
     LockGuard lk(mSecondaryAssetTableMutex);
 
-    const auto it = mLoadedSecondaryAssets.find(signature);
-    if(it == mLoadedSecondaryAssets.end())
+    const auto it = mSecondaryAssets.find(fingerprint_build);
+    if(it == mSecondaryAssets.end())
         return { };
 
     // The asset exists in cache. Return is regardless of its state.
-    return it->meta;
+    return meta_from_entry(it);
 }
 
-SecondaryAssetMeta AssetManager::secondary_asset(
+AssetManager::SecondaryAssetRef AssetManager::ensure_secondary_asset_entry(
     std::unique_ptr<SecondaryAssetHandlerBase> handler,
     TaskExecutor &work_queue)
 {
@@ -299,120 +416,76 @@ SecondaryAssetMeta AssetManager::secondary_asset(
     const auto handler_ptr = handler.get();
     const auto type_hash = typeid(handler_ptr).hash_code();
     hasher.append(&type_hash, sizeof(type_hash));
-    handler->append_build_parameters(hasher);
-
-    // Include asset ref paths in the fingerprint
-    for(std::size_t i = 0;; ++i)
-    {
-        const auto dep = handler->primary_dependencies(i);
-        if(!dep.has_value()) break;
-        if(!dep->empty())
-            hasher.append(dep->data(), dep->size());
-    }
+    handler->append_features(hasher);
 
     const auto fingerprint_build = hasher.hasher.hash();
 
     LockGuard slk(mSecondaryAssetTableMutex);
 
-    auto it_sec = mLoadedSecondaryAssets.find(fingerprint_build);
+    auto it_sec = mSecondaryAssets.lower_bound(fingerprint_build);
     // If an entry exists for the asset, it must be either being constructed
     // or already constructed. Just return the current state of the entry.
     // Avoid this kind of query considering its performance burden of creating
     // the handler.
-    if(it_sec != mLoadedSecondaryAssets.end())
-        return it_sec->meta;
+    if(it_sec != mSecondaryAssets.end() && it_sec->first == fingerprint_build)
+        return it_sec;
 
     // Now it's sure that we are going to load the asset, ensure that an
     // entry is present. Only newly created entry goes the following path.
-    std::tie(it_sec, std::ignore) = mLoadedSecondaryAssets.emplace(
-        fingerprint_build,
-        std::move(handler)
-    );
+    it_sec = mSecondaryAssets.emplace_hint(
+        it_sec, fingerprint_build, SecondaryAssetEntry());
+    it_sec->second.handler = std::move(handler);
+
+    // Add vertex on the dependency graph
+    it_sec->second.vertex_idx = mDependencyGraph.add_vertex();
+    mDependencyGraph.vertex(it_sec->second.vertex_idx) = it_sec;
+
     // Set the queued status here so if further requests arise before the task
     // is really submitted the user knows not to unnecessarily create more
     // asset handlers.
-    it_sec->meta.status = AssetStatus::QUEUED;
+    it_sec->second.status = AssetStatus::QUEUED;
 
     // We are done with the table here. Future modifications to the entry
     // must be from the loading task created later.
     slk.unlock();
 
-    // If no cache entry was found for the requested secondary asset, query the
-    // status of dependent primary assets. If any loading task is generated, we
-    // will be the unique owner of it here. An entry for the primary will be
-    // inserted into the table and no further loading job will be created. So if
-    // we want to load the asset, this task must not be discarded and be
-    // executed before the task of loading the secondary asset.
-
-    // todo perf
-    std::vector<std::uint64_t> wait_on;
-    // Collect primary dependencies.
-    for(std::size_t i = 0;; ++i)
-    {
-        const auto dep = handler_ptr->primary_dependencies(i);
-
-        // no further dependencies
-        if(!dep.has_value()) break;
-
-        // optional dependency set empty
-        if(dep->empty())
-        {
-            it_sec->primary_dependencies.emplace_back();
-            continue;
-        }
-
-        LockGuard plk(mPrimaryAssetTableMutex);
-
-        // Query the status of corresponding primary asset. If no loading task
-        // is returned, it means an task must be already active. Otherwise, the
-        // only opportunity of submitting that task lies below, because only one
-        // loading task will ever be created for each primary asset. So this
-        // critical section doesn't have to last to the point when this task is
-        // submitted. however, secondary table is still locked throughout the
-        // whole process.
-        auto [primary, it_pri, task_pri] = query_primary_asset_nolock(
-            dep.value(),
-            true
-        );
-
-        plk.unlock();
-
-        // bug: even if the asset is missing a dependency, the loading tasks for other dependencies will still be created.
-        if(primary.status == AssetStatus::MISSING)
-        {
-            it_sec->meta.status = AssetStatus::MISSING_DEPENDENCY;
-        }
-        else
-        {
-            if(task_pri)
-                it_pri->second.loading_task_id = work_queue.submit(
-                    std::move(task_pri));
-            else
-                assert(primary.status == AssetStatus::READY &&
-                    "The primary asset was not loaded, but no loading task "
-                    "was created.");
-
-            assert(primary.loading_task_id != TaskExecutor::INVALID_TASK &&
-                "The loading task id for the primary asset has been lost.");
-
-            it_sec->primary_dependencies.emplace_back(it_pri);
-            wait_on.push_back(it_pri->second.loading_task_id);
-        }
-    }
-
-    if(it_sec->meta.status != AssetStatus::MISSING_DEPENDENCY)
-    {
-        auto task_sec = std::make_unique<SecondaryAssetLoadingTask>(it_sec);
-
-        it_sec->meta.loading_task_id = work_queue.submit(
-            std::move(task_sec),
-            std::move(wait_on)
-        );
-    }
+    auto task_sec = std::make_unique<SecondaryAssetLoadingTask>(
+        this, &work_queue, it_sec);
+    it_sec->second.future = task_sec->future();
+    it_sec->second.loading_task_id = work_queue.submit(std::move(task_sec));
 
     // Note that asset status change is possible here. But it doesn't hurt as
     // status consistency is maintained in the loading task. It will only
     // be ready when all the processing is done.
-    return it_sec->meta;
+    return it_sec;
+}
+
+SecondaryAssetMeta AssetManager::secondary_asset(
+    std::unique_ptr<SecondaryAssetHandlerBase> handler,
+    TaskExecutor &work_queue)
+{
+    return meta_from_entry(
+        ensure_secondary_asset_entry(std::move(handler), work_queue)
+    );
+}
+
+std::shared_future<PrimaryAssetMeta> AssetManager::primary_asset_async(
+    std::string_view asset_path,
+    TaskExecutor &work_queue)
+{
+    auto [meta, it, _] = ensure_primary_asset_entry(asset_path, &work_queue);
+    auto future = it->second.future;
+    assert(future.valid());
+    return future;
+}
+
+std::shared_future<SecondaryAssetMeta> AssetManager::secondary_asset_async(
+    std::unique_ptr<SecondaryAssetHandlerBase> handler,
+    TaskExecutor &work_queue)
+{
+    auto it = ensure_secondary_asset_entry(std::move(handler), work_queue);
+    auto future = it->second.future;
+    assert(future.valid());
+    return future;
 }
 }
