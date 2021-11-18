@@ -32,9 +32,7 @@ class SahProgramModule
 
     std::vector<std::variant<StringSource, AssetSource>> mSources;
 
-    std::unique_ptr<SecondaryAsset> construct(
-        AssetManager &asset_manager,
-        TaskExecutor &work_queue) override;
+    std::unique_ptr<SecondaryAsset> construct() override;
 
     void append_features(Hasher &h) override;
 

@@ -1,9 +1,11 @@
 ﻿#pragma once
 
+#include <future>
 #include <memory>
 
 #include <Usagi/Library/Memory/Noncopyable.hpp>
 
+#include "Asset.hpp"
 #include "SecondaryAsset.hpp"
 
 namespace usagi
@@ -27,9 +29,7 @@ protected:
     friend class AssetManager;
     friend class SecondaryAssetLoadingTask;
 
-    virtual std::unique_ptr<SecondaryAsset> construct(
-        AssetManager &asset_manager,
-        TaskExecutor &work_queue) = 0;
+    virtual std::unique_ptr<SecondaryAsset> construct() = 0;
 
     struct Hasher
     {
@@ -44,6 +44,22 @@ protected:
     };
 
     virtual void append_features(Hasher &hasher) = 0;
+
+    [[nodiscard]]
+    std::shared_future<PrimaryAssetMeta> primary_asset_async(
+        std::string_view asset_path);
+
+    [[nodiscard]]
+    std::shared_future<SecondaryAssetMeta> secondary_asset_async(
+        std::unique_ptr<SecondaryAssetHandlerBase> handler);
+
+private:
+    std::unique_ptr<SecondaryAsset> construct_with(
+        AssetManager &asset_manager,
+        TaskExecutor &work_queue);
+
+    AssetManager *mManager = nullptr;
+    TaskExecutor *mExecutor = nullptr;
 };
 
 template <typename SecondaryAssetType>

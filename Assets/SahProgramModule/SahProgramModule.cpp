@@ -47,9 +47,7 @@ SahProgramModule & SahProgramModule::add_string_source(
     return *this;
 }
 
-std::unique_ptr<SecondaryAsset> SahProgramModule::construct(
-    AssetManager &asset_manager,
-    TaskExecutor &work_queue)
+std::unique_ptr<SecondaryAsset> SahProgramModule::construct()
 {
     // Prepare assets
 
@@ -57,7 +55,7 @@ std::unique_ptr<SecondaryAsset> SahProgramModule::construct(
     assets.resize(mSources.size() + 2);
 
     auto load = [&](std::uint64_t idx, std::string_view path) {
-        assets[idx] = asset_manager.primary_asset_async(path, work_queue);
+        assets[idx] = primary_asset_async(path);
     };
 
     for(std::size_t idx = 0; auto &&s : mSources)

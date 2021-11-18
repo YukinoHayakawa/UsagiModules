@@ -61,6 +61,7 @@
     <ClCompile Include="AssetManager.cpp" />
     <ClCompile Include="AssetQuery.cpp" />
     <ClCompile Include="Package\AssetPackageFilesystem.cpp" />
+    <ClCompile Include="SecondaryAssetHandler.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Asset.hpp" />

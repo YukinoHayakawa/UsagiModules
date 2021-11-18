@@ -162,6 +162,9 @@ public:
     // bug: the current concurrency model may cause deadlocks
     // https://developercommunity.visualstudio.com/t/nested-stdasync-causes-deadlock/269365
 
+private:
+    friend class SecondaryAssetHandlerBase;
+
     [[nodiscard]]
     std::shared_future<PrimaryAssetMeta> primary_asset_async(
         std::string_view asset_path,
@@ -170,6 +173,7 @@ public:
     [[nodiscard]]
     std::shared_future<SecondaryAssetMeta> secondary_asset_async(
         std::unique_ptr<SecondaryAssetHandlerBase> handler,
-        TaskExecutor &work_queue);
+        TaskExecutor &work_queue,
+        SecondaryAssetHandlerBase *calling_handler = nullptr);
 };
 }

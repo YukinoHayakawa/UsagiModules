@@ -111,7 +111,8 @@ public:
         // mPromise.set_value(mEntry->meta());
 
         // build the secondary asset
-        auto object = mEntry->second.handler->construct(*mManager, *mExecutor);
+        auto object = mEntry->second.handler->construct_with(
+            *mManager, *mExecutor);
         mEntry->second.asset = std::move(object);
         // mEntry->fingerprint_dep_content = hasher.hash();
     }
@@ -508,7 +509,8 @@ std::shared_future<PrimaryAssetMeta> AssetManager::primary_asset_async(
 
 std::shared_future<SecondaryAssetMeta> AssetManager::secondary_asset_async(
     std::unique_ptr<SecondaryAssetHandlerBase> handler,
-    TaskExecutor &work_queue)
+    TaskExecutor &work_queue,
+    SecondaryAssetHandlerBase *calling_handler)
 {
     LOG(trace,
         "[Asset] Async secondary asset request (tid={}, handler={}, type={})",
@@ -516,6 +518,7 @@ std::shared_future<SecondaryAssetMeta> AssetManager::secondary_asset_async(
         static_cast<void *>(handler.get()), handler->type().name()
     );
     const auto i = ensure_secondary_asset_entry(std::move(handler), work_queue);
+    assert(i->second.handler.get() != calling_handler);
     auto future = i->second.future;
     assert(future.valid());
     return future;
