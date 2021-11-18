@@ -15,6 +15,7 @@ class ExecutionEngine;
 
 namespace usagi
 {
+// todo: memory mgmt? are objects properly destructed when the script it unloaded?
 class RuntimeModule : Noncopyable
 {
     std::unique_ptr<llvm::LLVMContext> mContext;

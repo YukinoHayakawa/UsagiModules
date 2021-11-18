@@ -213,15 +213,7 @@ CompilerInvocation & CompilerInvocation::add_source(
         fmt::make_format_args(name)
         // ReSharper restore CppPossiblyUnintendedObjectSlicing
     );
-    auto view = source.to_string_view();
-    // Try to detect UTF-8 BOM and remove it.
-    if(source.length >= 3)
-    {
-        if(view.substr(0, 3) == "\xef\xbb\xbf")
-            view = view.substr(3);
-        LOG(info, "JIT: Source detected with BOM, removing it.");
-    }
-    mSourceText += view;
+    mSourceText += source.bom_free_string_view();
     return *this;
 }
 
