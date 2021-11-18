@@ -15,12 +15,16 @@ std::uint64_t StdTaskExecutor::submit(
 
     auto task_id = ++mTaskId;
 
+    LOG(trace, "[Executor] Submitting async task: {}", static_cast<void *>(task.get()));
+
     auto future = std::async(
         std::launch::async,
-        [t = std::move(task), wait = std::move(wait_on), this]() {
+        [t = std::move(task), wait = std::move(wait_on), this, tid = task_id]() {
             Clock clk;
             // using namespace std::chrono_literals;
             // std::this_thread::sleep_for(5ms);
+
+            LOG(trace, "[Executor] Preparing to execute task {} (worker thread={})", tid, std::this_thread::get_id());
 
             if(wait.has_value())
             {
@@ -30,6 +34,7 @@ std::uint64_t StdTaskExecutor::submit(
                     auto wt = mTask.find(w);
                     assert(wt != mTask.end());
                     lk.unlock();
+                    LOG(trace, "Task {} waiting on {}", tid, wt->first);
                     wt->second.wait();
                 }
             }
@@ -37,12 +42,13 @@ std::uint64_t StdTaskExecutor::submit(
             if(!t->precondition())
                 throw std::runtime_error("");
             t->on_started();
+            LOG(trace, "[Executor] Executing task {} (worker thread={})", tid, std::this_thread::get_id());
             t->run();
             t->on_finished();
             if(!t->postcondition())
                 throw std::runtime_error("");
 
-            LOG(info, "Task consumed {} seconds.", clk.realtime_elapsed());
+            LOG(trace, "[Executor] Task {} consumed {} seconds.", tid, clk.realtime_elapsed());
         }
     );
 
