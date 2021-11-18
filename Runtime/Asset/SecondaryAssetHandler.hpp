@@ -16,6 +16,13 @@ class SecondaryAssetHandlerBase : Noncopyable
 public:
     virtual ~SecondaryAssetHandlerBase() = default;
 
+    // typeid doesn't work well with smart pointers. So instead of
+    // `typeid(*smart_ptr)`, let the handler report its identity by itself.
+    const std::type_info & type() const
+    {
+        return typeid(*this);
+    }
+
 protected:
     friend class AssetManager;
     friend class SecondaryAssetLoadingTask;
@@ -36,7 +43,7 @@ protected:
         }
     };
 
-    virtual void append_features(Hasher &hasher) {}
+    virtual void append_features(Hasher &hasher) = 0;
 };
 
 template <typename SecondaryAssetType>

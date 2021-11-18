@@ -18,6 +18,7 @@ namespace usagi
 {
 class SecondaryAssetHandlerBase;
 
+// todo: remove finished tasks from work queue
 class AssetManager
 {
     // ============================== Packages ============================== //
@@ -137,6 +138,7 @@ public:
     // The state of primary asset is copy-returned to prevent the returned
     // value being volatile since it may be modified in other threads by the
     // background loading job.
+    [[nodiscard]]
     PrimaryAssetMeta primary_asset(
         std::string_view asset_path,
         TaskExecutor *work_queue = nullptr);
@@ -147,18 +149,25 @@ public:
     // queue is also required for actually issuing the task in background.
     // Otherwise, only the signature of the secondary asset will be calculated
     // from the construction configuration, provided by the constructor.
+    [[nodiscard]]
     SecondaryAssetMeta secondary_asset(
         AssetFingerprint fingerprint_build);
 
     // Construct a secondary asset using the provided handler.
+    [[nodiscard]]
     SecondaryAssetMeta secondary_asset(
         std::unique_ptr<SecondaryAssetHandlerBase> handler,
         TaskExecutor &work_queue);
 
+    // bug: the current concurrency model may cause deadlocks
+    // https://developercommunity.visualstudio.com/t/nested-stdasync-causes-deadlock/269365
+
+    [[nodiscard]]
     std::shared_future<PrimaryAssetMeta> primary_asset_async(
         std::string_view asset_path,
         TaskExecutor &work_queue);
 
+    [[nodiscard]]
     std::shared_future<SecondaryAssetMeta> secondary_asset_async(
         std::unique_ptr<SecondaryAssetHandlerBase> handler,
         TaskExecutor &work_queue);

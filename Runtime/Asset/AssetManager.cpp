@@ -1,5 +1,6 @@
 ﻿#include "AssetManager.hpp"
 
+#include <ranges>
 #include <thread>
 #include <future>
 
@@ -81,7 +82,7 @@ public:
         AssetManager::SecondaryAssetRef entry)
         : mManager(manager)
         , mExecutor(executor)
-        , mEntry(std::move(entry))
+        , mEntry(entry)
     {
     }
 
@@ -141,8 +142,8 @@ bool AssetManager::create_query(
 
     // search in reverse order of added packages, so that packages added later
     // override those added earlier.
-    for(auto it = mPackages.rbegin(); it != mPackages.rend(); ++it)
-        if((*it).package->create_query(path, query))
+    for(const auto &[_, package] : std::ranges::reverse_view(mPackages))
+        if(package->create_query(path, query))
             return true;
 
     return false;
@@ -237,7 +238,7 @@ void AssetManager::add_package(std::unique_ptr<AssetPackage> package)
         v = iter;
     }
 
-    LOG(debug, "[Asset] Package \"{}\" added {{v={}}}", name, idx);
+    LOG(debug, "[Asset] Adding package: \"{}\" {{v={}}}", name, idx);
 
     // Scan over all loaded assets and invalidate any overridden assets.
     for(auto iter = mPrimaryAssets.begin(); iter != mPrimaryAssets.end();)
@@ -247,7 +248,7 @@ void AssetManager::add_package(std::unique_ptr<AssetPackage> package)
         // The new package overrides a loaded primary asset.
         if(pkg->create_query(path, query))
         {
-            LOG(info, "Package \"{}\" overrides asset \"{}\"", name, path);
+            LOG(info, "[Asset] Asset is overridden: \"{}\"", path);
             iter = invalidate_primary_asset(iter);
             continue;
         }
@@ -314,9 +315,10 @@ AssetManager::PrimaryAssetQueryResult AssetManager::query_primary_asset_nolock(
         }
 
         // Insert dependency graph vertex.
-        it->second.vertex_idx = mDependencyGraph.add_vertex();
-        mDependencyGraph.vertex(it->second.vertex_idx) = it;
+        const auto &v = it->second.vertex_idx = mDependencyGraph.add_vertex();
+        mDependencyGraph.vertex(v) = it;
 
+        LOG(trace, "[Asset] Asset added: {} (v=)", asset_path, v);
 
         // The client only wants to query the existence of the asset.
         if(!load)
@@ -360,6 +362,8 @@ AssetManager::PrimaryAssetQueryResult AssetManager::ensure_primary_asset_entry(
 
     if(task)
     {
+        LOG(trace, "[Asset] Adding loading task: ", asset_path);
+
         it->second.future = task->future();
         const auto task_id = work_queue->submit(std::move(task));
         // assignment of task id must be lock-protected. because a secondary
@@ -397,10 +401,10 @@ SecondaryAssetMeta AssetManager::secondary_asset(
 }
 
 AssetManager::SecondaryAssetRef AssetManager::ensure_secondary_asset_entry(
-    std::unique_ptr<SecondaryAssetHandlerBase> handler,
+    std::unique_ptr<SecondaryAssetHandlerBase> handler_moved,
     TaskExecutor &work_queue)
 {
-    assert(handler && "No secondary asset handler was provided.");
+    assert(handler_moved && "No secondary asset handler was provided.");
 
     struct Xxh64Hasher : SecondaryAssetHandlerBase::Hasher
     {
@@ -413,12 +417,21 @@ AssetManager::SecondaryAssetRef AssetManager::ensure_secondary_asset_entry(
         }
     } hasher;
 
-    const auto handler_ptr = handler.get();
-    const auto type_hash = typeid(handler_ptr).hash_code();
+    const auto handler_ptr = handler_moved.get();
+    const auto type_hash = handler_ptr->type().hash_code();
+    assert(type_hash != typeid(SecondaryAssetHandlerBase).hash_code());
     hasher.append(&type_hash, sizeof(type_hash));
-    handler->append_features(hasher);
+    const auto old_hash = hasher.hasher.hash();
+    handler_moved->append_features(hasher);
 
     const auto fingerprint_build = hasher.hasher.hash();
+
+    USAGI_ASSERT_THROW(
+        old_hash != fingerprint_build,
+        std::logic_error("Asset handler didn't append request-specific "
+            "information to the digest."
+        )
+    );
 
     LockGuard slk(mSecondaryAssetTableMutex);
 
@@ -428,17 +441,25 @@ AssetManager::SecondaryAssetRef AssetManager::ensure_secondary_asset_entry(
     // Avoid this kind of query considering its performance burden of creating
     // the handler.
     if(it_sec != mSecondaryAssets.end() && it_sec->first == fingerprint_build)
+    {
+        LOG(trace, "[Asset] Asset found (handler={}, type={})",
+            static_cast<void *>(handler_ptr),
+            handler_ptr->type().name());
         return it_sec;
+    }
 
     // Now it's sure that we are going to load the asset, ensure that an
     // entry is present. Only newly created entry goes the following path.
     it_sec = mSecondaryAssets.emplace_hint(
         it_sec, fingerprint_build, SecondaryAssetEntry());
-    it_sec->second.handler = std::move(handler);
+    it_sec->second.handler = std::move(handler_moved);
 
     // Add vertex on the dependency graph
-    it_sec->second.vertex_idx = mDependencyGraph.add_vertex();
-    mDependencyGraph.vertex(it_sec->second.vertex_idx) = it_sec;
+    const auto &v = it_sec->second.vertex_idx = mDependencyGraph.add_vertex();
+    mDependencyGraph.vertex(v) = it_sec;
+
+    LOG(trace, "[Asset] Secondary asset added (handler={}, v={}, type={})",
+        static_cast<void *>(handler_ptr), v, handler_ptr->type().name());
 
     // Set the queued status here so if further requests arise before the task
     // is really submitted the user knows not to unnecessarily create more
@@ -448,6 +469,9 @@ AssetManager::SecondaryAssetRef AssetManager::ensure_secondary_asset_entry(
     // We are done with the table here. Future modifications to the entry
     // must be from the loading task created later.
     slk.unlock();
+
+    LOG(trace, "[Asset] Adding loading task (handler={}, type={})",
+        static_cast<void *>(handler_ptr), handler_ptr->type().name());
 
     auto task_sec = std::make_unique<SecondaryAssetLoadingTask>(
         this, &work_queue, it_sec);
@@ -473,9 +497,12 @@ std::shared_future<PrimaryAssetMeta> AssetManager::primary_asset_async(
     std::string_view asset_path,
     TaskExecutor &work_queue)
 {
+    LOG(trace, "[Asset] Async primary asset request: {}", asset_path);
     auto [meta, it, _] = ensure_primary_asset_entry(asset_path, &work_queue);
     auto future = it->second.future;
     assert(future.valid());
+    // Seems that copying shared_future is atomic with MSVC as the refcnt is
+    // incremented using _InterlockedIncrement
     return future;
 }
 
@@ -483,8 +510,13 @@ std::shared_future<SecondaryAssetMeta> AssetManager::secondary_asset_async(
     std::unique_ptr<SecondaryAssetHandlerBase> handler,
     TaskExecutor &work_queue)
 {
-    auto it = ensure_secondary_asset_entry(std::move(handler), work_queue);
-    auto future = it->second.future;
+    LOG(trace,
+        "[Asset] Async secondary asset request (tid={}, handler={}, type={})",
+        std::this_thread::get_id(),
+        static_cast<void *>(handler.get()), handler->type().name()
+    );
+    const auto i = ensure_secondary_asset_entry(std::move(handler), work_queue);
+    auto future = i->second.future;
     assert(future.valid());
     return future;
 }
