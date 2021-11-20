@@ -113,6 +113,7 @@ public:
         // build the secondary asset
         auto object = mEntry->second.handler->construct_with(
             *mManager, *mExecutor);
+        // todo verify the type of returned object is the same as declared by SecondaryAssetT
         mEntry->second.asset = std::move(object);
         // mEntry->fingerprint_dep_content = hasher.hash();
     }
@@ -498,6 +499,7 @@ std::shared_future<PrimaryAssetMeta> AssetManager::primary_asset_async(
     std::string_view asset_path,
     TaskExecutor &work_queue)
 {
+    // todo add dependency edge
     LOG(trace, "[Asset] Async primary asset request: {}", asset_path);
     auto [meta, it, _] = ensure_primary_asset_entry(asset_path, &work_queue);
     auto future = it->second.future;
@@ -512,6 +514,7 @@ std::shared_future<SecondaryAssetMeta> AssetManager::secondary_asset_async(
     TaskExecutor &work_queue,
     SecondaryAssetHandlerBase *calling_handler)
 {
+    // todo add dependency edge
     LOG(trace,
         "[Asset] Async secondary asset request (tid={}, handler={}, type={})",
         std::this_thread::get_id(),

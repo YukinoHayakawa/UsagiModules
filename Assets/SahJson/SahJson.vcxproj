@@ -12,8 +12,8 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
-    <ProjectGuid>{8722e8a6-ddc8-4283-8dff-45cd15e7dc6f}</ProjectGuid>
-    <RootNamespace>Asset</RootNamespace>
+    <ProjectGuid>{07588673-2a24-4618-8eb5-025422004b68}</ProjectGuid>
+    <RootNamespace>SahJson</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -58,29 +58,17 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="AssetManager.cpp" />
-    <ClCompile Include="AssetQuery.cpp" />
-    <ClCompile Include="Package\AssetPackageFilesystem.cpp" />
-    <ClCompile Include="SecondaryAssetHandler.cpp" />
+    <ClInclude Include="SahInheritableJsonConfig.hpp" />
+    <ClInclude Include="SahJson.hpp" />
+    <ClInclude Include="JsonTree.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Asset.hpp" />
-    <ClInclude Include="AssetDependencyGraph.hpp" />
-    <ClInclude Include="AssetQuery.hpp" />
-    <ClInclude Include="AssetManager.hpp" />
-    <ClInclude Include="ComponentSecondaryAssetRef.hpp" />
-    <ClInclude Include="Package\AssetPackage.hpp" />
-    <ClInclude Include="Package\AssetPackageFilesystem.hpp" />
-    <ClInclude Include="SecondaryAsset.hpp" />
-    <ClInclude Include="SecondaryAssetHandler.hpp" />
-    <ClInclude Include="ServiceAssetManager.hpp" />
+    <ClCompile Include="SahInheritableJsonConfig.cpp" />
+    <ClCompile Include="SahJson.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\Common\Logging\Logging.vcxproj">
-      <Project>{e13613a3-b719-4bc5-991a-507402d14c25}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\Executive\Executive.vcxproj">
-      <Project>{345cdbb7-1ec3-4e1c-ad4f-856a774430f5}</Project>
+    <ProjectReference Include="..\..\Runtime\Asset\Asset.vcxproj">
+      <Project>{8722e8a6-ddc8-4283-8dff-45cd15e7dc6f}</Project>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
