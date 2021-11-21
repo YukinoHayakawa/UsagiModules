@@ -153,7 +153,7 @@ void VulkanGpuDevice::create_instance()
     }
     // Validation layers
     {
-        LOG(info, "Available validation layers");
+        LOG(info, "Available instance layers");
         LOG(info, "--------------------------------");
         for(auto &&layer : enumerateInstanceLayerProperties(mDispatch))
         {
@@ -166,7 +166,7 @@ void VulkanGpuDevice::create_instance()
     vk::InstanceCreateInfo instance_create_info;
     instance_create_info.setPApplicationInfo(&application_info);
 
-    std::array instance_extensions =
+    const std::array instance_extensions =
     {
         // application window
         VK_KHR_SURFACE_EXTENSION_NAME,
@@ -180,17 +180,37 @@ void VulkanGpuDevice::create_instance()
         static_cast<uint32_t>(instance_extensions.size()));
     instance_create_info.setPpEnabledExtensionNames(instance_extensions.data());
 
+    // Enabled Extensions
+    {
+        LOG(info, "Enabled instance extensions");
+        LOG(info, "--------------------------------");
+        for(auto &&ext : instance_extensions)
+            LOG(info, ext);
+    }
+
     // todo: enumerate layers first
     // todo: disable in release
-    const std::vector<const char *> validation_layers
+    const std::array<const char *, 1> layers =
     {
-#ifdef _NDEBUG
+#ifndef _NDEBUG
         "VK_LAYER_KHRONOS_validation"
 #endif
     };
     instance_create_info.setEnabledLayerCount(
-        static_cast<uint32_t>(validation_layers.size()));
-    instance_create_info.setPpEnabledLayerNames(validation_layers.data());
+        static_cast<uint32_t>(layers.size()));
+    instance_create_info.setPpEnabledLayerNames(layers.data());
+
+    LOG(info, "--------------------------------");
+
+    // Enabled Validation layers
+    {
+        LOG(info, "Enabled instance layers");
+        LOG(info, "--------------------------------");
+        for(auto &&layer : layers)
+            LOG(info, layer);
+    }
+
+    LOG(info, "--------------------------------");
 
     mInstance = createInstanceUnique(
         instance_create_info,
@@ -228,6 +248,7 @@ void VulkanGpuDevice::create_debug_report()
 
 void VulkanGpuDevice::select_physical_device()
 {
+    LOG(info, "--------------------------------");
     LOG(info, "Available physical devices");
     LOG(info, "--------------------------------");
     for(auto physical_devices = mInstance->enumeratePhysicalDevices(mDispatch);

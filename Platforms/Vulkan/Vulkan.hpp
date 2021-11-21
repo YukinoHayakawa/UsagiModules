@@ -51,4 +51,6 @@ using VulkanUniqueSurface =
     vk::UniqueHandle<vk::SurfaceKHR, vk::DispatchLoaderDynamic>;
 using VulkanUniqueSwapchain =
     vk::UniqueHandle<vk::SwapchainKHR, vk::DispatchLoaderDynamic>;
+using VulkanUniqueShaderModule =
+    vk::UniqueHandle<vk::ShaderModule, vk::DispatchLoaderDynamic>;
 }
