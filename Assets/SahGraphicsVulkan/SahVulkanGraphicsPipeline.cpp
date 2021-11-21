@@ -1,4 +1,4 @@
-﻿#include "SahVulkanGraphicsPipelineBuilder.hpp"
+﻿#include "SahVulkanGraphicsPipeline.hpp"
 
 #include <iostream>
 #include <format>
@@ -9,8 +9,7 @@
 #include <Usagi/Modules/Assets/SahJson/SahInheritableJsonConfig.hpp>
 #include <Usagi/Modules/Platforms/Vulkan/VulkanGpuDevice.hpp>
 
-#include "SahGlslCompiler.hpp"
-#include "SahShaderModule.hpp"
+#include "SahVulkanShaderModule.hpp"
 
 // Macros for translating the enums
 
@@ -59,32 +58,28 @@
 namespace usagi
 {
 std::pair<std::shared_future<SecondaryAssetMeta>, std::string>
-SahVulkanGraphicsPipelineBuilder::async_shader_module(
+SahVulkanGraphicsPipeline::async_shader_module(
     const nlohmann::json &obj,
     const char *key,
-    std::string_view stage)
+    GpuShaderStage stage)
 {
     const auto &asset_path = obj[nlohmann::json::json_pointer(key)];
     CHECK_TYPE(asset_path, key, string)
     auto path = asset_path.get<std::string>();
-    return {
-        secondary_asset_async<SahShaderModule>(
-            mDevice,
-            path,
-            std::string(stage)
-        ),
-        path
-    };
+
+    return { secondary_asset_async<SahVulkanShaderModule>(
+        mDevice, path, stage
+    ), path };
 }
 
-SahVulkanGraphicsPipelineBuilder::SahVulkanGraphicsPipelineBuilder(
+SahVulkanGraphicsPipeline::SahVulkanGraphicsPipeline(
     VulkanGpuDevice *device,
     std::string asset_path): SingleDependencySecondaryAssetHandler(std::move(asset_path))
     , mDevice(device)
 {
 }
 
-std::unique_ptr<SecondaryAsset> SahVulkanGraphicsPipelineBuilder::construct()
+std::unique_ptr<SecondaryAsset> SahVulkanGraphicsPipeline::construct()
 {
     const auto &config = await_depending_secondary<SahInheritableJsonConfig>();
 
@@ -100,16 +95,16 @@ std::unique_ptr<SecondaryAsset> SahVulkanGraphicsPipelineBuilder::construct()
     auto [future_vert, p_vert] = async_shader_module(
         config,
         "/shaders/vertex",
-        SahGlslCompiler::VERTEX_STAGE
+        GpuShaderStage::VERTEX
     );
     auto [future_frag, p_frag] = async_shader_module(
         config,
         "/shaders/fragment",
-        SahGlslCompiler::FRAGMENT_STAGE
+        GpuShaderStage::FRAGMENT
     );
 
-    auto &module_vert = await<ShaderModule>(future_vert);
-    auto &module_frag = await<ShaderModule>(future_frag);
+    auto &module_vert = await<SaVulkanShaderModule>(future_vert);
+    auto &module_frag = await<SaVulkanShaderModule>(future_frag);
 
     shader_stages.push_back({
         { },

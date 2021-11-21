@@ -1,5 +1,7 @@
 ﻿#pragma once
 
+#include <string_view>
+
 namespace usagi
 {
 // Pipeline
@@ -24,6 +26,13 @@ enum class GpuPipelineStage
     BOTTOM_OF_PIPE,
     HOST,
 };
+
+enum class GpuShaderStage
+{
+    VERTEX,
+    FRAGMENT,
+};
+std::string_view to_string(GpuShaderStage val);
 
 enum class GpuAccessMask
 {

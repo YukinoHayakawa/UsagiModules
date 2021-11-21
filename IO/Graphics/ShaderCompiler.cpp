@@ -1,10 +1,12 @@
-﻿#include "SahGlslCompiler.hpp"
+﻿#include "ShaderCompiler.hpp"
 
 #include <glslang/Public/ShaderLang.h>
 #include <glslang/Include/ResourceLimits.h>
 #include <glslang/SPIRV/GlslangToSpv.h>
 
 #include <Usagi/Modules/Common/Logging/Logging.hpp>
+#include <Usagi/Library/Memory/RawResource.hpp>
+#include <Usagi/Runtime/WeakSingleton.hpp>
 
 namespace glslang
 {
@@ -13,32 +15,31 @@ extern const TBuiltInResource DefaultTBuiltInResource;
 
 namespace usagi
 {
-void SahGlslCompiler::glslang_init()
+void glslang_init()
 {
-    glslang::InitializeProcess();
+    USAGI_ASSERT_THROW(glslang::InitializeProcess(),
+        std::runtime_error("Failed to initialize glslang."));
 }
 
-void SahGlslCompiler::glslang_finalize()
+void glslang_finalize()
 {
     glslang::FinalizeProcess();
 }
 
-SahGlslCompiler::SahGlslCompiler(std::string asset_path, std::string stage)
-    : mAssetPath(std::move(asset_path))
-    , mStage(std::move(stage))
-    , mGlslangEnv(WeakSingleton<GlslangEnv>::try_lock_construct())
+struct GlslangEnv : RawResource<>
 {
-    if(mStage != "vertex" && mStage != "fragment")
-        USAGI_THROW(std::runtime_error(std::format(
-            "[glslang] Unsupported shader stage: {}", mStage)));
-}
+    GlslangEnv() : RawResource(&glslang_init, &glslang_finalize)
+    {
+    }
+};
 
-std::unique_ptr<SecondaryAsset> SahGlslCompiler::construct()
+namespace spirv
 {
-    auto f = primary_asset_async(mAssetPath);
-    auto src = f.get().region;
-
-    LOG(info, "[glslang] Compiling {} shader: {}", mStage, mAssetPath);
+std::vector<std::uint32_t> from_glsl(
+    std::string_view source,
+    GpuShaderStage stage)
+{
+    auto env = WeakSingleton<GlslangEnv>::try_lock_construct();
 
     using namespace glslang;
     using namespace spv;
@@ -54,8 +55,8 @@ std::unique_ptr<SecondaryAsset> SahGlslCompiler::construct()
 
     // Translate shader stage value
     EShLanguage glslang_stage;
-    if(mStage == "vertex") glslang_stage = EShLangVertex;
-    else if(mStage == "fragment") glslang_stage = EShLangFragment;
+    if(stage == GpuShaderStage::VERTEX) glslang_stage = EShLangVertex;
+    else if(stage == GpuShaderStage::FRAGMENT) glslang_stage = EShLangFragment;
     else USAGI_INVALID_ENUM_VALUE();
 
     // Create compiler objects
@@ -66,8 +67,8 @@ std::unique_ptr<SecondaryAsset> SahGlslCompiler::construct()
     TProgram program;
 
     // Configure source code
-    const char *strings[] = { src.as_chars() };
-    const int sizes[] = { static_cast<int>(src.length) };
+    const char *strings[] = { source.data() };
+    const int sizes[] = { static_cast<int>(source.size()) };
     shader.setStringsWithLengths(strings, sizes, 1);
 
     // Configure language target
@@ -75,6 +76,8 @@ std::unique_ptr<SecondaryAsset> SahGlslCompiler::construct()
         client_input_semantics_version);
     shader.setEnvClient(EShClientVulkan, vulkan_client_version);
     shader.setEnvTarget(EShTargetSpv, target_version);
+
+    // LOG(info, "[glslang] Compiling {} shader", to_string(stage));
 
     // Fail all include searches
     TShader::ForbidIncluder includer;
@@ -103,7 +106,7 @@ std::unique_ptr<SecondaryAsset> SahGlslCompiler::construct()
 
     if(!compilation_succeeded || !link_succeeded)
         USAGI_THROW(std::runtime_error(std::format(
-            "[glslang] Shader compilation failed: {}", mAssetPath)));
+            "[glslang] Shader compilation failed")));
 
     program.buildReflection();
     LOG(info, "Reflection database:");
@@ -121,11 +124,7 @@ std::unique_ptr<SecondaryAsset> SahGlslCompiler::construct()
     GlslangToSpv(*program.getIntermediate(glslang_stage),
         bytecodes, &logger, &spv_options);
 
-    return std::make_unique<SpirvBinary>(std::move(bytecodes));
+    return bytecodes;
 }
-
-void SahGlslCompiler::append_features(Hasher &hasher)
-{
-    hasher.append(mAssetPath).append(mStage);
 }
 }

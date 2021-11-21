@@ -3,19 +3,22 @@
 #include <nlohmann/json_fwd.hpp>
 
 #include <Usagi/Modules/Runtime/Asset/SecondaryAssetHandler.hpp>
+#include <Usagi/Modules/IO/Graphics/Enum.hpp>
+#include <Usagi/Modules/Platforms/Vulkan/VulkanGraphicsPipeline.hpp>
 
 namespace usagi
 {
 class VulkanGpuDevice;
-class VulkanGraphicsPipeline;
 
-class SahVulkanGraphicsPipelineBuilder
-    : public SingleDependencySecondaryAssetHandler<VulkanGraphicsPipeline>
+using SaVulkanGraphicsPipeline = SecondaryAssetAdapter<VulkanGraphicsPipeline>;
+
+class SahVulkanGraphicsPipeline
+    : public SingleDependencySecondaryAssetHandler<SaVulkanGraphicsPipeline>
 {
     VulkanGpuDevice *mDevice = nullptr;
 
 public:
-    SahVulkanGraphicsPipelineBuilder(
+    SahVulkanGraphicsPipeline(
         VulkanGpuDevice *device,
         std::string asset_path);
 
@@ -26,6 +29,6 @@ protected:
     async_shader_module(
         const nlohmann::json &obj,
         const char *key,
-        std::string_view stage);
+        GpuShaderStage stage);
 };
 }
