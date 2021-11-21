@@ -6,14 +6,5 @@
 
 namespace usagi
 {
-class JsonTree : public SecondaryAsset
-{
-public:
-    const nlohmann::json tree;
-
-    explicit JsonTree(nlohmann::json tree)
-        : tree(std::move(tree))
-    {
-    }
-};
+using JsonTree = SecondaryAssetAdapter<nlohmann::json>;
 }

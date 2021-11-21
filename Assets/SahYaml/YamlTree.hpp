@@ -6,14 +6,5 @@
 
 namespace usagi
 {
-class YamlTree : public SecondaryAsset
-{
-public:
-    const ryml::Tree tree;
-
-    explicit YamlTree(ryml::Tree tree)
-        : tree(std::move(tree))
-    {
-    }
-};
+using YamlTree = SecondaryAssetAdapter<ryml::Tree>;
 }

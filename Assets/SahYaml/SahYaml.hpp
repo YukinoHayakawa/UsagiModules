@@ -6,18 +6,14 @@
 
 namespace usagi
 {
-class SahYaml : public SecondaryAssetHandler<YamlTree>
+class SahYaml : public SingleDependencySecondaryAssetHandler<YamlTree>
 {
-    static void error(const char* msg, size_t len, ryml::Location loc, void *);
-
-    std::string mAssetPath;
+    static void error(const char *msg, size_t len, ryml::Location loc, void *);
 
 public:
-    explicit SahYaml(std::string asset_path);
+    using BaseT::BaseT;
 
 protected:
     std::unique_ptr<SecondaryAsset> construct() override;
-
-    void append_features(Hasher &hasher) override;
 };
 }

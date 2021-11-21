@@ -4,20 +4,15 @@
 
 namespace usagi
 {
-SahInheritableJsonConfig::SahInheritableJsonConfig(std::string start_asset_path)
-    : mRequestedAssetPath(std::move(start_asset_path))
-{
-}
-
 std::unique_ptr<SecondaryAsset> SahInheritableJsonConfig::construct()
 {
 	// Fetch the content of the requested config file
     const auto f = secondary_asset_async(
-        std::make_unique<SahJson>(mRequestedAssetPath)
+        std::make_unique<SahJson>(asset_path())
 	);
 	// No need to copy the tree here because merging doesn't need to copy this
 	// tree, it copies the parent tree instead.
-	const auto &tree_ref = f.get().asset->as<JsonTree>()->tree;
+	const auto &tree_ref = await<JsonTree>(f);
 
 	// Extract the base config asset path
     const auto it = tree_ref.find("inherit");
@@ -32,15 +27,10 @@ std::unique_ptr<SecondaryAsset> SahInheritableJsonConfig::construct()
 	const auto parent_f = secondary_asset_async(
         std::make_unique<SahInheritableJsonConfig>(base_path)
 	);
-	auto parent_tree = parent_f.get().asset->as<JsonTree>()->tree;
+	auto parent_tree = await<JsonTree>(parent_f);
 	parent_tree.merge_patch(tree_ref);
 	parent_tree.erase("inherit");
 
     return std::make_unique<JsonTree>(std::move(parent_tree));
-}
-
-void SahInheritableJsonConfig::append_features(Hasher &hasher)
-{
-	hasher.append(mRequestedAssetPath);
 }
 }

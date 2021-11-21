@@ -165,6 +165,7 @@ public:
 private:
     friend class SecondaryAssetHandlerBase;
 
+    // todo: provide way of allowing the asset handler to yield after emitting async requests and notify the scheduler
     [[nodiscard]]
     std::shared_future<PrimaryAssetMeta> primary_asset_async(
         std::string_view asset_path,

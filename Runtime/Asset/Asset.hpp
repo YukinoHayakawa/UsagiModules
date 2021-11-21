@@ -77,6 +77,7 @@ struct SecondaryAssetMeta
     // used when building the secondary asset. It can be used to detect outdated
     // secondary cache entries when the content of dependent assets changes.
     AssetFingerprint fingerprint_build = 0;
+    // todo: hash the asset product?
     AssetFingerprint fingerprint_dep_content = 0;
     AssetStatus status = AssetStatus::MISSING;
 };

@@ -12,6 +12,19 @@ namespace usagi
 {
 class TaskExecutor;
 
+// class AssetProvider
+// {
+//     class AssetManager *mManager = nullptr;
+//     class TaskExecutor *mExecutor = nullptr;
+//
+// public:
+//     AssetProvider(AssetManager *manager, TaskExecutor *executor)
+//         : mManager(manager)
+//         , mExecutor(executor)
+//     {
+//     }
+// };
+
 // todo: allow multiple passes of dependency loading
 class SecondaryAssetHandlerBase : Noncopyable
 {
@@ -53,13 +66,41 @@ protected:
     std::shared_future<SecondaryAssetMeta> secondary_asset_async(
         std::unique_ptr<SecondaryAssetHandlerBase> handler);
 
+    template <typename SecondaryAssetHandlerT, typename... Args>
+    [[nodiscard]]
+    std::shared_future<SecondaryAssetMeta> secondary_asset_async(Args &&...args)
+    {
+        return secondary_asset_async(std::make_unique<SecondaryAssetHandlerT>(
+            std::forward<Args>(args)...
+        ));
+    }
+
+    template <typename SecondaryAssetT>
+    static auto & await(const std::shared_future<SecondaryAssetMeta> &future)
+    {
+        return future.get().asset->as<SecondaryAssetT>().value();
+    }
+
+    template <
+        typename SecondaryAssetHandlerT,
+        typename... Args
+    >
+    [[nodiscard]]
+    auto & await_secondary(Args &&...args)
+    {
+        auto f = secondary_asset_async<SecondaryAssetHandlerT>(
+            std::forward<Args>(args)...
+        );
+        return await<typename SecondaryAssetHandlerT::SecondaryAssetT>(f);
+    }
+
 private:
     std::unique_ptr<SecondaryAsset> construct_with(
         AssetManager &asset_manager,
         TaskExecutor &work_queue);
 
-    AssetManager *mManager = nullptr;
-    TaskExecutor *mExecutor = nullptr;
+    class AssetManager *mManager = nullptr;
+    class TaskExecutor *mExecutor = nullptr;
 };
 
 template <typename SecondaryAssetType>
@@ -67,5 +108,40 @@ class SecondaryAssetHandler : public SecondaryAssetHandlerBase
 {
 public:
     using SecondaryAssetT = SecondaryAssetType;
+};
+
+template <typename SecondaryAssetType>
+class SingleDependencySecondaryAssetHandler
+    : public SecondaryAssetHandler<SecondaryAssetType>
+{
+    const std::string mAssetPath;
+
+protected:
+    const std::string & asset_path() const
+    {
+        return mAssetPath;
+    }
+
+    template <typename SecondaryAssetHandlerT>
+    [[nodiscard]]
+    auto & await_depending_secondary()
+    {
+        return this->template await_secondary<SecondaryAssetHandlerT>(
+            asset_path());
+    }
+
+public:
+    explicit SingleDependencySecondaryAssetHandler(std::string asset_path)
+        : mAssetPath(std::move(asset_path))
+    {
+    }
+
+    using BaseT = SingleDependencySecondaryAssetHandler;
+
+protected:
+    void append_features(SecondaryAssetHandlerBase::Hasher &hasher) override
+    {
+        hasher.append(mAssetPath);
+    }
 };
 }

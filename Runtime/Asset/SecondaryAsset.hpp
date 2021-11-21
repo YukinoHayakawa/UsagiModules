@@ -19,24 +19,29 @@ public:
 
     template <typename DerivedT>
     // Return type declared as pointer to avoid unwanted copying of objects.
-    DerivedT * as()
+    DerivedT & as()
     {
         auto ptr = dynamic_cast<DerivedT *>(this);
         if(ptr == nullptr)
             USAGI_THROW(std::bad_cast());
-        return ptr;
+        return *ptr;
     }
 };
 
 template <std::move_constructible T>
 class SecondaryAssetAdapter
     : public SecondaryAsset
-    , public T
+    , protected T
 {
 public:
     SecondaryAssetAdapter(T t)
         : T(std::move(t))
     {
+    }
+
+    const T & value() const
+    {
+        return *this;
     }
 };
 }

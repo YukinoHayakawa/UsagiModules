@@ -6,18 +6,13 @@
 
 namespace usagi
 {
-class SahJson : public SecondaryAssetHandler<JsonTree>
+class SahJson
+    : public SingleDependencySecondaryAssetHandler<JsonTree>
 {
-    std::string mAssetPath;
-
 public:
-    explicit SahJson(std::string asset_path)
-        : mAssetPath(std::move(asset_path))
-    {
-    }
+    using BaseT::BaseT;
 
 protected:
     std::unique_ptr<SecondaryAsset> construct() override;
-    void append_features(Hasher &hasher) override;
 };
 }
