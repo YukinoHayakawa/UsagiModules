@@ -2,23 +2,22 @@
 
 #include <Usagi/Modules/Common/Color/Color.hpp>
 
-#include "Vulkan.hpp"
+#include "VulkanDeviceAccess.hpp"
 #include "VulkanEnum.hpp"
 
 namespace usagi
 {
-class VulkanCommandListGraphics
+class VulkanCommandListGraphics : VulkanDeviceAccess
 {
     friend class VulkanGpuDevice;
 
-    VulkanGpuDevice *mDevice = nullptr;
     VulkanUniqueCommandBuffer mCommandBuffer;
 
 public:
     VulkanCommandListGraphics(
         VulkanGpuDevice *device,
         VulkanUniqueCommandBuffer command_buffer)
-        : mDevice(device)
+        : VulkanDeviceAccess(device)
         , mCommandBuffer(std::move(command_buffer))
     {
     }

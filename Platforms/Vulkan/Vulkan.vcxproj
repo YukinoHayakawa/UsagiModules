@@ -67,15 +67,18 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Vulkan.hpp" />
+    <ClInclude Include="VulkanDeviceAccess.hpp" />
     <ClInclude Include="VulkanEnum.hpp" />
-    <ClInclude Include="VulkanGraphicsPipeline.hpp" />
+    <ClInclude Include="VulkanGraphicsPipelineCompiler.hpp" />
     <ClInclude Include="VulkanShaderModule.hpp" />
     <ClInclude Include="VulkanSwapchain.hpp" />
     <ClInclude Include="VulkanCommandListGraphics.hpp" />
     <ClInclude Include="VulkanGpuDevice.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="VulkanGraphicsPipeline.cpp" />
+    <ClCompile Include="VulkanDeviceAccess.cpp" />
+    <ClCompile Include="VulkanGraphicsPipelineCompiler.cpp" />
+    <ClCompile Include="VulkanShaderModule.cpp" />
     <ClCompile Include="VulkanSwapchain.cpp" />
     <ClCompile Include="VulkanCommandListGraphics.cpp" />
     <ClCompile Include="VulkanGpuDevice.cpp" />

@@ -10,7 +10,7 @@ SahVulkanShaderModule::SahVulkanShaderModule(
     std::string asset_path,
     GpuShaderStage stage)
     : SingleDependencySecondaryAssetHandler(std::move(asset_path))
-    , mDevice(device)
+    , VulkanDeviceAccess(device)
     , mStage(stage)
 {
     assert(mDevice);
@@ -23,8 +23,7 @@ std::unique_ptr<SecondaryAsset> SahVulkanShaderModule::construct()
 	vk::ShaderModuleCreateInfo info;
 	info.pCode = bytecodes.data();
 	info.codeSize = bytecodes.size() * sizeof(std::uint32_t);
-	auto shader = mDevice->device().createShaderModuleUnique(
-		info, nullptr, mDevice->dispatch());
+	auto shader = create_shader_module(info);
 
     auto reflection_compiler = std::make_unique<spirv_cross::Compiler>(
         bytecodes);

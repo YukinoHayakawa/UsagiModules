@@ -30,10 +30,13 @@
     <ClInclude Include="Vulkan.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="VulkanGraphicsPipeline.hpp">
+    <ClInclude Include="VulkanShaderModule.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="VulkanShaderModule.hpp">
+    <ClInclude Include="VulkanGraphicsPipelineCompiler.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="VulkanDeviceAccess.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -47,7 +50,13 @@
     <ClCompile Include="VulkanCommandListGraphics.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="VulkanGraphicsPipeline.cpp">
+    <ClCompile Include="VulkanGraphicsPipelineCompiler.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="VulkanShaderModule.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="VulkanDeviceAccess.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

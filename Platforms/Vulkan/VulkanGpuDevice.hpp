@@ -4,7 +4,6 @@
 #include <map>
 #include <mutex>
 
-#include "Vulkan.hpp"
 #include "VulkanCommandListGraphics.hpp"
 #include "VulkanSwapchain.hpp"
 
@@ -14,6 +13,8 @@ class NativeWindow;
 
 class VulkanGpuDevice
 {
+    friend class VulkanDeviceAccess;
+
 public:
     class SemaphoreInfo
     {
@@ -142,8 +143,49 @@ public:
     VulkanSwapchain & swapchain(NativeWindow *window);
     void destroy_swapchain(NativeWindow *window);
 
-    vk::PhysicalDevice physical_device() const { return mPhysicalDevice; }
     vk::Device device() const { return mDevice.get(); }
+    vk::PhysicalDevice physical_device() const { return mPhysicalDevice; }
+
+    // todo these functions should not be accessed by game systems
+
+private:
+    auto create_shader_module(const auto &create_info)
+    {
+        return device().createShaderModuleUnique(
+            create_info, nullptr, dispatch());
+    }
+
+    auto create_descriptor_set_layout(const auto &create_info)
+    {
+        return device().createDescriptorSetLayoutUnique(
+            create_info, nullptr, dispatch());
+    }
+
+    auto create_pipeline_layout(const auto &create_info)
+    {
+        return device().createPipelineLayoutUnique(
+            create_info, nullptr, dispatch());
+    }
+
+    auto create_render_pass(const auto &create_info)
+    {
+        return device().createRenderPassUnique(
+            create_info, nullptr, dispatch());
+    }
+
+    auto create_graphics_pipeline(const auto &create_info)
+    {
+        auto [result, value] = device().createGraphicsPipelineUnique(
+            { }, create_info, nullptr, dispatch());
+        return std::pair { std::move(value), result };
+    }
+
+    auto create_swapchain(const auto &create_info)
+    {
+        return device().createSwapchainKHRUnique(
+            create_info, nullptr, dispatch());
+    }
+
     vk::Queue present_queue() const { return mGraphicsQueue; }
     vk::Queue graphics_queue() const { return mGraphicsQueue; }
 

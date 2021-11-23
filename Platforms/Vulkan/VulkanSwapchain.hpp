@@ -5,16 +5,14 @@
 #include <Usagi/Library/Memory/Noncopyable.hpp>
 #include <Usagi/Modules/Common/Math/Matrix.hpp>
 
-#include "Vulkan.hpp"
+#include "VulkanDeviceAccess.hpp"
 
 namespace usagi
 {
 class VulkanGpuDevice;
 
-class VulkanSwapchain : Noncopyable
+class VulkanSwapchain : Noncopyable, VulkanDeviceAccess
 {
-    VulkanGpuDevice *mDevice = nullptr;
-
     VulkanUniqueSurface mSurface;
     vk::SurfaceFormatKHR mFormat;
     Vector2u32 mSize;

@@ -53,4 +53,12 @@ using VulkanUniqueSwapchain =
     vk::UniqueHandle<vk::SwapchainKHR, vk::DispatchLoaderDynamic>;
 using VulkanUniqueShaderModule =
     vk::UniqueHandle<vk::ShaderModule, vk::DispatchLoaderDynamic>;
+using VulkanUniquePipeline =
+    vk::UniqueHandle<vk::Pipeline, vk::DispatchLoaderDynamic>;
+using VulkanUniqueRenderPass =
+    vk::UniqueHandle<vk::RenderPass, vk::DispatchLoaderDynamic>;
+using VulkanUniqueDescriptorSetLayout =
+    vk::UniqueHandle<vk::DescriptorSetLayout, vk::DispatchLoaderDynamic>;
+using VulkanUniquePipelineLayout =
+    vk::UniqueHandle<vk::PipelineLayout, vk::DispatchLoaderDynamic>;
 }

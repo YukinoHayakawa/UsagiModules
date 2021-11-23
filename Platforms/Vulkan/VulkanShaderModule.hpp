@@ -2,7 +2,7 @@
 
 #include <spirv_cross/spirv_cross.hpp>
 
-#include <Usagi/Modules/Platforms/Vulkan/Vulkan.hpp>
+#include "Vulkan.hpp"
 
 namespace usagi
 {
@@ -25,9 +25,11 @@ public:
         return mShaderModule;
     }
 
-    const std::unique_ptr<spirv_cross::Compiler> & reflection() const
+    const spirv_cross::Compiler & reflection() const
     {
-        return mReflectionCompiler;
+        return *mReflectionCompiler;
     }
+
+    // std::vector<vk::VertexInputBindingDescription>   vertex_inputs();
 };
 }

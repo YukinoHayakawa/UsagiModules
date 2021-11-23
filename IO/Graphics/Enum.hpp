@@ -34,6 +34,12 @@ enum class GpuShaderStage
 };
 std::string_view to_string(GpuShaderStage val);
 
+enum class GpuVertexInputRate
+{
+    VERTEX,
+    INSTANCE,
+};
+
 enum class GpuAccessMask
 {
     NONE,

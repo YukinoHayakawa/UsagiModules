@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include <Usagi/Modules/IO/Graphics/Enum.hpp>
+#include <Usagi/Modules/Platforms/Vulkan/VulkanDeviceAccess.hpp>
 #include <Usagi/Modules/Platforms/Vulkan/VulkanShaderModule.hpp>
 #include <Usagi/Modules/Runtime/Asset/SecondaryAssetHandler.hpp>
 
@@ -12,8 +13,8 @@ using SaVulkanShaderModule = SecondaryAssetAdapter<VulkanShaderModule>;
 
 class SahVulkanShaderModule
     : public SingleDependencySecondaryAssetHandler<SaVulkanShaderModule>
+    , VulkanDeviceAccess
 {
-    VulkanGpuDevice *mDevice = nullptr;
     GpuShaderStage mStage;
 
 public:

@@ -7,7 +7,9 @@
 
 #include <Usagi/Modules/Runtime/Asset/AssetManager.hpp>
 #include <Usagi/Modules/Assets/SahJson/SahInheritableJsonConfig.hpp>
+#include <Usagi/Modules/Common/Logging/Logging.hpp>
 #include <Usagi/Modules/Platforms/Vulkan/VulkanGpuDevice.hpp>
+#include <Usagi/Modules/Platforms/Vulkan/VulkanGraphicsPipelineCompiler.hpp>
 
 #include "SahVulkanShaderModule.hpp"
 
@@ -74,7 +76,8 @@ SahVulkanGraphicsPipeline::async_shader_module(
 
 SahVulkanGraphicsPipeline::SahVulkanGraphicsPipeline(
     VulkanGpuDevice *device,
-    std::string asset_path): SingleDependencySecondaryAssetHandler(std::move(asset_path))
+    std::string asset_path)
+    : SingleDependencySecondaryAssetHandler(std::move(asset_path))
     , mDevice(device)
 {
 }
@@ -85,46 +88,48 @@ std::unique_ptr<SecondaryAsset> SahVulkanGraphicsPipeline::construct()
 
     std::cout << config << std::endl;
 
-    vk::GraphicsPipelineCreateInfo pipeline_info;
-    pipeline_info.setFlags(vk::PipelineCreateFlagBits::eAllowDerivatives);
+    VulkanGraphicsPipelineCompiler compiler(mDevice);
+    vk::GraphicsPipelineCreateInfo &pipeline_info = compiler.pipeline_info();
 
     // =========================== Shader Stages ============================ //
 
-    std::vector<vk::PipelineShaderStageCreateInfo> shader_stages;
+    // todo: support loading SPIR-V
 
     auto [future_vert, p_vert] = async_shader_module(
         config,
-        "/shaders/vertex",
+        "/shaders/vertex/source",
         GpuShaderStage::VERTEX
     );
     auto [future_frag, p_frag] = async_shader_module(
         config,
-        "/shaders/fragment",
+        "/shaders/fragment/source",
         GpuShaderStage::FRAGMENT
     );
 
     auto &module_vert = await<SaVulkanShaderModule>(future_vert);
     auto &module_frag = await<SaVulkanShaderModule>(future_frag);
 
-    shader_stages.push_back({
-        { },
-        vk::ShaderStageFlagBits::eVertex,
-        module_vert.shader_module().get(),
-        p_vert.c_str()
-    });
-    shader_stages.push_back({
-        { },
-        vk::ShaderStageFlagBits::eFragment,
-        module_frag.shader_module().get(),
-        p_frag.c_str()
-    });
+    std::string entry_vert = config["/shaders/vertex/entry"_json_pointer];
+    std::string entry_frag = config["/shaders/fragment/entry"_json_pointer];
 
-    pipeline_info.setStages(shader_stages);
+    compiler.add_stage_shader(
+        GpuShaderStage::VERTEX,
+        module_vert,
+        entry_vert
+    );
+    compiler.add_stage_shader(
+        GpuShaderStage::FRAGMENT,
+        module_frag,
+        entry_frag
+    );
 
     // ============================ Vertex Input ============================ //
 
-    vk::PipelineVertexInputStateCreateInfo vertex_input_state;
-    pipeline_info.setPVertexInputState(&vertex_input_state);
+    // Needs app-side input.
+
+    compiler.add_vertex_input_buffer(0, 20, GpuVertexInputRate::VERTEX);
+    compiler.add_vertex_input_attribute("inPosition", 0, GpuBufferFormat::R32G32_SFLOAT, 0);
+    compiler.add_vertex_input_attribute(1, 0, GpuBufferFormat::R32G32_SFLOAT, 8);
 
     // =========================== Input Assembly =========================== //
 
@@ -236,22 +241,12 @@ std::unique_ptr<SecondaryAsset> SahVulkanGraphicsPipeline::construct()
 
     // =========================== Dynamic State ============================ //
 
-    auto dynamic_states = {
-        vk::DynamicState::eScissor,
-        vk::DynamicState::eViewport,
-        vk::DynamicState::eLineWidth
-    };
-    vk::PipelineDynamicStateCreateInfo dynamic_state;
-    pipeline_info.setPDynamicState(&dynamic_state);
-    dynamic_state.setDynamicStates(dynamic_states);
-
     // ========================== Pipeline Layout =========================== //
 
     // ============================ Render Pass ============================= //
 
     // vk::UniqueRenderPass render_pass;
 
-    auto x = mDevice->device().createGraphicsPipelineUnique({ }, pipeline_info, nullptr, mDevice->dispatch());
 
     // Output attachments -> Render pass
 
@@ -264,6 +259,10 @@ std::unique_ptr<SecondaryAsset> SahVulkanGraphicsPipeline::construct()
     // Descriptor set layout
 
     // Push constant ranges
+
+    // ============================== Compile =============================== //
+    [[maybe_unused]]
+    auto xxx = compiler.compile();
 
     return { };
 }

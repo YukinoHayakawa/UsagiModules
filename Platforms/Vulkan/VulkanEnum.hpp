@@ -76,4 +76,46 @@ struct EnumMapping<GpuAccessMask, vk::AccessFlags2KHR>
     };
 };
 using Vulkan_GpuAccessMask = EnumAcceptor<GpuAccessMask, vk::AccessFlags2KHR>;
+
+template <>
+struct EnumMapping<GpuVertexInputRate, vk::VertexInputRate>
+{
+    constexpr static auto MAPPING = {
+        std::pair { GpuVertexInputRate::VERTEX, vk::VertexInputRate::eVertex },
+        std::pair { GpuVertexInputRate::INSTANCE, vk::VertexInputRate::eInstance },
+    };
+};
+using Vulkan_GpuVertexInputRate = EnumAcceptor<GpuVertexInputRate, vk::VertexInputRate>;
+
+template <>
+struct EnumMapping<GpuShaderStage, vk::ShaderStageFlagBits>
+{
+    constexpr static auto MAPPING = {
+        std::pair { GpuShaderStage::VERTEX, vk::ShaderStageFlagBits::eVertex },
+        std::pair { GpuShaderStage::FRAGMENT, vk::ShaderStageFlagBits::eFragment },
+    };
+};
+using Vulkan_GpuShaderStage = EnumAcceptor<GpuShaderStage, vk::ShaderStageFlagBits>;
+
+template <>
+struct EnumMapping<GpuBufferFormat, vk::Format>
+{
+    constexpr static auto MAPPING = {
+        std::pair { GpuBufferFormat::R8_UNORM, vk::Format::eR8Unorm },
+        std::pair { GpuBufferFormat::R8G8_UNORM, vk::Format::eR8G8Unorm },
+        std::pair { GpuBufferFormat::R8G8B8_UNORM, vk::Format::eR8G8B8Unorm },
+        std::pair { GpuBufferFormat::R8G8B8A8_UNORM, vk::Format::eR8G8B8A8Unorm },
+        std::pair { GpuBufferFormat::B8G8R8A8_UNORM, vk::Format::eB8G8R8A8Unorm },
+        std::pair { GpuBufferFormat::R32_SFLOAT, vk::Format::eR32Sfloat },
+        std::pair { GpuBufferFormat::R32G32_SFLOAT, vk::Format::eR32G32Sfloat },
+        std::pair { GpuBufferFormat::R32G32B32_SFLOAT, vk::Format::eR32G32B32Sfloat },
+        std::pair { GpuBufferFormat::R32G32B32A32_SFLOAT, vk::Format::eR32G32B32A32Sfloat },
+        std::pair { GpuBufferFormat::D16_UNORM, vk::Format::eD16Unorm },
+        std::pair { GpuBufferFormat::D32_SFLOAT, vk::Format::eD32Sfloat },
+        std::pair { GpuBufferFormat::D16_UNORM_S8_UINT, vk::Format::eD16UnormS8Uint },
+        std::pair { GpuBufferFormat::D24_UNORM_S8_UINT, vk::Format::eD24UnormS8Uint },
+        std::pair { GpuBufferFormat::D32_SFLOAT_S8_UINT, vk::Format::eD32SfloatS8Uint },
+    };
+};
+using Vulkan_GpuBufferFormat = EnumAcceptor<GpuBufferFormat, vk::Format>;
 }

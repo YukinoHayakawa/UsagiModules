@@ -11,7 +11,7 @@ namespace usagi
 VulkanSwapchain::VulkanSwapchain(
     VulkanGpuDevice *device,
     VulkanUniqueSurface vk_surface_khr)
-    : mDevice { device }
+    : VulkanDeviceAccess { device }
     , mSurface { std::move(vk_surface_khr) }
     // todo linear color format? https://stackoverflow.com/questions/12524623/what-are-the-practical-differences-when-working-with-colors-in-a-linear-vs-a-no
     , mFormat { vk::Format::eUndefined, vk::ColorSpaceKHR::eSrgbNonlinear }
@@ -30,10 +30,10 @@ void VulkanSwapchain::skip_image(vk::Semaphore semaphore)
         GpuPipelineStage::ALL_COMMANDS
     );
     info.pWaitSemaphoreInfos = &sem_info;
-    mDevice->graphics_queue().submit2KHR(
+    graphics_queue().submit2KHR(
         std::array { info },
         nullptr,
-        mDevice->dispatch()
+        dispatch()
     );
 }
 
@@ -59,7 +59,7 @@ VulkanSwapchain::ImageInfo VulkanSwapchain::acquire_next_image(
         signal_sem_image_avail,
         nullptr,
         &image.mImageIndex,
-        mDevice->dispatch()
+        dispatch()
     );
     switch(result)
     {
@@ -111,9 +111,9 @@ void VulkanSwapchain::present(
 
     // If the swapchain is suboptimal or out-of-date, it will be recreated
     // during next call of acquireNextImage().
-    switch(mLastResult = mDevice->present_queue().presentKHR(
+    switch(mLastResult = present_queue().presentKHR(
         &info,
-        mDevice->dispatch()))
+        dispatch()))
     {
         case vk::Result::eSuccess: break;
         case vk::Result::eSuboptimalKHR:
@@ -197,7 +197,7 @@ std::uint32_t VulkanSwapchain::select_presentation_queue_family() const
     // todo use vkGetPhysicalDeviceWin32PresentationSupportKHR
     const auto queue_families =
         mDevice->physical_device().getQueueFamilyProperties(
-            mDevice->dispatch()
+            dispatch()
         );
     for(auto i = queue_families.begin(); i != queue_families.end(); ++i)
     {
@@ -206,7 +206,7 @@ std::uint32_t VulkanSwapchain::select_presentation_queue_family() const
         if(mDevice->physical_device().getSurfaceSupportKHR(
             queue_index,
             mSurface.get(),
-            mDevice->dispatch()
+            dispatch()
         )) return queue_index;
     }
     USAGI_THROW(std::runtime_error(
@@ -228,7 +228,7 @@ void VulkanSwapchain::create(
     // Ensure that no operation involving the swapchain images is outstanding.
     // Since acquireNextImage() and drawing operations aren't parallel,
     // as long as the device is idle, it won't happen.
-    mDevice->device().waitIdle(mDevice->dispatch());
+    mDevice->device().waitIdle(dispatch());
 
     LOG(info, "Creating swapchain");
 
@@ -239,13 +239,13 @@ void VulkanSwapchain::create(
 
     const auto surface_capabilities =
         mDevice->physical_device().getSurfaceCapabilitiesKHR(
-            mSurface.get(), mDevice->dispatch());
+            mSurface.get(), dispatch());
     const auto surface_formats =
         mDevice->physical_device().getSurfaceFormatsKHR(
-            mSurface.get(), mDevice->dispatch());
+            mSurface.get(), dispatch());
     const auto surface_present_modes =
         mDevice->physical_device().getSurfacePresentModesKHR(
-            mSurface.get(), mDevice->dispatch());
+            mSurface.get(), dispatch());
 
     vk::SwapchainCreateInfoKHR create_info;
 
@@ -287,8 +287,7 @@ void VulkanSwapchain::create(
 
     create_info.setOldSwapchain(mSwapchain.get());
 
-    mSwapchain = mDevice->device().createSwapchainKHRUnique(
-        create_info, nullptr, mDevice->dispatch());
+    mSwapchain = create_swapchain(create_info);
     mFormat = vk_format;
     mSize = { create_info.imageExtent.width, create_info.imageExtent.height };
 
@@ -299,7 +298,7 @@ void VulkanSwapchain::get_swapchain_images()
 {
     mImages = mDevice->device().getSwapchainImagesKHR(
         mSwapchain.get(),
-        mDevice->dispatch()
+        dispatch()
     );
 }
 }
