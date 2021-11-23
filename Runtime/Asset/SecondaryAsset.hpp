@@ -19,7 +19,7 @@ public:
 
     template <typename DerivedT>
     // Return type declared as pointer to avoid unwanted copying of objects.
-    DerivedT & as()
+    DerivedT & as() requires std::is_base_of_v<SecondaryAsset, DerivedT>
     {
         auto ptr = dynamic_cast<DerivedT *>(this);
         if(ptr == nullptr)
@@ -34,8 +34,9 @@ class SecondaryAssetAdapter
     , protected T
 {
 public:
-    SecondaryAssetAdapter(T t)
-        : T(std::move(t))
+    template <typename... Args>
+    SecondaryAssetAdapter(Args &&... args)
+        : T(std::forward<Args>(args)...)
     {
     }
 

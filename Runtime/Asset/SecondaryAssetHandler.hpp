@@ -75,6 +75,11 @@ protected:
         ));
     }
 
+    static auto & await(const std::shared_future<PrimaryAssetMeta> &future)
+    {
+        return future.get().region;
+    }
+
     template <typename SecondaryAssetT>
     static auto & await(const std::shared_future<SecondaryAssetMeta> &future)
     {
@@ -128,6 +133,11 @@ protected:
     {
         return this->template await_secondary<SecondaryAssetHandlerT>(
             asset_path());
+    }
+
+    auto & await_depending_primary()
+    {
+        return this->await(this->primary_asset_async(asset_path()));
     }
 
 public:
