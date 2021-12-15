@@ -11,6 +11,7 @@ void prefetch(void *ptr, const std::size_t size_bytes)
     entry.VirtualAddress = ptr;
     entry.NumberOfBytes = size_bytes;
 
+    // Windows 8
     USAGI_WIN32_CHECK_THROW(
         PrefetchVirtualMemory,
         NtCurrentProcess(),
@@ -20,18 +21,14 @@ void prefetch(void *ptr, const std::size_t size_bytes)
     );
 }
 
-MemoryRegion offer(void *ptr, std::size_t size_bytes)
+MemoryView offer(void *ptr, std::size_t size_bytes)
 {
+    // Windows 8.1 Update
     USAGI_WIN32_CHECK_THROW(
         OfferVirtualMemory,
         ptr, size_bytes, VmOfferPriorityVeryLow
     );
 
-    MemoryRegion region;
-
-    region.base_address = ptr;
-    region.length = size_bytes;
-
-    return region;
+    return { ptr, size_bytes };
 }
 }

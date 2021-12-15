@@ -115,9 +115,10 @@ auto nt_map(MemoryMapping &mapping, std::uint64_t length, std::uint64_t commit)
     if(NT_SUCCESS(status))
     {
         mapping.internal.base_address = view_base;
-        mapping.heap.base_address =
-            static_cast<char*>(view_base) + map_offset_remainder;
-        mapping.heap.length = length;
+        mapping.heap = {
+            static_cast<char*>(view_base) + map_offset_remainder,
+            length
+        };
     }
 
     return status;

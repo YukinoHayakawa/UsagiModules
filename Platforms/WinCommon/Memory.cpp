@@ -1,6 +1,6 @@
 ﻿#include <Usagi/Runtime/Platform/Memory.hpp>
 #include <Usagi/Runtime/ErrorHandling.hpp>
-#include <Usagi/Library/Math/Rounding.hpp>
+#include <Usagi/Library/Memory/Alignment.hpp>
 
 #include "Win32.hpp"
 
@@ -18,41 +18,40 @@ std::size_t page_size()
     return size;
 }
 
-std::size_t round_up_to_page_size(const std::size_t size_bytes)
+std::size_t align_up_to_page_size(const std::size_t size_bytes)
 {
-    return round_up_unsigned(size_bytes, page_size());
+    return align_up(size_bytes, page_size());
 }
 
-std::size_t round_down_to_page_size(const std::size_t size_bytes)
+std::size_t align_down_to_page_size(const std::size_t size_bytes)
 {
-    return round_down_unsigned(size_bytes, page_size());
+    return align_down(size_bytes, page_size());
 }
 
 // For memory reservation and committing, see:
 // https://docs.microsoft.com/en-us/windows/win32/memory/reserving-and-committing-memory
 
-MemoryRegion allocate(const std::size_t size_bytes, const bool commit)
+MemoryView allocate(std::size_t size_bytes, const bool commit)
 {
-    MemoryRegion ret;
-    ret.length = size_bytes;
+    void *base_address = nullptr;
 
     // https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntallocatevirtualmemory
     const auto status = NtAllocateVirtualMemory(
         NtCurrentProcess(),
-        &ret.base_address,
+        &base_address,
         0,
-        &ret.length,
+        &size_bytes,
         commit ? MEM_RESERVE | MEM_COMMIT : MEM_RESERVE,
         commit ? PAGE_READWRITE : PAGE_NOACCESS
     );
 
     USAGI_NT_CHECK_THROW("NtAllocateVirtualMemory");
 
-    return ret;
+    return { base_address, size_bytes };
 }
 
 // https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntallocatevirtualmemory
-MemoryRegion commit(void *ptr, std::size_t size_bytes)
+MemoryView commit(void *ptr, std::size_t size_bytes)
 {
     const auto status = NtAllocateVirtualMemory(
         NtCurrentProcess(),
@@ -69,7 +68,7 @@ MemoryRegion commit(void *ptr, std::size_t size_bytes)
 }
 
 // https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntfreevirtualmemory
-MemoryRegion decommit(void *ptr, std::size_t size_bytes)
+MemoryView decommit(void *ptr, std::size_t size_bytes)
 {
     const auto status = NtFreeVirtualMemory(
         NtCurrentProcess(),
@@ -83,7 +82,7 @@ MemoryRegion decommit(void *ptr, std::size_t size_bytes)
     return { ptr, size_bytes };
 }
 
-MemoryRegion free(void *ptr, std::size_t size_bytes)
+MemoryView free(void *ptr, std::size_t size_bytes)
 {
     const auto status = NtFreeVirtualMemory(
         NtCurrentProcess(),
@@ -99,7 +98,7 @@ MemoryRegion free(void *ptr, std::size_t size_bytes)
 
 // Doc: https://undocumented.ntinternals.net/index.html?page=UserMode%2FUndocumented%20Functions%2FMemory%20Management%2FVirtual%20Memory%2FNtLockVirtualMemory.html
 
-MemoryRegion lock(void *ptr, std::size_t size_bytes)
+MemoryView lock(void *ptr, std::size_t size_bytes)
 {
     const auto status = NtLockVirtualMemory(
         NtCurrentProcess(),
@@ -115,7 +114,7 @@ MemoryRegion lock(void *ptr, std::size_t size_bytes)
 
 // Doc: https://undocumented.ntinternals.net/index.html?page=UserMode%2FUndocumented%20Functions%2FMemory%20Management%2FVirtual%20Memory%2FNtUnlockVirtualMemory.html
 
-MemoryRegion unlock(void *ptr, std::size_t size_bytes)
+MemoryView unlock(void *ptr, std::size_t size_bytes)
 {
     const auto status = NtUnlockVirtualMemory(
         NtCurrentProcess(),
@@ -133,13 +132,13 @@ MemoryRegion unlock(void *ptr, std::size_t size_bytes)
 // here. Link with corresponding lib such as Win7/Win10.
 
 // https://docs.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-flushviewoffile
-MemoryRegion flush(void *ptr, std::size_t size_bytes)
+MemoryView flush(void *ptr, std::size_t size_bytes)
 {
     USAGI_WIN32_CHECK_THROW(FlushViewOfFile, ptr, size_bytes);
     return { ptr, size_bytes };
 }
 
-MemoryRegion zero_pages(void *ptr, std::size_t size_bytes)
+MemoryView zero_pages(void *ptr, std::size_t size_bytes)
 {
     // Decommitting and recommitting memory will zero the pages.
     // See: https://docs.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualallocex#mem_reset
