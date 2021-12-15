@@ -6,7 +6,7 @@
 
 namespace usagi
 {
-AssetFingerprint AssetQuery::hash_memory_region(ReadonlyMemoryRegion region)
+AssetFingerprint AssetQuery::hash_memory_region(ReadonlyMemoryView region)
 {
     assert(region);
     XXHash64 hasher(0);

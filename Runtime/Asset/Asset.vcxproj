@@ -58,21 +58,32 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="AssetManager.cpp" />
-    <ClCompile Include="AssetQuery.cpp" />
+    <ClCompile Include="details\AssetBuilderRawMemoryView.cpp" />
+    <ClCompile Include="details\AssetBuildTask.cpp" />
+    <ClCompile Include="details\AssetEnum.cpp" />
+    <ClCompile Include="AssetManager2.cpp" />
+    <ClCompile Include="details\AssetPath.cpp" />
+    <ClCompile Include="details\AssetPackageManager.cpp" />
+    <ClCompile Include="details\AssetAccessProxy.cpp" />
     <ClCompile Include="Package\AssetPackageFilesystem.cpp" />
-    <ClCompile Include="SecondaryAssetHandler.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Asset.hpp" />
-    <ClInclude Include="AssetDependencyGraph.hpp" />
-    <ClInclude Include="AssetQuery.hpp" />
-    <ClInclude Include="AssetManager.hpp" />
-    <ClInclude Include="ComponentSecondaryAssetRef.hpp" />
-    <ClInclude Include="Package\AssetPackage.hpp" />
+    <ClInclude Include="details\AssetBuilder.hpp" />
+    <ClInclude Include="details\AssetBuilderRawMemoryView.hpp" />
+    <ClInclude Include="details\AssetBuildTask.hpp" />
+    <ClInclude Include="details\AssetDefs.hpp" />
+    <ClInclude Include="details\AssetEnum.hpp" />
+    <ClInclude Include="AssetHasher.hpp" />
+    <ClInclude Include="AssetManager2.hpp" />
+    <ClInclude Include="details\AssetPath.hpp" />
+    <ClInclude Include="details\AssetQuery.hpp" />
+    <ClInclude Include="details\AssetPackageManager.hpp" />
+    <ClInclude Include="AssetPackage.hpp" />
+    <ClInclude Include="details\AssetRecord.hpp" />
+    <ClInclude Include="details\AssetAccessProxy.hpp" />
+    <ClInclude Include="details\AssetState.hpp" />
     <ClInclude Include="Package\AssetPackageFilesystem.hpp" />
-    <ClInclude Include="SecondaryAsset.hpp" />
-    <ClInclude Include="SecondaryAssetHandler.hpp" />
     <ClInclude Include="ServiceAssetManager.hpp" />
   </ItemGroup>
   <ItemGroup>

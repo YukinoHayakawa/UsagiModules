@@ -1,45 +1,40 @@
 ﻿#pragma once
 
-#include <optional>
-
-#include "Asset.hpp"
+#include <Usagi/Runtime/Memory/View.hpp>
 
 namespace usagi
 {
 class AssetPackage;
 
+/*
+ * AssetQuery is a dispose-after-use object solely used as a bridge to
+ * communicate with certain asset package.
+ */
 class AssetQuery
 {
-protected:
-    std::optional<AssetFingerprint> mFingerprint;
-
-    [[nodiscard]]
-    static AssetFingerprint hash_memory_region(ReadonlyMemoryRegion region);
-
-    [[nodiscard]]
-    virtual AssetFingerprint fingerprint_impl() = 0;
+    // protected:
+    // std::optional<AssetHashId> mFingerprint;
+    //
+    // static AssetHashId hash_memory_region(ReadonlyMemoryView region);
+    // virtual AssetHashId fingerprint_impl() = 0;
 
 public:
     virtual ~AssetQuery() = default;
 
-    [[nodiscard]]
     virtual AssetPackage * package() const = 0;
 
     // Returns whether the content of the specified asset is already loaded
     // into memory.
     // todo: heap manager?
-    [[nodiscard]]
-    virtual bool prefetched() const = 0;
+    virtual bool ready() const = 0;
 
     // Load specified asset pages into memory.
     virtual void fetch() = 0;
 
-    [[nodiscard]]
-    AssetFingerprint fingerprint();
+    // AssetHashId fingerprint();
 
     // Get a readonly reference to the memory region.
-    [[nodiscard]]
-    virtual ReadonlyMemoryRegion memory_region() = 0;
+    virtual ReadonlyMemoryView data() = 0;
 
     // Remove the asset from memory and invalidate any memory reference
     // to it. The memory is released.

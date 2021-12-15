@@ -1,84 +1,64 @@
 ﻿#pragma once
 
-#include <Usagi/Runtime/Memory/Region.hpp>
+#include <cassert>
+
+#include <Usagi/Library/Memory/Noncopyable.hpp>
+#include <Usagi/Runtime/Memory/View.hpp>
 
 namespace usagi
 {
-class AssetPackage;
-
-enum class AssetPriority : std::uint8_t
+/*
+ * Base class for assets.
+ */
+class Asset : Noncopyable
 {
-    // Scripts, collision models, etc. Frame data computation cannot be properly
-    // done without presence of them.
-    GAMEPLAY_CRITICAL   = 3,
+public:
+    virtual ~Asset() = default;
 
-    // Normal streamed assets such as graphics content, detailed textures,
-    // fine models, etc. Missing them doesn't affect the computational
-    // correctness of data, but will be disturbing.
-    STREAMING           = 2,
-
-    // BGM, surrounding details, etc. Doesn't affect gameplay and are generally
-    // unnoticeable when loaded slowly, unlike blurry textures or missing
-    // model details.
-    AMBIENT             = 1,
+    template <typename T>
+    T & as()
+    {
+        assert(dynamic_cast<T *>(this));
+        return static_cast<T &>(*this);
+    }
 };
 
-enum class AssetStatus : std::uint64_t
+class AssetRawMemoryView final : public Asset
 {
-    // For primary assets, this means the asset couldn't be found in any source.
-    // For secondary assets, this means the asset couldn't be found in the
-    // cache. A secondary asset handler must be provided to rebuild the cache.
-    MISSING = 0,
+    ReadonlyMemoryView mMemory;
 
-    // The asset exists, but the current operation will not cause it to be
-    // loaded into memory.
-    EXIST   = 1,
+public:
+    explicit AssetRawMemoryView(ReadonlyMemoryView memory)
+        : mMemory(memory)
+    {
+    }
 
-    // A task has been queued to load the asset into memory.
-    QUEUED  = 2,
-
-    // A task is actively loading the content of asset into memory.
-    LOADING = 3,
-
-    // The asset is loaded.
-    READY   = 4,
-
-    // A primary dependency could not be found.
-    // Although missing a dependency could be a critical error, it is not hard
-    // to fix once detected. A status flag provides an opportunity for the
-    // caller to decide how to react to the incident. On the other hand,
-    // the failure of secondary asset handler in processing the asset usually
-    // indicates more serious errors such as bugs. So in that case, it's
-    // more suitable to throw an exception.
-    MISSING_DEPENDENCY = 5,
+    ReadonlyMemoryView memory() const
+    {
+        return mMemory;
+    }
 };
-
-// Asset fingerprint is used for validate the content of assets. For primary
-// assets, it is the hash of the asset content. For secondary assets, it
-// reflects the content of primary dependencies and secondary asset build
-// parameters.
-using AssetFingerprint = std::uint64_t;
-
-struct PrimaryAssetMeta
-{
-    ReadonlyMemoryRegion region;
-    AssetFingerprint fingerprint = 0;
-    AssetPackage *package = nullptr;
-    AssetStatus status = AssetStatus::MISSING;
-};
-
-struct SecondaryAssetMeta
-{
-    class SecondaryAsset *asset = nullptr;
-    // Secondary asset fingerprint consists of two parts. The build fingerprint
-    // is the hash of secondary asset handler type and build parameters, which
-    // is used for querying in the cache for the secondary asset. The
-    // dependency fingerprint is the hash of fingerprints of primary assets
-    // used when building the secondary asset. It can be used to detect outdated
-    // secondary cache entries when the content of dependent assets changes.
-    AssetFingerprint fingerprint_build = 0;
-    // todo: hash the asset product?
-    AssetFingerprint fingerprint_dep_content = 0;
-    AssetStatus status = AssetStatus::MISSING;
-};
+//
+//
+// // Asset fingerprint is used for validate the content of assets. For primary
+// // assets, it is the hash of the asset content. For secondary assets, it
+// // reflects the content of primary dependencies and secondary asset build
+// // parameters.
+// using AssetFingerprint = std::uint64_t;
+//
+//
+// struct SecondaryAssetMeta
+// {
+//     class SecondaryAsset *asset = nullptr;
+//     // Secondary asset fingerprint consists of two parts. The build fingerprint
+//     // is the hash of secondary asset handler type and build parameters, which
+//     // is used for querying in the cache for the secondary asset. The
+//     // dependency fingerprint is the hash of fingerprints of primary assets
+//     // used when building the secondary asset. It can be used to detect outdated
+//     // secondary cache entries when the content of dependent assets changes.
+//     AssetFingerprint fingerprint_build = 0;
+//     // todo: hash the asset product?
+//     AssetFingerprint fingerprint_dep_content = 0;
+//     // AssetStatus status = AssetStatus::MISSING;
+// };
 }

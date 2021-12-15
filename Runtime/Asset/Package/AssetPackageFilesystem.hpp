@@ -5,58 +5,38 @@
 
 #include <Usagi/Runtime/File/MappedFileView.hpp>
 
-#include "AssetPackage.hpp"
+#include "../AssetPackage.hpp"
 
 namespace usagi
 {
+class FilesystemWatcher;
+
 class AssetPackageFilesystem final : public AssetPackage
 {
-    std::filesystem::path mBasePath;
+    std::unique_ptr<FilesystemWatcher> mWatcher;
+    std::string mBasePathStr;
+
+    const std::filesystem::path & base_path() const;
 
     // <relative path, memory mapping>
     std::map<std::filesystem::path, MappedFileView> mLoadedFiles;
-    using FileEntry = decltype(mLoadedFiles)::iterator;
-    std::mutex mLock;
+    // using FileEntry = decltype(mLoadedFiles)::iterator;
+    std::mutex mFileTableMutex;
 
-    class Query final : public AssetQuery
-    {
-        AssetPackageFilesystem *mPackage;
-        MappedFileView &mMapping;
-        // todo: fix
-        bool mFetched = false;
-
-        [[nodiscard]]
-        AssetFingerprint fingerprint_impl() override;
-
-    public:
-        Query(AssetPackageFilesystem *package, MappedFileView &mapping)
-            : mPackage(package)
-            , mMapping(mapping)
-        {
-        }
-
-        [[nodiscard]]
-        AssetPackage * package() const override { return mPackage; }
-
-        [[nodiscard]]
-        bool prefetched() const override;
-
-        void fetch() override;
-
-        ReadonlyMemoryRegion memory_region() override;
-        // void evict() override;
-    };
-
-    friend class Query;
+    friend class AssetQueryFilesystem;
+    friend class AssetPackageFilesystemFsEventHandler;
 
 public:
-    explicit AssetPackageFilesystem(
-        const std::filesystem::path &base_path);
+    explicit AssetPackageFilesystem(const std::filesystem::path &base_path);
 
-    bool create_query(
-        std::string_view path,
-        StackPolymorphicObject<AssetQuery> &query) override;
+    AssetQuery * create_query(AssetPath path, MemoryArena &arena) override;
 
-    std::string name() const override;
+    void report_asset_changes(class AssetManager2 &manager) override
+    {
+        /* todo */
+    }
+
+    std::string_view type() const override;
+    std::string_view root() const override;
 };
 }
