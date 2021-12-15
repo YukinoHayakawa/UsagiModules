@@ -2,7 +2,7 @@
 
 #include <string_view>
 
-#include "External/xxhash/xxhash64.h"
+#include "../External/xxhash/xxhash64.h"
 
 namespace usagi
 {

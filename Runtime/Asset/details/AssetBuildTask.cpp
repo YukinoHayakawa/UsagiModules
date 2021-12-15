@@ -1,25 +1,19 @@
 ﻿#include "AssetBuildTask.hpp"
 
-#include "AssetBuilder.hpp"
-#include "../AssetManager2.hpp"
-
 namespace usagi
 {
 // ReSharper disable once CppMemberFunctionMayBeConst
 void AssetBuildTaskBase::update_asset_status(const AssetStatus status)
 {
-    mPromisedStatus.store(status, std::memory_order::release);
+    mRecord->status.store(status, std::memory_order::release);
 }
 
 AssetBuildTaskBase::AssetBuildTaskBase(
     AssetManager2 &manager,
     TaskExecutor &executor,
-    std::unique_ptr<Asset> &promised_asset,
-    std::atomic<AssetStatus> &promised_status)
-    : mManager(manager)
+    AssetRecord *record): mManager(manager)
     , mExecutor(executor)
-    , mPromisedAsset(promised_asset)
-    , mPromisedStatus(promised_status)
+    , mRecord(record)
 {
 }
 
@@ -31,8 +25,8 @@ std::shared_future<void> AssetBuildTaskBase::future()
 bool AssetBuildTaskBase::precondition()
 {
     // We should be the only instance processing the asset.
-    const auto a = mPromisedStatus == AssetStatus::QUEUED;
-    const auto b = mPromisedAsset == nullptr;
+    const auto a = mRecord->status == AssetStatus::QUEUED;
+    const auto b = mRecord->asset == nullptr;
 
     return a && b;
 }
@@ -44,7 +38,7 @@ void AssetBuildTaskBase::on_started()
 
 void AssetBuildTaskBase::on_finished()
 {
-    if(mPromisedAsset)
+    if(mRecord->asset)
         update_asset_status(AssetStatus::READY);
     else
         // todo: fail reason?
@@ -54,9 +48,9 @@ void AssetBuildTaskBase::on_finished()
 
 bool AssetBuildTaskBase::postcondition()
 {
-    if(mPromisedStatus == AssetStatus::READY)
-        return mPromisedAsset != nullptr;
-    if(mPromisedStatus == AssetStatus::FAILED)
+    if(mRecord->status == AssetStatus::READY)
+        return mRecord->asset != nullptr;
+    if(mRecord->status == AssetStatus::FAILED)
         return true;
     return false;
 }

@@ -4,6 +4,7 @@
 #include <Usagi/Modules/Runtime/Asset/AssetManager2.hpp>
 
 #include "AssetQuery.hpp"
+#include "AssetRequestProxy.hpp"
 
 namespace usagi
 {
@@ -13,8 +14,7 @@ AbRawMemoryView::AbRawMemoryView(const AssetPath path)
 }
 
 std::unique_ptr<AssetRawMemoryView> AbRawMemoryView::construct_with(
-    AssetManager2 &asset_manager,
-    TaskExecutor &executor)
+    AssetRequestProxy request_proxy) const
 {
     /*
      * Locate the asset package containing the requested asset following
@@ -22,7 +22,7 @@ std::unique_ptr<AssetRawMemoryView> AbRawMemoryView::construct_with(
      */
     MemoryArena arena;
     // The query goes through asset manager to have proper synchronization.
-    AssetQuery *query = asset_manager.create_asset_query(
+    AssetQuery *query = request_proxy.create_asset_query(
         { mCleanAssetPath },
         arena
     );

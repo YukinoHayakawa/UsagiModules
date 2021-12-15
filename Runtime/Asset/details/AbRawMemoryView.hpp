@@ -2,8 +2,7 @@
 
 #include <memory>
 
-#include "AssetBuilder.hpp"
-#include "AssetPath.hpp"
+#include "AssetRequestProxy.hpp"
 #include "AssetRawMemoryView.hpp"
 
 namespace usagi
@@ -23,8 +22,7 @@ public:
     explicit AbRawMemoryView(AssetPath path);
 
     std::unique_ptr<AssetRawMemoryView> construct_with(
-        AssetManager2 &asset_manager,
-        TaskExecutor &executor);
+        AssetRequestProxy request_proxy) const;
 };
 static_assert(AssetBuilder<AbRawMemoryView>);
 }

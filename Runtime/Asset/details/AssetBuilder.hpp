@@ -8,16 +8,21 @@
 
 namespace usagi
 {
+class AssetRequestProxy;
 class TaskExecutor;
 class AssetManager2;
 
+/*
+ * If the compiler complains about incomplete definition of AssetRequestProxy,
+ * include AssetRequestProxy.hpp at the site where the following two templates
+ * are used.
+ */
 template <typename Builder>
 struct AssetBuilderProductType
 {
     using ProductT = typename ExtractFirstTemplateParameter<
         decltype(std::declval<Builder>().construct_with(
-            std::declval<AssetManager2 &>(),
-            std::declval<TaskExecutor &>()
+            std::declval<AssetRequestProxy &>()
         ))
     >::type;
 };

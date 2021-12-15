@@ -5,19 +5,20 @@
 #include <Usagi/Runtime/Task.hpp>
 
 #include "AssetEnum.hpp"
-#include "AssetBuilder.hpp"
+#include "AssetRecord.hpp"
+#include "AssetRequestProxy.hpp"
 
 namespace usagi
 {
-class Asset;
+class AssetManager2;
+class TaskExecutor;
 
 class AssetBuildTaskBase : public Task
 {
 protected:
-    class AssetManager2 &mManager;
-    class TaskExecutor &mExecutor;
-    std::unique_ptr<Asset> &mPromisedAsset;
-    std::atomic<AssetStatus> &mPromisedStatus;
+    AssetManager2 &mManager;
+    TaskExecutor &mExecutor;
+    AssetRecord *mRecord = nullptr;
     std::promise<void> mPromise;
 
     void update_asset_status(AssetStatus status);
@@ -26,8 +27,7 @@ public:
     AssetBuildTaskBase(
         AssetManager2 &manager,
         TaskExecutor &executor,
-        std::unique_ptr<Asset> &promised_asset,
-        std::atomic<AssetStatus> &promised_status);
+        AssetRecord *record);
 
     // Used for notifying that the asset build task is finished (whether
     // succeeded or failed)
@@ -48,12 +48,9 @@ public:
     AssetBuildTask(
         AssetManager2 &manager,
         TaskExecutor &executor,
-        std::unique_ptr<Asset> &promised_asset,
-        std::atomic<AssetStatus> &promised_status,
+        AssetRecord *record,
         std::unique_ptr<BuilderT> builder)
-        : AssetBuildTaskBase(
-            manager, executor, promised_asset, promised_status
-        )
+        : AssetBuildTaskBase(manager, executor, record)
         , mBuilder(std::move(builder))
     {
     }
@@ -61,7 +58,9 @@ public:
     void run() override
     {
         // todo: hash dependency content?
-        mPromisedAsset = mBuilder->construct_with(mManager, mExecutor);
+        mRecord->asset = mBuilder->construct_with(
+            AssetRequestProxy(&mManager, &mExecutor, mRecord)
+        );
     }
 };
 }

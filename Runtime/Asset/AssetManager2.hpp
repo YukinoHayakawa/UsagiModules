@@ -5,11 +5,8 @@
 
 #include <Usagi/Runtime/ErrorHandling.hpp>
 
-#include "AssetHasher.hpp"
-#include "details/AssetBuilder.hpp"
+#include "details/AssetHasher.hpp"
 #include "details/AssetPackageManager.hpp"
-#include "details/AssetRecord.hpp"
-#include "details/AssetAccessProxy.hpp"
 #include "details/AssetBuildTask.hpp"
 
 namespace usagi
@@ -53,8 +50,14 @@ protected:
         return { it->first, &it->second };
     }
 
+    void register_dependency(AssetRecord *requester, AssetRecord *target);
+    void register_dependency(AssetRecord *requester, AssetPackage *target);
+
     template <AssetBuilder Builder, typename... Args>
-    AssetRecordRef load_asset(TaskExecutor &executor, Args &&...args)
+    AssetRecordRef load_asset(
+        AssetRecord *requester,
+        TaskExecutor &executor,
+        Args &&...args)
     {
         // Use the type hash of the builder and build parameters to build a
         // unique id of the requested asset.
@@ -97,8 +100,7 @@ protected:
             auto task = std::make_unique<AssetBuildTask<Builder>>(
                 *this,
                 executor,
-                it->second.asset,
-                it->second.status,
+                &it->second,
                 std::move(builder)
             );
             it->second.future = task->future();
@@ -116,13 +118,12 @@ protected:
             validate_builder_type<Builder>(it);
         }
 
+        if(requester) register_dependency(requester, &it->second);
+
         return it;
     }
 
     AssetRecordRef find_asset(AssetHashId id);
-
-    friend class AbRawMemoryView;
-    AssetQuery * create_asset_query(AssetPath path, MemoryArena &arena);
 
 public:
     // ========================= Package Management ========================= //
@@ -144,13 +145,9 @@ public:
      * a valid asset will be returned when the status indicates so.
      */
     template <AssetBuilder Builder, typename... Args>
-    AssetAccessProxy<typename AssetBuilderProductType<Builder>::ProductT>
-        asset(TaskExecutor &executor, Args &&...args)
+    auto asset(TaskExecutor &executor, Args &&...args)
     {
-        const auto it = load_asset<Builder>(
-            executor, std::forward<Args>(args)...);
-        return make_asset_access_proxy<
-            typename AssetBuilderProductType<Builder>::ProductT>(it);
+        return asset<Builder>(nullptr, executor, std::forward<Args>(args)...);
     }
 
     /*
@@ -167,6 +164,27 @@ public:
         if(it == mAssetRecords.end())
             return { id, nullptr };
         validate_builder_type<Builder>(it);
+        return make_asset_access_proxy<
+            typename AssetBuilderProductType<Builder>::ProductT>(it);
+    }
+
+protected:
+    friend class AssetRequestProxy;
+
+    AssetQuery * create_asset_query(
+        AssetRecord *requester,
+        AssetPath path,
+        MemoryArena &arena);
+
+    /*
+     * AssetRequestProxy uses this overload to register asset dependencies.
+     */
+    template <AssetBuilder Builder, typename... Args>
+    AssetAccessProxy<typename AssetBuilderProductType<Builder>::ProductT>
+        asset(AssetRecord *requester, TaskExecutor &executor, Args &&...args)
+    {
+        const auto it = load_asset<Builder>(
+            requester, executor, std::forward<Args>(args)...);
         return make_asset_access_proxy<
             typename AssetBuilderProductType<Builder>::ProductT>(it);
     }

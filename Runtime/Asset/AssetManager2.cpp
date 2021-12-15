@@ -1,6 +1,9 @@
 ﻿#include "AssetManager2.hpp"
 
+#include <Usagi/Modules/Common/Logging/Logging.hpp>
 #include <Usagi/Runtime/TaskExecutor.hpp>
+
+#include "details/AssetQuery.hpp"
 
 namespace usagi
 {
@@ -36,6 +39,7 @@ void AssetManager2::remove_package(AssetPackage *package)
 }
 
 AssetQuery * AssetManager2::create_asset_query(
+    AssetRecord *requester,
     AssetPath path,
     MemoryArena &arena)
 {
@@ -43,7 +47,23 @@ AssetQuery * AssetManager2::create_asset_query(
     // the query can cause modifications to certain package and that
     // is synchronized internally within the package impl.
     std::shared_lock lk(mPackageMutex);
-    return mPackageManager.create_query(path, arena);
+    const auto query = mPackageManager.create_query(path, arena);
+    if(query && requester) register_dependency(requester, query->package());
+    return query;
+}
+
+void AssetManager2::register_dependency(
+    AssetRecord *requester,
+    AssetRecord *target)
+{
+    LOG(trace, "[Asset] Asset {} -> Asset {}", (void*)requester, (void*)target);
+}
+
+void AssetManager2::register_dependency(
+    AssetRecord *requester,
+    AssetPackage *target)
+{
+    LOG(trace, "[Asset] Asset {} -> Package {}", (void*)requester, (void*)target);
 }
 
 AssetManager2::AssetRecordRef AssetManager2::find_asset(AssetHashId id)

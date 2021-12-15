@@ -39,6 +39,12 @@
     <ClCompile Include="details\AssetAccessProxy.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="details\AssetDependencyGraph.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="details\AssetRequestProxy.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="details\AssetEnum.hpp">
@@ -65,7 +71,7 @@
     <ClInclude Include="AssetManager2.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="AssetHasher.hpp">
+    <ClInclude Include="details\AssetHasher.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="details\AssetBuilder.hpp">
@@ -93,6 +99,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="details\AssetRawMemoryView.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="details\AssetDependencyGraph.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="details\AssetRequestProxy.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
