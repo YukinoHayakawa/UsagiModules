@@ -28,6 +28,7 @@ class AssetPackageFilesystem final : public AssetPackage
 
 public:
     explicit AssetPackageFilesystem(const std::filesystem::path &base_path);
+    ~AssetPackageFilesystem() override;
 
     AssetQuery * create_query(AssetPath path, MemoryArena &arena) override;
 

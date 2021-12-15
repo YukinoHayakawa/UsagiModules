@@ -1,4 +1,4 @@
-﻿#include "AssetBuilderRawMemoryView.hpp"
+﻿#include "AbRawMemoryView.hpp"
 
 #include <Usagi/Library/Memory/MemoryArena.hpp>
 #include <Usagi/Modules/Runtime/Asset/AssetManager2.hpp>
@@ -7,12 +7,12 @@
 
 namespace usagi
 {
-AssetBuilderRawMemoryView::AssetBuilderRawMemoryView(const AssetPath path)
+AbRawMemoryView::AbRawMemoryView(const AssetPath path)
     : mCleanAssetPath(path.reconstructed())
 {
 }
 
-std::unique_ptr<Asset> AssetBuilderRawMemoryView::construct_with(
+std::unique_ptr<AssetRawMemoryView> AbRawMemoryView::construct_with(
     AssetManager2 &asset_manager,
     TaskExecutor &executor)
 {

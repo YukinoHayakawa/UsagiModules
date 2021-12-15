@@ -10,14 +10,13 @@
 #include "details/AssetPackageManager.hpp"
 #include "details/AssetRecord.hpp"
 #include "details/AssetAccessProxy.hpp"
+#include "details/AssetBuildTask.hpp"
 
 namespace usagi
 {
-class AssetBuildTask;
-class AssetBuilder;
-
 class AssetManager2
 {
+protected:
     AssetPackageManager mPackageManager;
     std::shared_mutex mPackageMutex;
 
@@ -26,19 +25,36 @@ class AssetManager2
 public:
     using AssetRecordRef = decltype(mAssetRecords)::iterator;
 
-private:
+protected:
     // Extracted from the main asset request handling function to reduce code
     // size.
     std::pair<AssetRecordRef, bool> try_emplace(AssetHashId id);
 
-    void make_submit_build_task(
+    void submit_build_task(
         TaskExecutor &executor,
-        std::unique_ptr<AssetBuilder> builder,
+        std::unique_ptr<Task> build_task,
         AssetRecordRef it);
 
-    template <typename Builder, typename... Args>
+    template <AssetBuilder Builder>
+    static void validate_builder_type(const AssetRecordRef it)
+    {
+        USAGI_ASSERT_THROW(
+            it->second.builder_type == typeid(Builder),
+            std::runtime_error(
+                "AssetBuilder type doesn't match with the one used to "
+                "construct the asset. Hash collision or bug?"
+            )
+        );
+    }
+
+    template <typename AssetT>
+    static AssetAccessProxy<AssetT> make_asset_access_proxy(AssetRecordRef it)
+    {
+        return { it->first, &it->second };
+    }
+
+    template <AssetBuilder Builder, typename... Args>
     AssetRecordRef load_asset(TaskExecutor &executor, Args &&...args)
-        requires IsProperAssetBuilder<Builder>
     {
         // Use the type hash of the builder and build parameters to build a
         // unique id of the requested asset.
@@ -78,22 +94,35 @@ private:
             auto builder = std::make_unique<Builder>(
                 std::forward<Args>(args)...
             );
-            make_submit_build_task(executor, std::move(builder), it);
+            auto task = std::make_unique<AssetBuildTask<Builder>>(
+                *this,
+                executor,
+                it->second.asset,
+                it->second.status,
+                std::move(builder)
+            );
+            it->second.future = task->future();
+            it->second.builder_type = typeid(Builder);
+
+            submit_build_task(
+                executor,
+                std::unique_ptr<Task>(task.release()),
+                it
+            );
         }
         else
         {
-            USAGI_THROW(std::runtime_error("Hash collision."));
+            // todo: warn inefficient access to asset
+            validate_builder_type<Builder>(it);
         }
 
         return it;
     }
 
-    /*
-     * Grab a snapshot of the asset state. The build task always assigns
-     * asset status prior to the asset pointer, so it's guaranteed that
-     * a valid asset will be returned when the status indicates so.
-     */
-    static AssetAccessProxy result_from(AssetRecordRef it);
+    AssetRecordRef find_asset(AssetHashId id);
+
+    friend class AbRawMemoryView;
+    AssetQuery * create_asset_query(AssetPath path, MemoryArena &arena);
 
 public:
     // ========================= Package Management ========================= //
@@ -101,8 +130,6 @@ public:
     // todo: adding/removing an asset package should not happen while there is any active asset loading task, or during any request of assets. because loading tasks may hold references to asset entries and changes in packages may invalidate them.
     void add_package(std::unique_ptr<AssetPackage> package);
     void remove_package(AssetPackage *package);
-
-    AssetQuery * create_asset_query(AssetPath path, MemoryArena &arena);
 
     // =========================== Asset Request ============================ //
 
@@ -112,13 +139,18 @@ public:
      * have certain hash helper function implemented, which will be found via
      * ADL and participate in the building of the id. The id is guaranteed to
      * be unique for each unique set of build parameters.
+     * Returns a snapshot of the asset state. The build task always assigns
+     * asset status prior to the asset pointer, so it's guaranteed that
+     * a valid asset will be returned when the status indicates so.
      */
-    template <typename Builder, typename... Args>
-    AssetAccessProxy asset(TaskExecutor &executor, Args &&...args)
+    template <AssetBuilder Builder, typename... Args>
+    AssetAccessProxy<typename AssetBuilderProductType<Builder>::ProductT>
+        asset(TaskExecutor &executor, Args &&...args)
     {
-        return result_from(
-            load_asset<Builder>(executor, std::forward<Args>(args)...)
-        );
+        const auto it = load_asset<Builder>(
+            executor, std::forward<Args>(args)...);
+        return make_asset_access_proxy<
+            typename AssetBuilderProductType<Builder>::ProductT>(it);
     }
 
     /*
@@ -127,6 +159,16 @@ public:
      * if the asset couldn't be found, the previous function have to be called
      * again.
      */
-    AssetAccessProxy asset(AssetHashId id);
+    template <AssetBuilder Builder>
+    AssetAccessProxy<typename AssetBuilderProductType<Builder>::ProductT>
+        asset(AssetHashId id)
+    {
+        const auto it = find_asset(id);
+        if(it == mAssetRecords.end())
+            return { id, nullptr };
+        validate_builder_type<Builder>(it);
+        return make_asset_access_proxy<
+            typename AssetBuilderProductType<Builder>::ProductT>(it);
+    }
 };
 }

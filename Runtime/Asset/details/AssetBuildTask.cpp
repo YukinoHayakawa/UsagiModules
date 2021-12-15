@@ -6,30 +6,29 @@
 namespace usagi
 {
 // ReSharper disable once CppMemberFunctionMayBeConst
-void AssetBuildTask::update_asset_status(const AssetStatus status)
+void AssetBuildTaskBase::update_asset_status(const AssetStatus status)
 {
     mPromisedStatus.store(status, std::memory_order::release);
 }
 
-AssetBuildTask::AssetBuildTask(
+AssetBuildTaskBase::AssetBuildTaskBase(
     AssetManager2 &manager,
     TaskExecutor &executor,
     std::unique_ptr<Asset> &promised_asset,
-    std::atomic<AssetStatus> &promised_status,
-    std::unique_ptr<AssetBuilder> builder): mManager(manager)
+    std::atomic<AssetStatus> &promised_status)
+    : mManager(manager)
     , mExecutor(executor)
     , mPromisedAsset(promised_asset)
     , mPromisedStatus(promised_status)
-    , mBuilder(std::move(builder))
 {
 }
 
-std::shared_future<void> AssetBuildTask::future()
+std::shared_future<void> AssetBuildTaskBase::future()
 {
     return mPromise.get_future();
 }
 
-bool AssetBuildTask::precondition()
+bool AssetBuildTaskBase::precondition()
 {
     // We should be the only instance processing the asset.
     const auto a = mPromisedStatus == AssetStatus::QUEUED;
@@ -38,28 +37,12 @@ bool AssetBuildTask::precondition()
     return a && b;
 }
 
-void AssetBuildTask::on_started()
+void AssetBuildTaskBase::on_started()
 {
     update_asset_status(AssetStatus::LOADING);
 }
 
-void AssetBuildTask::run()
-{
-    // todo: hash dependency content?
-    // XXHash64 hasher(0);
-
-    // mEntry->meta().fingerprint_dep_content = hasher.hash();
-    // mPromise.set_value(mEntry->meta());
-
-    // Build the asset
-    auto object = mBuilder->construct_with(mManager, mExecutor);
-    // todo verify the type of returned object is the same as declared by SecondaryAssetT
-    mPromisedAsset = std::move(object);
-
-    // mEntry->fingerprint_dep_content = hasher.hash();
-}
-
-void AssetBuildTask::on_finished()
+void AssetBuildTaskBase::on_finished()
 {
     if(mPromisedAsset)
         update_asset_status(AssetStatus::READY);
@@ -69,7 +52,7 @@ void AssetBuildTask::on_finished()
     mPromise.set_value();
 }
 
-bool AssetBuildTask::postcondition()
+bool AssetBuildTaskBase::postcondition()
 {
     if(mPromisedStatus == AssetStatus::READY)
         return mPromisedAsset != nullptr;

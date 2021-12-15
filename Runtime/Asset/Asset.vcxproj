@@ -58,7 +58,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="details\AssetBuilderRawMemoryView.cpp" />
+    <ClCompile Include="details\AbRawMemoryView.cpp" />
     <ClCompile Include="details\AssetBuildTask.cpp" />
     <ClCompile Include="details\AssetEnum.cpp" />
     <ClCompile Include="AssetManager2.cpp" />
@@ -70,7 +70,7 @@
   <ItemGroup>
     <ClInclude Include="Asset.hpp" />
     <ClInclude Include="details\AssetBuilder.hpp" />
-    <ClInclude Include="details\AssetBuilderRawMemoryView.hpp" />
+    <ClInclude Include="details\AbRawMemoryView.hpp" />
     <ClInclude Include="details\AssetBuildTask.hpp" />
     <ClInclude Include="details\AssetDefs.hpp" />
     <ClInclude Include="details\AssetEnum.hpp" />
@@ -80,6 +80,7 @@
     <ClInclude Include="details\AssetQuery.hpp" />
     <ClInclude Include="details\AssetPackageManager.hpp" />
     <ClInclude Include="AssetPackage.hpp" />
+    <ClInclude Include="details\AssetRawMemoryView.hpp" />
     <ClInclude Include="details\AssetRecord.hpp" />
     <ClInclude Include="details\AssetAccessProxy.hpp" />
     <ClInclude Include="details\AssetState.hpp" />

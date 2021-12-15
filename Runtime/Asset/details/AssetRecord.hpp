@@ -3,6 +3,7 @@
 #include <atomic>
 #include <future>
 #include <memory>
+#include <typeindex>
 
 #include "AssetDefs.hpp"
 #include "AssetState.hpp"
@@ -19,6 +20,7 @@ struct AssetRecord
     AssetReference ref_tracker = std::shared_ptr<void>(nullptr, [](auto) { });
     // Note: future object should be reset when the asset is unloaded.
     std::shared_future<void> future;
+    std::type_index builder_type = typeid(void);
     // This variable is used as a synchronization barrier to make sure
     // that once the asset is constructed, it is visible when being
     // requested.

@@ -2,8 +2,6 @@
 
 #include <Usagi/Runtime/TaskExecutor.hpp>
 
-#include "details/AssetBuildTask.hpp"
-
 namespace usagi
 {
 std::pair<AssetManager2::AssetRecordRef, bool>
@@ -15,26 +13,14 @@ AssetManager2::try_emplace(const AssetHashId id)
     return { it, inserted };
 }
 
-void AssetManager2::make_submit_build_task(
+// ReSharper disable once CppMemberFunctionMayBeConst
+void AssetManager2::submit_build_task(
     TaskExecutor &executor,
-    std::unique_ptr<AssetBuilder> builder,
+    std::unique_ptr<Task> build_task,
     const AssetRecordRef it)
 {
-    auto task = std::make_unique<AssetBuildTask>(
-        *this,
-        executor,
-        it->second.asset,
-        it->second.status,
-        std::move(builder)
-    );
-    it->second.future = task->future();
-    executor.submit(std::move(task));
+    executor.submit(std::move(build_task));
     it->second.status.store(AssetStatus::QUEUED, std::memory_order::release);
-}
-
-AssetAccessProxy AssetManager2::result_from(AssetRecordRef it)
-{
-    return { it->first, &it->second };
 }
 
 void AssetManager2::add_package(std::unique_ptr<AssetPackage> package)
@@ -60,12 +46,10 @@ AssetQuery * AssetManager2::create_asset_query(
     return mPackageManager.create_query(path, arena);
 }
 
-AssetAccessProxy AssetManager2::asset(AssetHashId id)
+AssetManager2::AssetRecordRef AssetManager2::find_asset(AssetHashId id)
 {
     std::shared_lock lk(mAssetTableMutex);
     const auto it = mAssetRecords.find(id);
-    if(it == mAssetRecords.end())
-        return { id, nullptr };
-    return result_from(it);
+    return it;
 }
 }

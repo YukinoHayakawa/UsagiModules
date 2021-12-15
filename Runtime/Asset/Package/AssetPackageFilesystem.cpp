@@ -26,22 +26,16 @@ public:
 
     AssetPackage * package() const override { return mPackage; }
 
-    void fetch() override;
-    bool ready() const override;
-    ReadonlyMemoryView data() override;
+    void fetch() override
+    {
+        mMapping.prefetch();
+        mFetched = true;
+    }
+
+    bool ready() const override { return mFetched; }
+    ReadonlyMemoryView data() override { return mMapping.memory_region(); }
     // void evict() override;
 };
-
-bool AssetQueryFilesystem::ready() const
-{
-    return mFetched;
-}
-
-void AssetQueryFilesystem::fetch()
-{
-    mMapping.prefetch();
-    mFetched = true;
-}
 
 // void AssetQueryFilesystem::evict()
 // {
@@ -208,6 +202,10 @@ AssetPackageFilesystem::AssetPackageFilesystem(
     const std::filesystem::path &base_path)
     : mWatcher(create_filesystem_watcher(canonical(base_path)))
     , mBasePathStr(this->base_path().string())
+{
+}
+
+AssetPackageFilesystem::~AssetPackageFilesystem()
 {
 }
 
