@@ -11,8 +11,10 @@ void AssetBuildTaskBase::update_asset_status(const AssetStatus status)
 AssetBuildTaskBase::AssetBuildTaskBase(
     AssetManager2 &manager,
     TaskExecutor &executor,
+    AssetHashId id,
     AssetRecord *record): mManager(manager)
     , mExecutor(executor)
+    , mId(id)
     , mRecord(record)
 {
 }

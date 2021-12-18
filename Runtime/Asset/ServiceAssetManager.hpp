@@ -2,9 +2,9 @@
 
 #include <Usagi/Runtime/Service/SimpleService.hpp>
 
-#include "AssetManager.hpp"
+#include "AssetManager2.hpp"
 
 namespace usagi
 {
-using ServiceAssetManager = SimpleService<AssetManager>;
+using ServiceAssetManager = SimpleService<AssetManager2>;
 }

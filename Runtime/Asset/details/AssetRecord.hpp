@@ -6,7 +6,6 @@
 #include <typeindex>
 
 #include "AssetDefs.hpp"
-#include "AssetState.hpp"
 
 namespace usagi
 {

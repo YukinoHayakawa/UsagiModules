@@ -5,13 +5,9 @@
 namespace usagi
 {
 AssetPackageManager::PackageRef AssetPackageManager::add_package(
-    std::unique_ptr<AssetPackage> package,
-    const std::uint64_t vertex)
+    std::unique_ptr<AssetPackage> package)
 {
-    PackageEntry pkg_meta;
-    pkg_meta.package = std::move(package);
-    pkg_meta.vertex = vertex;
-    const auto iter = mPackages.emplace(mPackages.end(), std::move(pkg_meta));
+    const auto iter = mPackages.emplace(mPackages.end(), std::move(package));
     return iter;
 }
 
@@ -32,7 +28,7 @@ AssetPackageManager::PackageRef AssetPackageManager::locate_package(
 {
     // Locate the package in the dependency graph
     const auto it_pkg = std::ranges::find(mPackages, package, [](auto &&v) {
-        return v.package.get();
+        return v.get();
     });
 
     USAGI_ASSERT_THROW(
@@ -47,10 +43,10 @@ AssetQuery * AssetPackageManager::create_query(
     const AssetPath path,
     MemoryArena &arena)
 {
-    AssetQuery *query = nullptr;
+    AssetQuery *query;
     // search in reverse order of added packages, so that packages added later
     // override those added earlier.
-    for(const auto &[package, _] : std::ranges::reverse_view(mPackages))
+    for(auto &&package : std::ranges::reverse_view(mPackages))
         if((query = package->create_query(path, arena)))
             return query;
 

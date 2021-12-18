@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include <list>
+#include <vector>
 #include <memory>
 
 #include <Usagi/Library/Memory/Noncopyable.hpp>
@@ -14,24 +14,21 @@ class AssetQuery;
 
 class AssetPackageManager : Noncopyable
 {
-    struct PackageEntry
-    {
-        std::unique_ptr<AssetPackage> package;
-        // vertex id in asset dependency graph
-        std::uint64_t vertex = -1;
-    };
-
-    std::list<PackageEntry> mPackages;
+    std::vector<std::unique_ptr<AssetPackage>> mPackages;
 
 public:
     using PackageRef = decltype(mPackages)::iterator;
 
     // todo: adding/removing an asset package should not happen while there is any active asset loading task, or during any request of assets. because loading tasks may hold references to asset entries and changes in packages may invalidate them.
-    PackageRef add_package(
-        std::unique_ptr<AssetPackage> package,
-        std::uint64_t vertex);
+    PackageRef add_package(std::unique_ptr<AssetPackage> package);
     void remove_package(AssetPackage *package);
     void remove_package(PackageRef package);
+
+    void visit_packages(auto visitor)
+    {
+        for(auto &&pkg : std::ranges::reverse_view(mPackages))
+            visitor(pkg.get());
+    }
 
     // Locate the entry in loaded packages.
     PackageRef locate_package(

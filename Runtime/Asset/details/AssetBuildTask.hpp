@@ -18,6 +18,7 @@ class AssetBuildTaskBase : public Task
 protected:
     AssetManager2 &mManager;
     TaskExecutor &mExecutor;
+    AssetHashId mId = 0;
     AssetRecord *mRecord = nullptr;
     std::promise<void> mPromise;
 
@@ -27,6 +28,7 @@ public:
     AssetBuildTaskBase(
         AssetManager2 &manager,
         TaskExecutor &executor,
+        AssetHashId id,
         AssetRecord *record);
 
     // Used for notifying that the asset build task is finished (whether
@@ -48,9 +50,10 @@ public:
     AssetBuildTask(
         AssetManager2 &manager,
         TaskExecutor &executor,
+        const AssetHashId id,
         AssetRecord *record,
         std::unique_ptr<BuilderT> builder)
-        : AssetBuildTaskBase(manager, executor, record)
+        : AssetBuildTaskBase(manager, executor, id, record)
         , mBuilder(std::move(builder))
     {
     }
@@ -59,7 +62,7 @@ public:
     {
         // todo: hash dependency content?
         mRecord->asset = mBuilder->construct_with(
-            AssetRequestProxy(&mManager, &mExecutor, mRecord)
+            AssetRequestProxy(&mManager, &mExecutor, mId)
         );
     }
 };

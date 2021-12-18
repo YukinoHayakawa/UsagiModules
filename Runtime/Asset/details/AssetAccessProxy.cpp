@@ -10,10 +10,9 @@ void AssetAccessProxyBase::grab_state_snapshot()
 {
     // Make sure that if status indicates the asset is ready, the pointer
     // must be valid.
-    mStateSnapshot.status = mRecord->status.load(std::memory_order::acquire);
-    mStateSnapshot.asset = mRecord->asset.get();
-    assert((mStateSnapshot.status != AssetStatus::READY
-        || mStateSnapshot.asset)
+    mStatus = mRecord->status.load(std::memory_order::acquire);
+    mAsset = mRecord->asset.get();
+    assert((mStatus != AssetStatus::READY || mAsset)
         && "If the asset is ready, the pointer must be set.");
 }
 
@@ -22,7 +21,7 @@ AssetAccessProxyBase::AssetAccessProxyBase(const AssetHashId id, AssetRecord *re
     , mRecord(record)
 {
     if(has_record()) grab_state_snapshot();
-    else mStateSnapshot.status = AssetStatus::MISSING;
+    else mStatus = AssetStatus::MISSING;
 }
 
 Asset * AssetAccessProxyBase::maybe_asset() const
@@ -30,7 +29,7 @@ Asset * AssetAccessProxyBase::maybe_asset() const
     if(has_record())
     {
         assert(status() == AssetStatus::READY);
-        return mStateSnapshot.asset;
+        return mAsset;
     }
     return { };
 }

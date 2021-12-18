@@ -17,25 +17,20 @@ class AssetRequestProxy
 {
 	AssetManager2 *mManager = nullptr;
     TaskExecutor *mExecutor = nullptr;
-    AssetRecord *mRecord = nullptr;
+    AssetHashId mRequester = 0;
 
 public:
     AssetRequestProxy(
         AssetManager2 *manager,
         TaskExecutor *executor,
-        AssetRecord *record)
-        : mManager(manager)
-        , mExecutor(executor)
-        , mRecord(record)
-    {
-    }
+        AssetHashId requester);
 
     template <AssetBuilder Builder, typename... Args>
     AssetAccessProxy<typename AssetBuilderProductType<Builder>::ProductT>
         asset(Args &&...args) const
     {
         return mManager->asset<Builder>(
-            mRecord,
+            mRequester,
             *mExecutor,
             std::forward<Args>(args)...
         );

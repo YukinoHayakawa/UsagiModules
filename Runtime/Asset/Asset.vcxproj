@@ -60,7 +60,6 @@
   <ItemGroup>
     <ClCompile Include="details\AbRawMemoryView.cpp" />
     <ClCompile Include="details\AssetBuildTask.cpp" />
-    <ClCompile Include="details\AssetDependencyGraph.cpp" />
     <ClCompile Include="details\AssetEnum.cpp" />
     <ClCompile Include="AssetManager2.cpp" />
     <ClCompile Include="details\AssetPath.cpp" />
@@ -75,7 +74,6 @@
     <ClInclude Include="details\AbRawMemoryView.hpp" />
     <ClInclude Include="details\AssetBuildTask.hpp" />
     <ClInclude Include="details\AssetDefs.hpp" />
-    <ClInclude Include="details\AssetDependencyGraph.hpp" />
     <ClInclude Include="details\AssetEnum.hpp" />
     <ClInclude Include="details\AssetHasher.hpp" />
     <ClInclude Include="AssetManager2.hpp" />
@@ -87,7 +85,6 @@
     <ClInclude Include="details\AssetRecord.hpp" />
     <ClInclude Include="details\AssetAccessProxy.hpp" />
     <ClInclude Include="details\AssetRequestProxy.hpp" />
-    <ClInclude Include="details\AssetState.hpp" />
     <ClInclude Include="Package\AssetPackageFilesystem.hpp" />
     <ClInclude Include="ServiceAssetManager.hpp" />
   </ItemGroup>

@@ -2,10 +2,10 @@
 
 #include "AssetDefs.hpp"
 #include "AssetEnum.hpp"
-#include "AssetState.hpp"
 
 namespace usagi
 {
+class Asset;
 struct AssetRecord;
 class AssetManager2;
 
@@ -22,7 +22,9 @@ class AssetAccessProxyBase
 {
     AssetHashId mId = 0;
     AssetRecord *mRecord;
-    AssetState mStateSnapshot;
+    // Snapshot of asset ptr & status when this proxy is constructed.
+    Asset *mAsset = nullptr;
+    AssetStatus mStatus = AssetStatus::MISSING;
 
     // Shares the ownership of the asset with AssetManager to prevent it
     // from being evicted while in use.
@@ -56,7 +58,7 @@ public:
     * if it is already loaded or loading, because this object holds a reference
     * to the asset.
     */
-    AssetStatus status() const { return mStateSnapshot.status; }
+    AssetStatus status() const { return mStatus; }
 };
 
 template <typename AssetT>

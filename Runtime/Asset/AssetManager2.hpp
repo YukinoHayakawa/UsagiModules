@@ -1,7 +1,9 @@
 ﻿#pragma once
 
 #include <map>
+#include <set>
 #include <shared_mutex>
+#include <variant>
 
 #include <Usagi/Runtime/ErrorHandling.hpp>
 
@@ -18,11 +20,17 @@ protected:
     std::shared_mutex mPackageMutex;
 
     std::map<AssetHashId, AssetRecord> mAssetRecords;
-    std::shared_mutex mAssetTableMutex;
-public:
     using AssetRecordRef = decltype(mAssetRecords)::iterator;
+    std::shared_mutex mAssetTableMutex;
 
-protected:
+    // <From, To>
+    using Vertex = std::variant<AssetPackage *, AssetHashId>;
+    std::map<Vertex, std::set<Vertex>> mDependencies;
+    // <To, From> Used for tracking incoming edges.
+    std::map<Vertex, std::set<Vertex>> mDependencyReversed;
+    using DependencyEdgeRef = decltype(mDependencies)::iterator;
+    std::shared_mutex mDependencyGraphMutex;
+
     // Extracted from the main asset request handling function to reduce code
     // size.
     std::pair<AssetRecordRef, bool> try_emplace(AssetHashId id);
@@ -50,12 +58,9 @@ protected:
         return { it->first, &it->second };
     }
 
-    void register_dependency(AssetRecord *requester, AssetRecord *target);
-    void register_dependency(AssetRecord *requester, AssetPackage *target);
-
     template <AssetBuilder Builder, typename... Args>
     AssetRecordRef load_asset(
-        AssetRecord *requester,
+        AssetHashId requester,
         TaskExecutor &executor,
         Args &&...args)
     {
@@ -66,6 +71,8 @@ protected:
         const auto type_hash = typeid(Builder).hash_code();
         hasher.append(type_hash);
         (..., hasher.append(args));
+
+        assert(hasher.hash() && "Asset ID shouldn't be zero.");
 
         // Use the asset hash to query the asset entry table.
         // Note: critical section inside.
@@ -100,6 +107,7 @@ protected:
             auto task = std::make_unique<AssetBuildTask<Builder>>(
                 *this,
                 executor,
+                it->first,
                 &it->second,
                 std::move(builder)
             );
@@ -118,11 +126,12 @@ protected:
             validate_builder_type<Builder>(it);
         }
 
-        if(requester) register_dependency(requester, &it->second);
+        if(requester) register_dependency(requester, it->first);
 
         return it;
     }
 
+    AssetRecordRef find_asset_nolock(AssetHashId id);
     AssetRecordRef find_asset(AssetHashId id);
 
 public:
@@ -147,7 +156,7 @@ public:
     template <AssetBuilder Builder, typename... Args>
     auto asset(TaskExecutor &executor, Args &&...args)
     {
-        return asset<Builder>(nullptr, executor, std::forward<Args>(args)...);
+        return asset<Builder>(0, executor, std::forward<Args>(args)...);
     }
 
     /*
@@ -172,7 +181,7 @@ protected:
     friend class AssetRequestProxy;
 
     AssetQuery * create_asset_query(
-        AssetRecord *requester,
+        AssetHashId requester,
         AssetPath path,
         MemoryArena &arena);
 
@@ -181,12 +190,28 @@ protected:
      */
     template <AssetBuilder Builder, typename... Args>
     AssetAccessProxy<typename AssetBuilderProductType<Builder>::ProductT>
-        asset(AssetRecord *requester, TaskExecutor &executor, Args &&...args)
+        asset(AssetHashId requester, TaskExecutor &executor, Args &&...args)
     {
         const auto it = load_asset<Builder>(
             requester, executor, std::forward<Args>(args)...);
         return make_asset_access_proxy<
             typename AssetBuilderProductType<Builder>::ProductT>(it);
     }
+
+    // ========================= Asset Dependency =========================== //
+
+    void register_dependency(AssetHashId requester, AssetHashId target);
+    void register_dependency(AssetHashId requester, AssetPackage *target);
+    bool has_dependency_edge(Vertex from, AssetHashId to);
+    void erase_dependency_edge(Vertex from, AssetHashId to);
+
+    void unload_asset_nolock(AssetHashId asset);
+
+    /*
+     * Unload all assets directly or transitively depending on the specified
+     * asset, including itself.
+     */
+    void unload_derivative_assets(AssetHashId asset);
+    void unload_derivative_assets_nolock(AssetHashId asset);
 };
 }
