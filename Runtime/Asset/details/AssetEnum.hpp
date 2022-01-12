@@ -26,26 +26,32 @@ std::string_view to_string(AssetPriority val);
 // todo update desc
 enum class AssetStatus : std::uint8_t
 {
-    // For primary assets, this means the asset couldn't be found in any source.
-    // For secondary assets, this means the asset couldn't be found in the
-    // cache. A secondary asset handler must be provided to rebuild the cache.
-    MISSING = 0,
+    // The asset could not be found in any package.
+    MISSING     = 0,
 
     // The asset exists, but the current operation will not cause it to be
     // loaded into memory.
-    EXIST   = 1,
+    EXIST       = 1,
+
+    // The asset exists but the file is locked by external program and
+    // currently cannot be accessed.
+    EXIST_BUSY  = 2,
 
     // A task has been queued to load the asset into memory.
-    QUEUED  = 2,
+    QUEUED      = 3,
 
     // A task is actively loading the content of asset into memory.
-    LOADING = 3,
+    LOADING     = 4,
 
     // The asset is loaded.
-    READY   = 4,
+    READY       = 5,
 
     // The asset was failed to load.
-    FAILED  = 5,
+    FAILED      = 6,
+
+    // The asset is usable, but its content may be outdated due to changes
+    // made to dependent assets or asset packages.
+    OUTDATED    = 7,
 
     // A primary dependency could not be found.
     // Although missing a dependency could be a critical error, it is not hard
@@ -54,7 +60,7 @@ enum class AssetStatus : std::uint8_t
     // the failure of secondary asset handler in processing the asset usually
     // indicates more serious errors such as bugs. So in that case, it's
     // more suitable to throw an exception.
-    MISSING_DEPENDENCY = 6,
+    MISSING_DEPENDENCY = 8,
 };
 
 std::string_view to_string(AssetStatus val);

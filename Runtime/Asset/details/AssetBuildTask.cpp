@@ -40,20 +40,22 @@ void AssetBuildTaskBase::on_started()
 
 void AssetBuildTaskBase::on_finished()
 {
-    if(mRecord->asset)
-        update_asset_status(AssetStatus::READY);
-    else
-        // todo: fail reason?
-        update_asset_status(AssetStatus::FAILED);
+    update_asset_status(mStatus);
     mPromise.set_value();
 }
 
 bool AssetBuildTaskBase::postcondition()
 {
-    if(mRecord->status == AssetStatus::READY)
-        return mRecord->asset != nullptr;
-    if(mRecord->status == AssetStatus::FAILED)
-        return true;
-    return false;
+    switch(mStatus)
+    {
+        case AssetStatus::MISSING:
+        case AssetStatus::MISSING_DEPENDENCY:
+        case AssetStatus::EXIST_BUSY:
+        case AssetStatus::FAILED:
+            return mRecord->asset == nullptr;
+        case AssetStatus::READY:
+            return mRecord->asset != nullptr;
+        default: return false;
+    }
 }
 }

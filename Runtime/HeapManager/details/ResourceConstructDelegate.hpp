@@ -41,10 +41,8 @@ public:
 
     template <
         typename AnotherBuilderT,
-        typename BuildParamTupleFuncT
+        typename... Args
     >
-    auto resource(
-        const HeapResourceDescriptor resource_cache_id,
-        BuildParamTupleFuncT &&build_params);
+    auto resource(Args &&...build_params);
 };
 }

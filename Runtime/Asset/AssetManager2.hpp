@@ -6,6 +6,7 @@
 #include <variant>
 
 #include <Usagi/Runtime/ErrorHandling.hpp>
+#include <Usagi/Runtime/ReturnValue.hpp>
 
 #include "details/AssetHasher.hpp"
 #include "details/AssetPackageManager.hpp"
@@ -59,10 +60,7 @@ protected:
     }
 
     template <AssetBuilder Builder, typename... Args>
-    AssetRecordRef load_asset(
-        AssetHashId requester,
-        TaskExecutor &executor,
-        Args &&...args)
+    static AssetHashId build_asset_id(Args &&...args)
     {
         // Use the type hash of the builder and build parameters to build a
         // unique id of the requested asset.
@@ -74,33 +72,47 @@ protected:
 
         assert(hasher.hash() && "Asset ID shouldn't be zero.");
 
+        return hasher.hash();
+    }
+
+    template <AssetBuilder Builder, typename... Args>
+    AssetRecordRef load_asset(
+        AssetHashId requester,
+        TaskExecutor &executor,
+        Args &&...args)
+    {
+        const auto id = build_asset_id<Builder>(std::forward<Args>(args)...);
+
         // Use the asset hash to query the asset entry table.
         // Note: critical section inside.
-        const auto [it, inserted] = try_emplace(hasher.hash());
+        const auto [it, inserted] = try_emplace(id);
 
         /*
-        * If the asset is not loaded, construct the builder and delegate the
-        * construction task to the task executor provided by the user.
-        * Then return a notice telling the user of the current state of the
-        * asset. Note that the state could be volatile due to the async
-        * construction of the asset.
-        * Only one of the concurrent requests will be able to insert the
-        * asset. So the build task will also be uniquely created.
-        * todo: what if the asset is being evicted here?
-        */
-        if(inserted == true)
+         * If the asset is not loaded, construct the builder and delegate the
+         * construction task to the task executor provided by the user.
+         * Then return a notice telling the user of the current state of the
+         * asset. Note that the state could be volatile due to the async
+         * construction of the asset.
+         * Only one of the concurrent requests will be able to insert the
+         * asset. So the build task will also be uniquely created.
+         * todo: what if the asset is being evicted here?
+         */
+        if(inserted == true ||
+            it->second.status == AssetStatus::EXIST_BUSY ||
+            it->second.status == AssetStatus::FAILED ||
+            it->second.status == AssetStatus::MISSING_DEPENDENCY)
         {
             /*
-            * Builder is responsible for constructing an asset. Build task is
-            * a wrapper that holds the builder. The build task is submitted
-            * to the executor containing the builder and when it is executed,
-            * it will invoke the builder with this asset manager and the
-            * task executor provided by the user. The builder can request
-            * other assets via the provided asset manager. The requests will
-            * be recorded and regarded as a dependency relationship that will
-            * be visited when the depended assets are changed. In that case,
-            * the outdated assets will be unloaded.
-            */
+             * Builder is responsible for constructing an asset. Build task is
+             * a wrapper that holds the builder. The build task is submitted
+             * to the executor containing the builder and when it is executed,
+             * it will invoke the builder with this asset manager and the
+             * task executor provided by the user. The builder can request
+             * other assets via the provided asset manager. The requests will
+             * be recorded and regarded as a dependency relationship that will
+             * be visited when the depended assets are changed. In that case,
+             * the outdated assets will be unloaded.
+             */
             auto builder = std::make_unique<Builder>(
                 std::forward<Args>(args)...
             );
@@ -177,10 +189,14 @@ public:
             typename AssetBuilderProductType<Builder>::ProductT>(it);
     }
 
+    // ========================= Asset Dependency =========================== //
+
+    void poll_asset_changes();
+
 protected:
     friend class AssetRequestProxy;
 
-    AssetQuery * create_asset_query(
+    ReturnValue<AssetStatus, AssetQuery *> create_asset_query(
         AssetHashId requester,
         AssetPath path,
         MemoryArena &arena);
@@ -201,17 +217,31 @@ protected:
     // ========================= Asset Dependency =========================== //
 
     void register_dependency(AssetHashId requester, AssetHashId target);
-    void register_dependency(AssetHashId requester, AssetPackage *target);
+    void register_dependency_nolock(AssetHashId requester, AssetPackage *target);
     bool has_dependency_edge(Vertex from, AssetHashId to);
-    void erase_dependency_edge(Vertex from, AssetHashId to);
+    void erase_dependency_edge_nolock(Vertex from, AssetHashId to);
 
-    void unload_asset_nolock(AssetHashId asset);
+    void unload_single_asset_nolock(AssetHashId asset);
 
     /*
      * Unload all assets directly or transitively depending on the specified
      * asset, including itself.
+     * bug: not exception safe
      */
-    void unload_derivative_assets(AssetHashId asset);
+    bool unload_derivative_assets_nolock(
+        AssetPath asset,
+        AssetPackage *from_package = nullptr);
     void unload_derivative_assets_nolock(AssetHashId asset);
+    void unload_derivative_assets_nolock(AssetPackage *package);
+    void unload_derivative_assets_nolock_helper(
+        Vertex vertex,
+        bool is_package = false);
+
+    friend class AssetChangeCallbackProxy;
+
+    void unload_subtree(AssetPath path, AssetPackage *from_package = nullptr);
+    void unload_package_assets(AssetPackage *from_package);
+    void unload_overriden_asset(AssetPath path);
+    void unload_overriden_subtree(AssetPath path);
 };
 }

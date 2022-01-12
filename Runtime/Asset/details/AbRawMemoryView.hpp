@@ -21,8 +21,9 @@ class AbRawMemoryView
 public:
     explicit AbRawMemoryView(AssetPath path);
 
-    std::unique_ptr<AssetRawMemoryView> construct_with(
-        AssetRequestProxy request_proxy) const;
+    ReturnValue<AssetStatus, std::unique_ptr<AssetRawMemoryView>>
+    construct_with(AssetRequestProxy request_proxy) const;
 };
+
 static_assert(AssetBuilder<AbRawMemoryView>);
 }

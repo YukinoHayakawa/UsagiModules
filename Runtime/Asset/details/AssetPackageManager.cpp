@@ -2,6 +2,8 @@
 
 #include <Usagi/Runtime/ErrorHandling.hpp>
 
+#include "../AssetManager2.hpp"
+
 namespace usagi
 {
 AssetPackageManager::PackageRef AssetPackageManager::add_package(
@@ -39,17 +41,28 @@ AssetPackageManager::PackageRef AssetPackageManager::locate_package(
     return it_pkg;
 }
 
-AssetQuery * AssetPackageManager::create_query(
+ReturnValue<AssetStatus, AssetQuery *> AssetPackageManager::create_query(
     const AssetPath path,
     MemoryArena &arena)
 {
-    AssetQuery *query;
     // search in reverse order of added packages, so that packages added later
     // override those added earlier.
     for(auto &&package : std::ranges::reverse_view(mPackages))
-        if((query = package->create_query(path, arena)))
-            return query;
+    {
+        auto [status, query] = package->create_query(path, arena);
+        if(status != AssetStatus::MISSING)
+            return { status, query };
+    }
 
-    return nullptr;
+    return { AssetStatus::MISSING, nullptr };
+}
+
+void AssetPackageManager::poll_asset_changes(
+    AssetChangeCallbackProxy &callback)
+{
+    // std::size_t num_changed_assets = 0;
+    for(auto &&package : std::ranges::reverse_view(mPackages))
+        package->poll_asset_changes(callback);
+    // return num_changed_assets;
 }
 }

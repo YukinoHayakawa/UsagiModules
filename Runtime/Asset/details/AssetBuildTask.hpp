@@ -21,6 +21,7 @@ protected:
     AssetHashId mId = 0;
     AssetRecord *mRecord = nullptr;
     std::promise<void> mPromise;
+    AssetStatus mStatus = AssetStatus::MISSING;
 
     void update_asset_status(AssetStatus status);
 
@@ -61,9 +62,11 @@ public:
     void run() override
     {
         // todo: hash dependency content?
-        mRecord->asset = mBuilder->construct_with(
+        auto &&[status, asset] = mBuilder->construct_with(
             AssetRequestProxy(&mManager, &mExecutor, mId)
         );
+        mStatus = status;
+        mRecord->asset = std::move(asset);
     }
 };
 }

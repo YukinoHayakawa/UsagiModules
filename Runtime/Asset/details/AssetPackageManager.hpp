@@ -5,13 +5,14 @@
 
 #include <Usagi/Library/Memory/Noncopyable.hpp>
 
-#include "AssetPath.hpp"
 #include "../AssetPackage.hpp"
 
 namespace usagi
 {
 class AssetQuery;
+class AssetManager2;
 
+// Note: externally synced.
 class AssetPackageManager : Noncopyable
 {
     std::vector<std::unique_ptr<AssetPackage>> mPackages;
@@ -24,17 +25,13 @@ public:
     void remove_package(AssetPackage *package);
     void remove_package(PackageRef package);
 
-    void visit_packages(auto visitor)
-    {
-        for(auto &&pkg : std::ranges::reverse_view(mPackages))
-            visitor(pkg.get());
-    }
+    // void visit_packages(auto visitor)
+    // {
+    //     for(auto &&pkg : std::ranges::reverse_view(mPackages))
+    //         visitor(pkg.get());
+    // }
 
     // Locate the entry in loaded packages.
-    PackageRef locate_package(
-        AssetPackage *package,
-        bool throw_if_not_found);
-
     /**
      * \brief Locate the first package containing the requested asset, starting
      * from the latest added package to the oldest added one. Return true if
@@ -47,6 +44,15 @@ public:
      * implemented by packages.
      * \return true if the asset was found.
      */
-    AssetQuery * create_query(AssetPath path, MemoryArena &arena);
+    ReturnValue<AssetStatus, AssetQuery *> create_query(
+        AssetPath path,
+        MemoryArena &arena);
+
+    void poll_asset_changes(AssetChangeCallbackProxy &callback);
+
+protected:
+    PackageRef locate_package(
+        AssetPackage *package,
+        bool throw_if_not_found);
 };
 }

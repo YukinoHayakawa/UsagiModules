@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include <Usagi/Library/Memory/MemoryArena.hpp>
+#include <Usagi/Runtime/ReturnValue.hpp>
 
 #include "AssetAccessProxy.hpp"
 #include "AssetBuilder.hpp"
@@ -36,6 +37,8 @@ public:
         );
     }
 
-    AssetQuery * create_asset_query(AssetPath path, MemoryArena &arena) const;
+    ReturnValue<AssetStatus, AssetQuery *> create_asset_query(
+        AssetPath path,
+        MemoryArena &arena) const;
 };
 }

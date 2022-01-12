@@ -17,8 +17,9 @@ std::string AssetPath::reconstructed() const
         std::ranges::copy(c, std::back_inserter(path));
         path += "/";
     }
-    // if the original path was not ended with a slash, remove it.
-    if(!last_empty && !path.empty()) path.pop_back();
+    // --if the original path was not ended with a slash, remove it.--
+    // always remove the last slash
+    if(/*!last_empty && */!path.empty()) path.pop_back();
     return path;
 }
 }

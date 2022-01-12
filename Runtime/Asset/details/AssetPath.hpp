@@ -20,6 +20,11 @@ public:
     {
     }
 
+    AssetPath(const std::string &path)
+        : mPath(path)
+    {
+    }
+
     auto normalized_components() const
     {
         constexpr std::string_view delimiter("/");
@@ -49,18 +54,18 @@ public:
     //     };
     //     for(auto &&p : paths)
     //     {
-    //         AssetPath pp (p);
+    //         usagi::AssetPath pp (p);
     //         std::cout << pp.reconstructed() << std::endl;
     //     }
     // }
     //
     // output:
     //
-    // /C:/text/a.txt/.././../
+    // /C:/text/a.txt/.././..
     // abc/text/a.txt/.././..
     //
-    // /
-    // /
+    //
+    //
     // 123
     std::string reconstructed() const;
 

@@ -21,9 +21,11 @@ template <typename Builder>
 struct AssetBuilderProductType
 {
     using ProductT = typename ExtractFirstTemplateParameter<
-        decltype(std::declval<Builder>().construct_with(
-            std::declval<AssetRequestProxy &>()
-        ))
+        typename ExtractSecondTemplateParameter<
+            decltype(std::declval<Builder>().construct_with(
+                std::declval<AssetRequestProxy &>()
+            ))
+        >::type
     >::type;
 };
 

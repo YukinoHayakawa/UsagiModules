@@ -13,8 +13,8 @@ AbRawMemoryView::AbRawMemoryView(const AssetPath path)
 {
 }
 
-std::unique_ptr<AssetRawMemoryView> AbRawMemoryView::construct_with(
-    AssetRequestProxy request_proxy) const
+ReturnValue<AssetStatus, std::unique_ptr<AssetRawMemoryView>>
+AbRawMemoryView::construct_with(AssetRequestProxy request_proxy) const
 {
     /*
      * Locate the asset package containing the requested asset following
@@ -22,16 +22,20 @@ std::unique_ptr<AssetRawMemoryView> AbRawMemoryView::construct_with(
      */
     MemoryArena arena;
     // The query goes through asset manager to have proper synchronization.
-    AssetQuery *query = request_proxy.create_asset_query(
+    auto [status, query] = request_proxy.create_asset_query(
         { mCleanAssetPath },
         arena
     );
-    USAGI_ASSERT_THROW(
-        query,
-        std::runtime_error(std::format(
-            "Asset could not be found: ", mCleanAssetPath
-        ))
-    );
+
+    switch(status)
+    {
+        case AssetStatus::MISSING:
+        case AssetStatus::EXIST_BUSY:
+            return { status, { } };
+        case AssetStatus::EXIST:
+            break;
+        default: USAGI_INVALID_ENUM_VALUE();
+    }
 
     /*
      * Preload the bytes into memory so that subsequent reads will unlikely
@@ -42,6 +46,12 @@ std::unique_ptr<AssetRawMemoryView> AbRawMemoryView::construct_with(
     query->fetch();
     assert(query->ready());
 
-    return std::make_unique<AssetRawMemoryView>(query->data());
+    return {
+        AssetStatus::READY,
+        std::make_unique<AssetRawMemoryView>(
+            query->package(),
+            query->data()
+        )
+    };
 }
 }

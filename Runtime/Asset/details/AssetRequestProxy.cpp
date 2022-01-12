@@ -13,7 +13,7 @@ AssetRequestProxy::AssetRequestProxy(
 {
 }
 
-AssetQuery * AssetRequestProxy::create_asset_query(
+ReturnValue<AssetStatus, AssetQuery *> AssetRequestProxy::create_asset_query(
     AssetPath path,
     MemoryArena &arena) const
 {

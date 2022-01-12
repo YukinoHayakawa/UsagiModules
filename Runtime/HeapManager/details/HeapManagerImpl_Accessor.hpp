@@ -36,8 +36,7 @@ auto HeapManager::make_accessor_nolock(
         it = mResourceEntries.find(descriptor);
     }
 
-    LOG(
-        trace,
+    LOG(trace,
         "[Heap] Creating resource accessor (fallback={}): {}",
         is_fallback,
         descriptor

@@ -58,8 +58,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="AssetManager_Asset.cpp" />
+    <ClCompile Include="AssetManager_DependencyGraph.cpp" />
+    <ClCompile Include="AssetManager_Package.cpp" />
+    <ClCompile Include="AssetManager_Unload.cpp" />
     <ClCompile Include="details\AbRawMemoryView.cpp" />
     <ClCompile Include="details\AssetBuildTask.cpp" />
+    <ClCompile Include="details\AssetChangeCallbackProxy.cpp" />
     <ClCompile Include="details\AssetEnum.cpp" />
     <ClCompile Include="AssetManager2.cpp" />
     <ClCompile Include="details\AssetPath.cpp" />
@@ -73,6 +78,7 @@
     <ClInclude Include="details\AssetBuilder.hpp" />
     <ClInclude Include="details\AbRawMemoryView.hpp" />
     <ClInclude Include="details\AssetBuildTask.hpp" />
+    <ClInclude Include="details\AssetChangeCallbackProxy.hpp" />
     <ClInclude Include="details\AssetDefs.hpp" />
     <ClInclude Include="details\AssetEnum.hpp" />
     <ClInclude Include="details\AssetHasher.hpp" />

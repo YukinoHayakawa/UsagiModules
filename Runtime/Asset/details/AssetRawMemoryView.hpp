@@ -6,14 +6,23 @@
 
 namespace usagi
 {
+class AssetPackage;
+
 class AssetRawMemoryView final : public Asset
 {
+    AssetPackage *mPackage;
     ReadonlyMemoryView mMemory;
 
 public:
-    explicit AssetRawMemoryView(ReadonlyMemoryView memory)
-        : mMemory(memory)
+    AssetRawMemoryView(AssetPackage *package, ReadonlyMemoryView memory)
+        : mPackage(package)
+        , mMemory(std::move(memory))
     {
+    }
+
+    AssetPackage * package() const
+    {
+        return mPackage;
     }
 
     ReadonlyMemoryView memory() const
