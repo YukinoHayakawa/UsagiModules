@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include <Usagi/Modules/Common/Logging/Logging.hpp>
 #include <Usagi/Runtime/ErrorHandling.hpp>
 
 namespace usagi
@@ -15,12 +16,32 @@ auto HeapManager::make_accessor_nolock(
 -> ResourceAccessor<ResourceBuilderT>
 {
     ResourceEntryIt it;
-    bool inserted = false;
 
     if(!is_fallback)
+    {
+        bool inserted = false;
         std::tie(it, inserted) = mResourceEntries.try_emplace(descriptor);
+        if(inserted)
+        {
+            LOG(trace,
+                "[Heap] New resource added: {} (builder={}, resource={})",
+                descriptor,
+                typeid(ResourceBuilderT).name(),
+                typeid(typename ResourceBuilderT::ProductT).name()
+            );
+        }
+    }
     else
+    {
         it = mResourceEntries.find(descriptor);
+    }
+
+    LOG(
+        trace,
+        "[Heap] Creating resource accessor (fallback={}): {}",
+        is_fallback,
+        descriptor
+    );
 
     // A fallback should always exist.
     USAGI_ASSERT_THROW(

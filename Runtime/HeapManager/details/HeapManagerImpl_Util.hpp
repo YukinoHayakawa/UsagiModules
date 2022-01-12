@@ -5,7 +5,7 @@
 namespace usagi
 {
 template <ResourceBuilder ResourceBuilderT, typename ... Args>
-std::uint64_t HeapManager::make_resource_id(Args &&... args)
+HeapResourceIdT HeapManager::make_resource_id(Args &&... args)
 {
     // Use the type hash of the builder and build parameters to build a
     // unique id of the requested asset.

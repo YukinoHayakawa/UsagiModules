@@ -2,15 +2,21 @@
 
 #include <cassert>
 
+#include <Usagi/Modules/Common/Logging/Logging.hpp>
 #include <Usagi/Runtime/ErrorHandling.hpp>
 
 namespace usagi
 {
 template <typename HeapT>
 HeapT * HeapManager::add_heap(
-    const std::uint64_t heap_id,
+    const HeapResourceIdT heap_id,
     std::unique_ptr<HeapT> heap)
 {
+    LOG(trace,
+        "[Heap] Adding heap: {:#0x} ({})",
+        heap_id,
+        typeid(HeapT).name()
+    );
     std::unique_lock lk(mHeapMutex);
     auto [it, inserted] = mHeaps.try_emplace(heap_id, std::move(heap));
     assert(inserted);
@@ -18,7 +24,7 @@ HeapT * HeapManager::add_heap(
 }
 
 template <typename HeapT>
-HeapT * HeapManager::locate_heap(const std::uint64_t heap_id)
+HeapT * HeapManager::locate_heap(const HeapResourceIdT heap_id)
 {
     std::shared_lock lk(mHeapMutex);
 

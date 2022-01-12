@@ -17,6 +17,6 @@ auto ResourceConstructDelegate<ResourceBuilderT>::resource(
         options,
         mExecutor,
         std::forward<BuildParamTupleFuncT>(build_params)
-        );
+    );
 }
 }

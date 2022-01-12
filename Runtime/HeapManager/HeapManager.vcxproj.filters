@@ -54,9 +54,6 @@
     <ClInclude Include="details\HeapManagerImpl_Util.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="details\HeapManagerImpl_Build.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="details\HeapManagerImpl_Heap.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>

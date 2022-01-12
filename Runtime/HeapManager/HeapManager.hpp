@@ -62,7 +62,7 @@ class TaskExecutor;
 class HeapManager
 {
     std::shared_mutex mHeapMutex;
-    std::map<std::uint64_t, std::unique_ptr<Heap>> mHeaps;
+    std::map<HeapResourceIdT, std::unique_ptr<Heap>> mHeaps;
     // std::map<std::uint64_t, ...> mResources;
 
     std::mutex mEntryMapMutex;
@@ -85,7 +85,7 @@ class HeapManager
     -> ResourceAccessor<ResourceBuilderT>;
 
     template <ResourceBuilder ResourceBuilderT, typename... Args>
-    static std::uint64_t make_resource_id(Args &&...args);
+    static HeapResourceIdT make_resource_id(Args &&...args);
 
     /*
     template <
@@ -139,17 +139,7 @@ public:
         HeapResourceDescriptor resource_cache_id,
         TaskExecutor *executor,
         BuildParamTupleFuncT &&lazy_build_params)
-    -> ResourceRequestBuilder<ResourceBuilderT, BuildParamTupleFuncT>
-    {
-        // The request really happens when RequestBuilder.make_request()
-        // is called.
-        return {
-            this,
-            executor,
-            resource_cache_id,
-            std::forward<BuildParamTupleFuncT>(lazy_build_params)
-        };
-    }
+    -> ResourceRequestBuilder<ResourceBuilderT, BuildParamTupleFuncT>;
 
     template <ResourceBuilder ResourceBuilderT, typename BuildParamTupleFunc>
     auto request_resource(
@@ -159,10 +149,10 @@ public:
     -> ResourceAccessor<ResourceBuilderT>;
 
     template <typename HeapT>
-    HeapT * add_heap(std::uint64_t heap_id, std::unique_ptr<HeapT> heap);
+    HeapT * add_heap(HeapResourceIdT heap_id, std::unique_ptr<HeapT> heap);
 
     template <typename HeapT>
-    HeapT * locate_heap(std::uint64_t heap_id);
+    HeapT * locate_heap(HeapResourceIdT heap_id);
 };
 }
 

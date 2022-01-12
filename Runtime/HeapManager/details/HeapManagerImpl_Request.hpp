@@ -1,7 +1,26 @@
 ﻿#pragma once
 
+#include <Usagi/Modules/Common/Logging/Logging.hpp>
+
 namespace usagi
 {
+template <ResourceBuilder ResourceBuilderT, typename BuildParamTupleFuncT>
+auto HeapManager::resource(
+    HeapResourceDescriptor resource_cache_id,
+    TaskExecutor *executor,
+    BuildParamTupleFuncT &&lazy_build_params)
+-> ResourceRequestBuilder<ResourceBuilderT, BuildParamTupleFuncT>
+{
+    // The request really happens when RequestBuilder.make_request()
+    // is called.
+    return {
+        this,
+        executor,
+        resource_cache_id,
+        std::forward<BuildParamTupleFuncT>(lazy_build_params)
+    };
+}
+
 template <ResourceBuilder ResourceBuilderT, typename BuildParamTupleFunc>
 auto HeapManager::request_resource(
     const ResourceBuildOptions &options,
@@ -22,7 +41,7 @@ auto HeapManager::request_resource(
         auto param_tuple = param_func();
 
         // Building the hash won't alter the content of the tuple.
-        descriptor.build_option_hash_ = std::apply(
+        const auto res_id = std::apply(
             [&]<typename... Args>(Args &&...args) {
                 return make_resource_id<ResourceBuilderT>(
                     std::forward<Args>(args)...
@@ -36,12 +55,14 @@ auto HeapManager::request_resource(
                 builder.emplace(std::forward<Args>(args)...);
             }, param_tuple
         );
-        descriptor.heap_id_ = builder->target_heap();
+        const auto heap_id = builder->target_heap();
+
+        descriptor = { heap_id, res_id };
     }
     else
     {
         descriptor = options.requested_resource;
-    }
+    } // todo validate builderT
 
     // ====================== Enter Critical Section ======================== //
     // Read/Write the resource entry table.
@@ -85,6 +106,13 @@ auto HeapManager::request_resource(
 
         // Make sure that the future is accessible from now on.
         lk.unlock();
+
+        LOG(info,
+            "[Heap] Building resource: {} (builder={}, resource={})",
+            descriptor,
+            typeid(ResourceBuilderT).name(),
+            typeid(typename ResourceBuilderT::ProductT).name()
+        );
 
         // Create build task.
         std::unique_ptr<ResourceBuildTask<ResourceBuilderT>> task;
