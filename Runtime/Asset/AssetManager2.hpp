@@ -150,7 +150,7 @@ public:
     // ========================= Package Management ========================= //
 
     // todo: adding/removing an asset package should not happen while there is any active asset loading task, or during any request of assets. because loading tasks may hold references to asset entries and changes in packages may invalidate them.
-    void add_package(std::unique_ptr<AssetPackage> package);
+    AssetPackage * add_package(std::unique_ptr<AssetPackage> package);
     void remove_package(AssetPackage *package);
 
     // =========================== Asset Request ============================ //

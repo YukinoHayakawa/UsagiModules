@@ -2,7 +2,7 @@
 
 #include <Usagi/Runtime/ErrorHandling.hpp>
 
-#include "../AssetManager2.hpp"
+// #include "../AssetManager2.hpp"
 
 namespace usagi
 {
@@ -45,6 +45,7 @@ ReturnValue<AssetStatus, AssetQuery *> AssetPackageManager::create_query(
     const AssetPath path,
     MemoryArena &arena)
 {
+    // todo lock
     // search in reverse order of added packages, so that packages added later
     // override those added earlier.
     for(auto &&package : std::ranges::reverse_view(mPackages))

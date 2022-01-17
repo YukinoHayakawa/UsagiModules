@@ -27,7 +27,7 @@
     <ClInclude Include="details\ResourceAccessor.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="details\ResourceBuilder.hpp">
+    <ClInclude Include="ResourceBuilder.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="details\ResourceState.hpp">

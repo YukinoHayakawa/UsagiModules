@@ -22,6 +22,9 @@ class ResourceAccessor
     template <typename BuilderT>
     friend class ResourceBuildTask;
 
+    template <typename BuilderT>
+    friend class ResourceConstructDelegate;
+
     HeapResourceDescriptor mDescriptor;
     ResourceEntry *mEntry = nullptr;
     TargetHeapT *mHeap = nullptr;
@@ -51,17 +54,18 @@ public:
     // todo Move ops & Do ref cnt
 
     // todo: make sure the pointer is only available when the accessor is alive
-    ResourceT * resource()
+    // todo: some heap may return by value?
+    decltype(auto) get()
     {
         // Asks the heap for object.
-        return &mHeap->template resource<ResourceT>(mDescriptor.resource_id());
+        return mHeap->template resource<ResourceT>(mDescriptor.resource_id());
     }
 
-    ResourceT * await_resource()
+    decltype(auto) await()
     {
         // Wait for the future.
         mEntry->future.wait();
-        return resource();
+        return get();
     }
 
     ResourceState last_state() const

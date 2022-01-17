@@ -1,11 +1,15 @@
 ﻿#pragma once
 
 #include <string_view>
+#include <concepts>
 
 #include <Usagi/Modules/Runtime/Asset/External/xxhash/xxhash64.h>
 
 namespace usagi
 {
+template <typename T>
+struct AppendToHasher;
+
 class ResourceHasher
 {
 	XXHash64 mHasher { 0 };
@@ -16,8 +20,8 @@ public:
     std::size_t append(T &&val)
 	{
 		const auto current = mNumProcessedBytes;
-		// Use ADL to find the append function
-		append_bytes([&](std::string_view mem_view) {
+        AppendToHasher<T> appender;
+		appender([&](std::string_view mem_view) {
 			mHasher.add(mem_view.data(), mem_view.size());
 			mNumProcessedBytes += mem_view.size();
 		}, val);
@@ -35,25 +39,31 @@ public:
 	}
 };
 
-void append_bytes(auto append_func, auto val)
-    requires std::is_arithmetic_v<decltype(val)>
-{
-    std::string_view view { reinterpret_cast<const char *>(&val), sizeof(val) };
-    append_func(view);
-}
+template <typename T>
+concept Arithmetic = std::is_arithmetic_v<std::remove_cvref_t<T>>;
 
-void append_bytes(auto append_func, std::string_view val)
+template <Arithmetic T>
+struct AppendToHasher<T>
 {
-    append_func(val);
-}
+    void operator()(auto append_func, const T &val)
+    {
+        std::string_view view {
+            reinterpret_cast<const char *>(&val),
+            sizeof(T)
+        };
+        append_func(view);
+    }
+};
 
-void append_bytes(auto append_func, std::string val)
-{
-    append_func(val);
-}
+template <typename T>
+concept StringView = std::is_constructible_v<std::string_view, const T &>;
 
-void append_bytes(auto append_func, const char *val)
+template <StringView T>
+struct AppendToHasher<T>
 {
-    append_bytes(std::move(append_func), std::string_view(val));
-}
+    void operator()(auto append_func, const T &val)
+    {
+        append_func(std::string_view(val));
+    }
+};
 }

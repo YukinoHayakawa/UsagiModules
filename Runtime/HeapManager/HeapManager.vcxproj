@@ -72,7 +72,7 @@
     <ClInclude Include="Heap.hpp" />
     <ClInclude Include="HeapManager.hpp" />
     <ClInclude Include="details\ResourceAccessor.hpp" />
-    <ClInclude Include="details\ResourceBuilder.hpp" />
+    <ClInclude Include="ResourceBuilder.hpp" />
     <ClInclude Include="details\ResourceState.hpp" />
   </ItemGroup>
   <ItemGroup>

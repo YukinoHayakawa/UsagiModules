@@ -346,7 +346,7 @@ ReturnValue<AssetStatus, AssetQuery *> AssetPackageFilesystem::create_query(
 
     return {
         AssetStatus::EXIST,
-        arena.create<AssetQueryFilesystem>(this, iter->second)
+        arena.create<AssetQueryFilesystem>(this, iter->second.view)
     };
 }
 

@@ -5,15 +5,19 @@
 #include <mutex>
 #include <shared_mutex>
 
-#include "Heap.hpp"
+#include <Usagi/Library/Meta/Tuple.hpp>
 
+#include "Heap.hpp"
+#include "ResourceBuilder.hpp"
+
+#define USAGI_HEAP_MANAGER_DETAILS_NO_IMPL
 #include "details/HeapResourceDescriptor.hpp"
 #include "details/ResourceAccessor.hpp"
 #include "details/ResourceEntry.hpp"
 #include "details/ResourceRequestBuilder.hpp"
-#include "details/ResourceBuilder.hpp"
 #include "details/ResourceHasher.hpp"
 #include "details/ResourceBuildTask.hpp"
+#undef USAGI_HEAP_MANAGER_DETAILS_NO_IMPL
 
 namespace usagi
 {
@@ -139,7 +143,11 @@ public:
         HeapResourceDescriptor resource_cache_id,
         TaskExecutor *executor,
         BuildParamTupleFuncT &&lazy_build_params)
-    -> ResourceRequestBuilder<ResourceBuilderT, BuildParamTupleFuncT>;
+    -> ResourceRequestBuilder<ResourceBuilderT, BuildParamTupleFuncT>
+    requires ConstructibleFromTuple<
+        ResourceBuilderT,
+        decltype(lazy_build_params())
+    >;
 
     template <ResourceBuilder ResourceBuilderT, typename BuildParamTupleFunc>
     auto request_resource(
@@ -148,11 +156,11 @@ public:
         BuildParamTupleFunc &&param_func)
     -> ResourceAccessor<ResourceBuilderT>;
 
-    template <typename HeapT>
-    HeapT * add_heap(HeapResourceIdT heap_id, std::unique_ptr<HeapT> heap);
+    template <typename HeapT, typename... Args>
+    HeapT * add_heap(Args &&...args);
 
     template <typename HeapT>
-    HeapT * locate_heap(HeapResourceIdT heap_id);
+    HeapT * locate_heap();
 };
 }
 

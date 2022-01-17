@@ -1,11 +1,22 @@
 ﻿#pragma once
 
+#include <cassert>
+#include <Usagi/Library/Memory/Noncopyable.hpp>
+#include <Usagi/Library/Memory/Nonmovable.hpp>
+#include <Usagi/Runtime/ErrorHandling.hpp>
+
+#include "HeapResourceDescriptor.hpp"
+
 namespace usagi
 {
 class TaskExecutor;
+class HeapManager;
+
+template <typename SrcHeap, typename SrcRes, typename DstHeap, typename DstRes>
+struct HeapTransfer;
 
 template <typename ResourceBuilderT>
-class ResourceConstructDelegate
+class ResourceConstructDelegate : Noncopyable, Nonmovable
 {
 public:
     using TargetHeapT = typename ResourceBuilderT::TargetHeapT;
@@ -16,6 +27,7 @@ private:
     HeapManager *mManager = nullptr;
     TargetHeapT *mHeap = nullptr;
     TaskExecutor *mExecutor = nullptr;
+    bool mObjectAllocated = false;
 
 public:
     ResourceConstructDelegate(
@@ -30,9 +42,22 @@ public:
     {
     }
 
+    ~ResourceConstructDelegate()
+    {
+        USAGI_ASSERT_THROW(
+            mObjectAllocated,
+            std::runtime_error("Resource builder didn't allocated any object!")
+        );
+    }
+
+    // Builder must call this allocate function because it should only create
+    // the corresponding object in the target heap.
     template <typename... Args>
+    [[nodiscard]]
     decltype(auto) allocate(Args &&...args)
     {
+        assert(!mObjectAllocated);
+        mObjectAllocated = true;
         return mHeap->allocate(
             mDescriptor.resource_id(),
             std::forward<Args>(args)...
@@ -43,6 +68,35 @@ public:
         typename AnotherBuilderT,
         typename... Args
     >
+    [[nodiscard]]
     auto resource(Args &&...build_params);
+
+    template <
+        typename AnotherBuilderT,
+        typename... Args
+    >
+    [[nodiscard]]
+    auto transfer(ProductT &dst_res, Args &&...args)
+    {
+        auto src_accessor = resource<AnotherBuilderT>(
+            std::forward<Args>(args)...
+        );
+        auto src_heap = src_accessor.mHeap;
+        decltype(auto) src_res = src_accessor.await();
+
+        // the transfer function may interact with the heaps to accomplish the
+        // operation. e.g. gpu copy
+        HeapTransfer<
+            typename AnotherBuilderT::TargetHeapT,
+            typename AnotherBuilderT::ProductT,
+            TargetHeapT,
+            ProductT
+        > transfer_func;
+        return transfer_func(*src_heap, src_res, *mHeap, dst_res);
+    }
 };
 }
+
+#ifndef USAGI_HEAP_MANAGER_DETAILS_NO_IMPL
+#include "ResourceConstructDelegate.hpp"
+#endif

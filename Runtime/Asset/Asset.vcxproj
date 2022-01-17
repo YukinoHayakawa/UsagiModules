@@ -71,6 +71,7 @@
     <ClCompile Include="details\AssetPackageManager.cpp" />
     <ClCompile Include="details\AssetAccessProxy.cpp" />
     <ClCompile Include="details\AssetRequestProxy.cpp" />
+    <ClCompile Include="HeapAssetManager.cpp" />
     <ClCompile Include="Package\AssetPackageFilesystem.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -91,6 +92,7 @@
     <ClInclude Include="details\AssetRecord.hpp" />
     <ClInclude Include="details\AssetAccessProxy.hpp" />
     <ClInclude Include="details\AssetRequestProxy.hpp" />
+    <ClInclude Include="HeapAssetManager.hpp" />
     <ClInclude Include="Package\AssetPackageFilesystem.hpp" />
     <ClInclude Include="ServiceAssetManager.hpp" />
   </ItemGroup>
@@ -100,6 +102,9 @@
     </ProjectReference>
     <ProjectReference Include="..\Executive\Executive.vcxproj">
       <Project>{345cdbb7-1ec3-4e1c-ad4f-856a774430f5}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\HeapManager\HeapManager.vcxproj">
+      <Project>{dd541748-d082-4558-b456-c47f9d893211}</Project>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

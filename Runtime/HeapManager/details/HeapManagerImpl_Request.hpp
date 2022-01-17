@@ -10,6 +10,10 @@ auto HeapManager::resource(
     TaskExecutor *executor,
     BuildParamTupleFuncT &&lazy_build_params)
 -> ResourceRequestBuilder<ResourceBuilderT, BuildParamTupleFuncT>
+requires ConstructibleFromTuple<
+    ResourceBuilderT,
+    decltype(lazy_build_params())
+>
 {
     // The request really happens when RequestBuilder.make_request()
     // is called.
@@ -28,6 +32,9 @@ auto HeapManager::request_resource(
     BuildParamTupleFunc &&param_func)
 -> ResourceAccessor<ResourceBuilderT>
 {
+    using TargetHeapT = typename ResourceBuilderT::TargetHeapT;
+    // using ResourceT = typename ResourceBuilderT::ProductT;
+
     // todo reg dependency
 
     HeapResourceDescriptor descriptor;
@@ -55,7 +62,9 @@ auto HeapManager::request_resource(
                 builder.emplace(std::forward<Args>(args)...);
             }, param_tuple
         );
-        const auto heap_id = builder->target_heap();
+        // const auto heap_id = builder->target_heap();
+        // todo
+        const auto heap_id = typeid(TargetHeapT).hash_code();
 
         descriptor = { heap_id, res_id };
     }
@@ -69,12 +78,9 @@ auto HeapManager::request_resource(
 
     std::unique_lock lk(mEntryMapMutex);
 
-    using TargetHeapT = typename ResourceBuilderT::TargetHeapT;
-    // using ResourceT = typename ResourceBuilderT::ProductT;
-
     // Try to get the heap. The heap must exist before the resource
     // could be fetched or built. If this fails, exception will be thrown.
-    auto *heap = locate_heap<TargetHeapT>(descriptor.heap_id());
+    auto *heap = locate_heap<TargetHeapT>();
 
     auto make_res_accessor = [&](
         const HeapResourceDescriptor desc,

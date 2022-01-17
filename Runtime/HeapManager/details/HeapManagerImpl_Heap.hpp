@@ -7,27 +7,26 @@
 
 namespace usagi
 {
-template <typename HeapT>
-HeapT * HeapManager::add_heap(
-    const HeapResourceIdT heap_id,
-    std::unique_ptr<HeapT> heap)
+template <typename HeapT, typename... Args>
+HeapT * HeapManager::add_heap(Args &&...args)
 {
-    LOG(trace,
-        "[Heap] Adding heap: {:#0x} ({})",
-        heap_id,
-        typeid(HeapT).name()
-    );
+    LOG(trace, "[Heap] Adding heap: {}", typeid(HeapT).name());
+
     std::unique_lock lk(mHeapMutex);
-    auto [it, inserted] = mHeaps.try_emplace(heap_id, std::move(heap));
+    auto [it, inserted] = mHeaps.try_emplace(
+        typeid(HeapT).hash_code(),
+        std::make_unique<HeapT>(std::forward<Args>(args)...)
+    );
     assert(inserted);
     return static_cast<HeapT *>(it->second.get());
 }
 
 template <typename HeapT>
-HeapT * HeapManager::locate_heap(const HeapResourceIdT heap_id)
+HeapT * HeapManager::locate_heap()
 {
     std::shared_lock lk(mHeapMutex);
 
+    const auto heap_id = typeid(HeapT).hash_code();
     const auto it = mHeaps.find(heap_id);
 
     USAGI_ASSERT_THROW(

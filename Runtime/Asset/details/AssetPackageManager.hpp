@@ -3,8 +3,6 @@
 #include <vector>
 #include <memory>
 
-#include <Usagi/Library/Memory/Noncopyable.hpp>
-
 #include "../AssetPackage.hpp"
 
 namespace usagi
@@ -13,7 +11,7 @@ class AssetQuery;
 class AssetManager2;
 
 // Note: externally synced.
-class AssetPackageManager : Noncopyable
+class AssetPackageManager
 {
     std::vector<std::unique_ptr<AssetPackage>> mPackages;
 

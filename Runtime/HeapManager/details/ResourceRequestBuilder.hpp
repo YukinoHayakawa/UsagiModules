@@ -77,3 +77,7 @@ public:
     auto make_request() -> ResourceAccessor<ResourceBuilderT>;
 };
 }
+
+#ifndef USAGI_HEAP_MANAGER_DETAILS_NO_IMPL
+#include "ResourceRequestBuilderImpl.hpp"
+#endif
