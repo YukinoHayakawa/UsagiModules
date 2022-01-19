@@ -12,8 +12,8 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
-    <ProjectGuid>{6fd1b55e-e5ea-4b87-8453-6d5aa4793ac8}</ProjectGuid>
-    <RootNamespace>SahGraphicsCommon</RootNamespace>
+    <ProjectGuid>{e975bdf3-7afd-4da0-8b3e-adc22c128bff}</ProjectGuid>
+    <RootNamespace>ResGraphicsVulkan</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -58,18 +58,21 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\IO\Graphics\Graphics.vcxproj">
-      <Project>{5ae8f2da-6b3e-4492-a009-112a62b056be}</Project>
+    <ClInclude Include="HeapVulkanObjectManager.hpp" />
+    <ClInclude Include="RbVulkanGraphicsPipeline.hpp" />
+    <ClInclude Include="RbVulkanShaderModule.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="RbVulkanGraphicsPipeline.cpp" />
+    <ClCompile Include="RbVulkanShaderModule.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Platforms\Vulkan\Vulkan.vcxproj">
+      <Project>{e51ee650-b088-4940-bee6-108c8a0ed508}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\Runtime\Asset\Asset.vcxproj">
       <Project>{8722e8a6-ddc8-4283-8dff-45cd15e7dc6f}</Project>
     </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="SahGlslCompiler.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="SahGlslCompiler.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
