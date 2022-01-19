@@ -1,6 +1,6 @@
 ﻿#include "ServiceAsyncWorker.hpp"
 
-#include <Usagi/Library/Memory/LockGuard.hpp>
+#include <cassert>
 #include <Usagi/Modules/Common/Logging/Logging.hpp>
 #include <Usagi/Modules/Common/Time/Clock.hpp>
 #include <Usagi/Runtime/Task.hpp>
@@ -30,7 +30,7 @@ std::uint64_t StdTaskExecutor::submit(
             {
                 for(auto &&w : *wait)
                 {
-                    LockGuard lk(mMutex);
+                    std::unique_lock lk(mMutex);
                     auto wt = mTask.find(w);
                     assert(wt != mTask.end());
                     lk.unlock();
