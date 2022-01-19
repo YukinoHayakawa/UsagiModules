@@ -5,7 +5,7 @@
 namespace usagi
 {
 RbJsonDocument::RbJsonDocument(std::string normalized_asset_path)
-    : mNormalizedAssetPath(std::move(normalized_asset_path))
+    : RbAssetDerivative(std::move(normalized_asset_path))
 {
 }
 
@@ -14,7 +14,7 @@ ResourceState RbJsonDocument::construct(
 {
     const ReadonlyMemoryView src = delegate.resource<
         RbAssetMemoryView
-    >(mNormalizedAssetPath).await();
+    >(asset_path()).await();
     assert(src);
 
     delegate.allocate(nlohmann::json::parse(src.to_string_view()));

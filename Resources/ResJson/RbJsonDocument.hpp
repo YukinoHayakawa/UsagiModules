@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include <Usagi/Modules/Runtime/Asset/RbAssetDerivative.hpp>
 #include <Usagi/Modules/Runtime/HeapManager/HeapManager.hpp>
 #include <Usagi/Modules/Runtime/HeapManager/HeapFreeObjectManager.hpp>
 
@@ -7,10 +8,8 @@
 
 namespace usagi
 {
-class RbJsonDocument
+class RbJsonDocument : public RbAssetDerivative
 {
-    std::string mNormalizedAssetPath;
-
 public:
     explicit RbJsonDocument(std::string normalized_asset_path);
 
@@ -20,6 +19,4 @@ public:
     ResourceState construct(
         ResourceConstructDelegate<RbJsonDocument> &delegate);
 };
-
-static_assert(ResourceBuilder<RbJsonDocument>);
 }
