@@ -60,6 +60,7 @@
   <ItemGroup>
     <ClInclude Include="details\HeapManagerImpl_Heap.hpp" />
     <ClInclude Include="details\HeapManagerImpl_Util.hpp" />
+    <ClInclude Include="details\ResourceBuildOptions.hpp" />
     <ClInclude Include="details\ResourceConstructDelegate.hpp" />
     <ClInclude Include="details\ResourceConstructDelegateImpl.hpp" />
     <ClInclude Include="details\ResourceHasher.hpp" />
@@ -70,18 +71,19 @@
     <ClInclude Include="details\ResourceEntry.hpp" />
     <ClInclude Include="details\ResourceRequestBuilder.hpp" />
     <ClInclude Include="Heap.hpp" />
+    <ClInclude Include="HeapFreeObjectManager.hpp" />
     <ClInclude Include="HeapManager.hpp" />
     <ClInclude Include="details\ResourceAccessor.hpp" />
-    <ClInclude Include="ResourceBuilder.hpp" />
+    <ClInclude Include="Resource.hpp" />
+    <ClInclude Include="details\ResourceBuilder.hpp" />
     <ClInclude Include="details\ResourceState.hpp" />
+    <ClInclude Include="ResourceBuilder.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="details\ResourceBuildTask.cpp" />
-    <ClCompile Include="details\ResourceEntry.cpp" />
     <ClInclude Include="details\ResourceRequestBuilderImpl.hpp" />
     <ClCompile Include="Heap.cpp" />
+    <ClCompile Include="HeapFreeObjectManager.cpp" />
     <ClCompile Include="HeapManager.cpp" />
-    <ClCompile Include="details\ResourceAccessor.cpp" />
     <ClCompile Include="details\ResourceState.cpp" />
   </ItemGroup>
   <ItemGroup>

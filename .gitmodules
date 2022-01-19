@@ -4,3 +4,6 @@
 [submodule "Runtime/ProgramModule/External/llvm-jit-pdb"]
 	path = Runtime/ProgramModule/External/llvm-jit-pdb
 	url = git@github.com:YukinoHayakawa/llvm-jit-pdb.git
+[submodule "Runtime/HeapManager/External/xxhash"]
+	path = Runtime/HeapManager/External/xxhash
+	url = git@github.com:stbrumme/xxhash.git

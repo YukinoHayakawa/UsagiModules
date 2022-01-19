@@ -3,22 +3,13 @@
 #include <utility>
 
 #include "HeapResourceDescriptor.hpp"
+#include "ResourceBuildOptions.hpp"
+#include "ResourceAccessor.hpp"
 
 namespace usagi
 {
 class TaskExecutor;
 class HeapManager;
-
-struct ResourceBuildOptions
-{
-    HeapResourceDescriptor requested_resource;
-    HeapResourceDescriptor requesting_resource;
-    HeapResourceDescriptor fallback_when_building;
-    HeapResourceDescriptor fallback_if_failed;
-    HeapResourceDescriptor fallback_if_evicted;
-    bool rebuild_if_failed = false;
-    bool rebuild_if_evicted = false;
-};
 
 template <typename ResourceBuilderT, typename BuildParamTupleFunc>
 class ResourceRequestBuilder
@@ -77,7 +68,3 @@ public:
     auto make_request() -> ResourceAccessor<ResourceBuilderT>;
 };
 }
-
-#ifndef USAGI_HEAP_MANAGER_DETAILS_NO_IMPL
-#include "ResourceRequestBuilderImpl.hpp"
-#endif

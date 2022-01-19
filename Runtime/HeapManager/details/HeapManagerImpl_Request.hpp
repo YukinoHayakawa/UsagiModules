@@ -13,7 +13,10 @@ auto HeapManager::resource(
 requires ConstructibleFromTuple<
     ResourceBuilderT,
     decltype(lazy_build_params())
->
+// The build params shouldn't return rvalue refs like integer literals.
+// Because at the point of using, they are much likely already out-of-scope.
+// todo: this however won't prevent forwarding refs to local variables.
+> && NoRvalueRefInTuple<decltype(lazy_build_params())>
 {
     // The request really happens when RequestBuilder.make_request()
     // is called.

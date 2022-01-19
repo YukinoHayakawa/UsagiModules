@@ -1,22 +1,7 @@
 ﻿#pragma once
 
-#include <concepts>
+// Include this header when implementing resource builders that don't request
+// resources from the HeapManager.
 
-#include "details/ResourceState.hpp"
 #include "details/ResourceConstructDelegate.hpp"
-
-namespace usagi
-{
-template <typename T>
-concept ResourceBuilder = requires(T t)
-{
-    // // The builder must be able to specify the heap it will construct the
-    // // target resource on. It may obtain the heap id from the build parameters
-    // // passed in by the user.
-    // { t.target_heap() } -> std::same_as<HeapResourceIdT>;
-    typename T::TargetHeapT;
-    typename T::ProductT;
-    { t.construct(std::declval<ResourceConstructDelegate<T> &>()) }
-        -> std::same_as<ResourceState>;
-};
-}
+#include "details/ResourceConstructDelegateImpl.hpp"

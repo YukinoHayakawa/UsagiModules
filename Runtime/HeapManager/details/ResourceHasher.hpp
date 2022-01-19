@@ -1,9 +1,8 @@
 ﻿#pragma once
 
-#include <string_view>
-#include <concepts>
+#include <Usagi/Concept/Type/Types.hpp>
 
-#include <Usagi/Modules/Runtime/Asset/External/xxhash/xxhash64.h>
+#include "../External/xxhash/xxhash64.h"
 
 namespace usagi
 {
@@ -39,13 +38,10 @@ public:
 	}
 };
 
-template <typename T>
-concept Arithmetic = std::is_arithmetic_v<std::remove_cvref_t<T>>;
-
 template <Arithmetic T>
 struct AppendToHasher<T>
 {
-    void operator()(auto append_func, const T &val)
+    void operator()(auto &&append_func, const T &val)
     {
         std::string_view view {
             reinterpret_cast<const char *>(&val),
@@ -55,15 +51,27 @@ struct AppendToHasher<T>
     }
 };
 
-template <typename T>
-concept StringView = std::is_constructible_v<std::string_view, const T &>;
-
 template <StringView T>
 struct AppendToHasher<T>
 {
-    void operator()(auto append_func, const T &val)
+    void operator()(auto &&append_func, const T &val)
     {
         append_func(std::string_view(val));
+    }
+};
+
+template <Enum T>
+struct AppendToHasher<T>
+{
+    template <typename Func>
+    void operator()(Func &&append_func, const T &val)
+    {
+        using UnderlyingT = std::underlying_type_t<std::remove_cvref_t<T>>;
+        AppendToHasher<UnderlyingT> appender;
+        appender(
+            std::forward<Func>(append_func),
+            static_cast<UnderlyingT>(val)
+        );
     }
 };
 }

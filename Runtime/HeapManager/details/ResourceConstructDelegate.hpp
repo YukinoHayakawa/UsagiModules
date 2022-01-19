@@ -1,11 +1,13 @@
 ﻿#pragma once
 
 #include <cassert>
+
 #include <Usagi/Library/Memory/Noncopyable.hpp>
 #include <Usagi/Library/Memory/Nonmovable.hpp>
 #include <Usagi/Runtime/ErrorHandling.hpp>
 
 #include "HeapResourceDescriptor.hpp"
+#include "ResourceAccessor.hpp"
 
 namespace usagi
 {
@@ -46,19 +48,18 @@ public:
     {
         USAGI_ASSERT_THROW(
             mObjectAllocated,
-            std::runtime_error("Resource builder didn't allocated any object!")
+            std::runtime_error("Resource builder didn't allocate any object!")
         );
     }
 
     // Builder must call this allocate function because it should only create
     // the corresponding object in the target heap.
     template <typename... Args>
-    [[nodiscard]]
     decltype(auto) allocate(Args &&...args)
     {
         assert(!mObjectAllocated);
         mObjectAllocated = true;
-        return mHeap->allocate(
+        return mHeap->template allocate<ProductT>(
             mDescriptor.resource_id(),
             std::forward<Args>(args)...
         );
@@ -69,7 +70,8 @@ public:
         typename... Args
     >
     [[nodiscard]]
-    auto resource(Args &&...build_params);
+    auto resource(Args &&...build_params)
+        -> ResourceAccessor<AnotherBuilderT>;
 
     template <
         typename AnotherBuilderT,
@@ -96,7 +98,3 @@ public:
     }
 };
 }
-
-#ifndef USAGI_HEAP_MANAGER_DETAILS_NO_IMPL
-#include "ResourceConstructDelegate.hpp"
-#endif

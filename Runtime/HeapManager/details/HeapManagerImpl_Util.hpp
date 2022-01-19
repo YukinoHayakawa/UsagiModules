@@ -2,6 +2,8 @@
 
 #include <cassert>
 
+#include "ResourceHasher.hpp"
+
 namespace usagi
 {
 template <ResourceBuilder ResourceBuilderT, typename ... Args>

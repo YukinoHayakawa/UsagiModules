@@ -8,16 +8,9 @@
 #include <Usagi/Library/Meta/Tuple.hpp>
 
 #include "Heap.hpp"
-#include "ResourceBuilder.hpp"
 
-#define USAGI_HEAP_MANAGER_DETAILS_NO_IMPL
-#include "details/HeapResourceDescriptor.hpp"
-#include "details/ResourceAccessor.hpp"
-#include "details/ResourceEntry.hpp"
+#include "details/ResourceBuilder.hpp"
 #include "details/ResourceRequestBuilder.hpp"
-#include "details/ResourceHasher.hpp"
-#include "details/ResourceBuildTask.hpp"
-#undef USAGI_HEAP_MANAGER_DETAILS_NO_IMPL
 
 namespace usagi
 {
@@ -147,7 +140,7 @@ public:
     requires ConstructibleFromTuple<
         ResourceBuilderT,
         decltype(lazy_build_params())
-    >;
+    > && NoRvalueRefInTuple<decltype(lazy_build_params())>;
 
     template <ResourceBuilder ResourceBuilderT, typename BuildParamTupleFunc>
     auto request_resource(
