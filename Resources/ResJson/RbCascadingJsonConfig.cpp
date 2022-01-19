@@ -35,7 +35,7 @@ ResourceState RbCascadingJsonConfig::construct(
     std::string base_path = *it;
 
     // Recursively request the parent config tree and make a copy of it.
-    auto parent_doc = delegate.resource<RbJsonDocument>(
+    auto parent_doc = delegate.resource<RbCascadingJsonConfig>(
         base_path
     ).await().root;
 
