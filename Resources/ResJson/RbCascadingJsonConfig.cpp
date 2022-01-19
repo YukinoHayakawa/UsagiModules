@@ -1,5 +1,6 @@
 ﻿#include "RbCascadingJsonConfig.hpp"
 
+#include <Usagi/Modules/Runtime/HeapManager/HeapManager.hpp>
 #include <Usagi/Modules/Runtime/Asset/RbAssetMemoryView.hpp>
 
 #include "RbJsonDocument.hpp"

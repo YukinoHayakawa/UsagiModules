@@ -1,14 +1,14 @@
 ﻿#pragma once
 
 #include <Usagi/Modules/Runtime/Asset/RbAssetDerivative.hpp>
-#include <Usagi/Modules/Runtime/HeapManager/HeapManager.hpp>
+#include <Usagi/Modules/Runtime/HeapManager/ResourceBuilder.hpp>
 #include <Usagi/Modules/Runtime/HeapManager/HeapFreeObjectManager.hpp>
 
 #include "JsonDocument.hpp"
 
 namespace usagi
 {
-class RbCascadingJsonConfig : public RbAssetDerivative
+class RbCascadingJsonConfig : RbAssetDerivative
 {
 public:
     explicit RbCascadingJsonConfig(std::string normalized_asset_path);
