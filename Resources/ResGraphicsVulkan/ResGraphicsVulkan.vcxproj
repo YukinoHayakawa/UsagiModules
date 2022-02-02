@@ -59,8 +59,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="HeapVulkanObjectManager.hpp" />
+    <ClInclude Include="RbVulkanCommandListGraphics.hpp" />
     <ClInclude Include="RbVulkanGraphicsPipeline.hpp" />
     <ClInclude Include="RbVulkanShaderModule.hpp" />
+    <ClInclude Include="VulkanObjectManager.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="RbVulkanGraphicsPipeline.cpp" />
