@@ -41,7 +41,7 @@ typedef NTSTATUS *PNTSTATUS;
 
 #include <Usagi/Runtime/ErrorHandling.hpp>
 
-namespace usagi
+namespace usagi::win32
 {
 struct NtException : std::runtime_error
 {
@@ -50,7 +50,7 @@ struct NtException : std::runtime_error
 
     NtException(std::u8string_view function, const NTSTATUS status)
         : runtime_error("Nt function call failed.")
-        , function(std::move(function))
+        , function(function)
         , status(status)
     {
     }
@@ -63,19 +63,26 @@ struct Win32Exception : std::runtime_error
 
     explicit Win32Exception(std::u8string_view function)
         : runtime_error("Win32 function call failed.")
-        , function(std::move(function))
+        , function(function)
         , error_code(GetLastError())
     {
     }
 };
 
 void check_nt_status(std::u8string_view function, NTSTATUS status);
+
+inline std::uint64_t make_u64(DWORD high, DWORD low)
+{
+    return static_cast<std::uint64_t>(high) << 32
+        | static_cast<std::uint64_t>(low);
+}
 }
 
-#define USAGI_NT_CHECK_THROW(function) ::usagi::check_nt_status(u8##function, status)
+#define USAGI_NT_CHECK_THROW(function) \
+    ::usagi::win32::check_nt_status(u8##function, status)
 
 #define USAGI_WIN32_THROW(function) \
-    USAGI_THROW(Win32Exception(u8##function)) \
+    USAGI_THROW(win32::Win32Exception(u8##function)) \
 /**/
 
 #define USAGI_WIN32_CHECK_THROW(function, ...) \
@@ -91,5 +98,5 @@ void check_nt_status(std::u8string_view function, NTSTATUS status);
 
 #define USAGI_WIN32_CHECK_ASSIGN_THROW(var, function, ...) \
     do { if(!(var = function(__VA_ARGS__))) \
-        USAGI_THROW(Win32Exception(u8## #function)); } while(false) \
+        USAGI_THROW(win32::Win32Exception(u8## #function)); } while(false) \
 /**/

@@ -41,18 +41,75 @@ NativeFileHandle open(
     return handle;
 }
 
-void close(const NativeFileHandle file)
+NativeFileHandle open_exception_translated(
+    const std::filesystem::path &path,
+    FileOpenMode mode,
+    FileOpenOptions options)
+{
+    try
+    {
+        return open(path, mode, options);
+    }
+    catch(const win32::Win32Exception &e)
+    {
+        switch(e.error_code)
+        {
+            case ERROR_FILE_NOT_FOUND:
+                throw ExceptionFileNotFound(e.what());
+            case ERROR_ACCESS_DENIED:
+                throw ExceptionFileNotFound(e.what());
+            case ERROR_SHARING_VIOLATION:
+                throw ExceptionFileNotFound(e.what());
+            default:
+                throw;
+        }
+    }
+}
+
+void close(NativeFileHandle file)
 {
     USAGI_WIN32_CHECK_THROW(CloseHandle, file);
 }
 
-std::size_t size(const NativeFileHandle file)
+std::size_t size(NativeFileHandle file)
 {
     LARGE_INTEGER li;
-
     USAGI_WIN32_CHECK_THROW(GetFileSizeEx, file, &li);
-
     return li.QuadPart;
+}
+
+std::uint64_t id(NativeFileHandle file)
+{
+    BY_HANDLE_FILE_INFORMATION info { };
+    USAGI_WIN32_CHECK_THROW(GetFileInformationByHandle, file, &info);
+    return win32::make_u64(info.nFileIndexHigh, info.nFileIndexLow);
+}
+
+std::uint64_t last_modification_time(NativeFileHandle file)
+{
+    BY_HANDLE_FILE_INFORMATION info { };
+    USAGI_WIN32_CHECK_THROW(GetFileInformationByHandle, file, &info);
+    return win32::make_u64(
+        info.ftLastWriteTime.dwHighDateTime,
+        info.ftLastWriteTime.dwLowDateTime
+    );
+}
+
+void replace_file(
+    const std::filesystem::path &replaced_file,
+    const std::filesystem::path &replacement_file,
+    bool backup,
+    const std::filesystem::path &backup_name)
+{
+    // https://docs.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-replacefilew
+
+    USAGI_WIN32_CHECK_THROW(
+        ReplaceFileW,
+        replaced_file.native().c_str(),
+        replacement_file.native().c_str(),
+        backup ? backup_name.native().c_str() : nullptr,
+        0, nullptr, nullptr
+    );
 }
 
 namespace

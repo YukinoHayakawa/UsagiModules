@@ -4,7 +4,7 @@
 
 #include <Usagi/Runtime/IO/Unicode.hpp>
 
-namespace usagi
+namespace usagi::win32
 {
 // https://docs.microsoft.com/en-us/windows-hardware/drivers/kernel/using-ntstatus-values
 // NTSTATUS value ref:
@@ -18,7 +18,7 @@ void check_nt_status(std::u8string_view function, const NTSTATUS status)
         fmt::print(
             "{}: NT_INFORMATION {:#x}\n",
             u8str_to_char(function),
-            (ULONG)status
+            static_cast<ULONG>(status)
         );
     }
     else if(NT_WARNING(status))
@@ -26,7 +26,7 @@ void check_nt_status(std::u8string_view function, const NTSTATUS status)
         fmt::print(
             "{}: NT_WARNING {:#x}\n",
             u8str_to_char(function),
-            (ULONG)status
+            static_cast<ULONG>(status)
         );
     }
     else
