@@ -17,6 +17,12 @@ class HeapManager;
 template <typename SrcHeap, typename SrcRes, typename DstHeap, typename DstRes>
 struct HeapTransfer;
 
+template <typename Heap, typename Product, typename... Args>
+concept HeapAllocateFuncIsTemplate = requires(Heap h)
+{
+    h.template allocate<Product>(HeapResourceIdT(), std::declval<Args>()...);
+};
+
 template <typename ResourceBuilderT>
 class ResourceConstructDelegate : Noncopyable, Nonmovable
 {
@@ -52,17 +58,31 @@ public:
         );
     }
 
-    // Builder must call this allocate function because it should only create
-    // the corresponding object in the target heap.
+    /*
+     * Allocate the resource from the target heap.
+     * A resource builder must call this function once and only once during
+     * construct(). Failing to do so will be treated as failure in building
+     * the resource.
+     */
     template <typename... Args>
     decltype(auto) allocate(Args &&...args)
     {
         assert(!mObjectAllocated);
         mObjectAllocated = true;
-        return mHeap->template allocate<ProductT>(
-            mDescriptor.resource_id(),
-            std::forward<Args>(args)...
-        );
+        if constexpr(HeapAllocateFuncIsTemplate<TargetHeapT, ProductT, Args...>)
+        {
+            return mHeap->template allocate<ProductT>(
+                mDescriptor.resource_id(),
+                std::forward<Args>(args)...
+            );
+        }
+        else
+        {
+            return mHeap->allocate(
+                mDescriptor.resource_id(),
+                std::forward<Args>(args)...
+            );
+        }
     }
 
     template <
