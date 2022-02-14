@@ -3,7 +3,7 @@
 #include <future>
 #include <cassert>
 
-#include <Usagi/Runtime/Task.hpp>
+#include <Usagi/Runtime/Task/Task.hpp>
 
 #include "ResourceAccessor.hpp"
 #include "ResourceConstructDelegate.hpp"
@@ -37,6 +37,11 @@ class ResourceBuildTask : public ResourceBuildTaskBase
     AccessorT mAccessor;
     ResourceBuilderT mBuilder;
 
+    void set_state(const ResourceState state)
+    {
+        mAccessor.mEntry->state.store(state);
+    }
+
 public:
     template <typename... Args>
     ResourceBuildTask(
@@ -59,7 +64,7 @@ public:
 
     void on_started() override
     {
-        mAccessor.mEntry->state.store(ResourceState::BUILDING);
+        set_state(ResourceState::BUILDING);
     }
 
     void run() override
@@ -70,13 +75,21 @@ public:
             mAccessor.mHeap,
             mExecutor
         );
-        mBuilder.construct(delegate);
-        // mAccessor.mEntry->state.store(delegate.state());
+        try
+        {
+            mBuilder.construct(delegate);
+            set_state(ResourceState::READY);
+        }
+        catch(const std::runtime_error &e)
+        {
+            LOG(error, "[Heap] Resource failed to build: {}",
+                mAccessor.descriptor());
+            set_state(ResourceState::FAILED);
+        }
     }
 
     void on_finished() override
     {
-
         mPromise.set_value();
     }
 
