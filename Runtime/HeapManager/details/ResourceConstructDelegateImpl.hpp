@@ -14,6 +14,9 @@ auto ResourceConstructDelegate<ResourceBuilderT>::resource(
     options.requesting_resource = mDescriptor;
     options.rebuild_if_failed = true;
     options.rebuild_if_evicted = true;
+    // Requesting resource from a resource builder always results in evaluation
+    // of the parameters. So it doesn't matter if there are rvalue refs in
+    // the parameters.
     return mManager->request_resource<AnotherBuilderT>(
         options,
         mExecutor,

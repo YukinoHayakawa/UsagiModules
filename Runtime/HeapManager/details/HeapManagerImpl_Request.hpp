@@ -41,50 +41,49 @@ auto HeapManager::request_resource(
     // todo reg dependency
 
     HeapResourceDescriptor descriptor;
-    std::optional<ResourceBuilderT> builder;
+    const auto heap_id = typeid(TargetHeapT).hash_code();
+
+    // Build resource id.
 
     // If the resource id is unknown, we must construct the builder to obtain
     // it.
     if(!options.requested_resource)
     {
-        // Result from std::forward_as_tuple()
+        // Result from std::forward_as_tuple()/make_tuple()
+        // Be sure that the parameters returned by the tuple refer to valid
+        // memory addresses.
         auto param_tuple = param_func();
 
+        // Hash the builder type & parameters to get the id of the resource.
         // Building the hash won't alter the content of the tuple.
-        const auto res_id = std::apply(
-            [&]<typename... Args>(Args &&...args) {
-                return make_resource_id<ResourceBuilderT>(
-                    std::forward<Args>(args)...
-                );
-            }, param_tuple
+        descriptor = std::apply(
+            std::bind(&HeapManager::make_resource_descriptor<ResourceBuilderT>),
+            param_tuple
         );
-
-        // Init the builder to get the heap ID.
-        std::apply(
-            [&]<typename... Args>(Args &&...args) {
-                builder.emplace(std::forward<Args>(args)...);
-            }, param_tuple
-        );
-        // const auto heap_id = builder->target_heap();
-        // todo
-        const auto heap_id = typeid(TargetHeapT).hash_code();
-
-        descriptor = { heap_id, res_id };
     }
     else
     {
         descriptor = options.requested_resource;
-    } // todo validate builderT
 
-    // ====================== Enter Critical Section ======================== //
-    // Read/Write the resource entry table.
-
-    std::unique_lock lk(mEntryMapMutex);
+        // Validate builder type.
+        USAGI_ASSERT_THROW(
+            descriptor.heap_id() == heap_id,
+            std::runtime_error("Builder type doesn't match with the one "
+                "used to create the resource.")
+        );
+    }
 
     // Try to get the heap. The heap must exist before the resource
     // could be fetched or built. If this fails, exception will be thrown.
     auto *heap = locate_heap<TargetHeapT>();
 
+    // ====================== Enter Critical Section ======================== //
+    // Read/Write the resource entry table.
+    // Resource entry is also used to track the ref count of the resources.
+
+    std::unique_lock lk(mEntryMapMutex);
+
+    // Return an accessor to the specified resource or a proper fallback.
     auto make_res_accessor = [&](
         const HeapResourceDescriptor desc,
         const bool is_fallback)
@@ -99,6 +98,7 @@ auto HeapManager::request_resource(
     auto accessor = make_res_accessor(descriptor, false);
     const auto state = accessor.last_state();
 
+    // Construct the build task and submit it.
     auto build = [&]() -> decltype(auto)
     {
         // When turned into preparing state, it's guaranteed that no another
@@ -108,12 +108,15 @@ auto HeapManager::request_resource(
             std::memory_order::release
         );
 
-        // Create the promise outside the construction of the builder
+        // Create the promise outside the construction of the builder task
         // to shorten the critical section.
         std::promise<void> promise;
         accessor.mEntry->future = promise.get_future();
 
-        // Make sure that the future is accessible from now on.
+        // The future object is accessible from now on and the resource entry
+        // enters a state that the entry will not be recreated/removed.
+        // Safe to unlock here. Our accessor holds a ref to it so it won't be
+        // removed.
         lk.unlock();
 
         LOG(info,
@@ -126,8 +129,9 @@ auto HeapManager::request_resource(
         // Create build task.
         std::unique_ptr<ResourceBuildTask<ResourceBuilderT>> task;
 
-        auto make_build_task_ = [&]<typename... Args>(Args &&...args)
+        task = std::apply([&]<typename... Args>(Args &&...args)
         {
+            // todo pool the task objects
             return std::make_unique<ResourceBuildTask<ResourceBuilderT>>(
                 this,
                 executor,
@@ -135,30 +139,35 @@ auto HeapManager::request_resource(
                 std::move(promise),
                 std::forward<Args>(args)...
             );
-        };
+        }, param_func());
 
-        auto make_task = [&]<typename T>(T &&params) {
-            return std::apply(make_build_task_, params);
-        };
-
-        if(builder.has_value())
-            // If the builder is already constructed, move construct it.
-            task = make_task(std::forward_as_tuple(std::move(builder.value())));
-        else
-            task = make_task(param_func());
-
-        // Submit the task to the executor.
-        submit_build_task(executor, std::move(task));
         accessor.mEntry->state.store(
             ResourceState::SCHEDULED,
             std::memory_order::release
         );
 
-        // If the user wants to use a fallback, return the fallback.
-        if(options.fallback_when_building)
+        // If no executor is provided, build the resource on the current thread.
+        if(!executor)
         {
-            lk.lock();
-            return make_res_accessor(options.fallback_when_building, true);
+            run_build_task_synced(std::move(task));
+
+            // Validate asset state.
+            accessor.fetch_state();
+            assert(accessor.last_state().failed() ||
+                accessor.last_state().ready());
+        }
+        else
+        {
+            // Submit the task to the executor.
+            submit_build_task(executor, std::move(task));
+
+            // If the user wants to use a fallback, return the fallback.
+            if(options.fallback_when_building)
+            {
+                // Creating accessor requires locking.
+                lk.lock();
+                return make_res_accessor(options.fallback_when_building, true);
+            }
         }
 
         // Otherwise, return the current state.

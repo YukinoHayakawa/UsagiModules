@@ -82,7 +82,7 @@ class HeapManager
     -> ResourceAccessor<ResourceBuilderT>;
 
     template <ResourceBuilder ResourceBuilderT, typename... Args>
-    static HeapResourceIdT make_resource_id(Args &&...args);
+    static HeapResourceDescriptor make_resource_descriptor(Args &&...args);
 
     /*
     template <
@@ -96,6 +96,8 @@ class HeapManager
     static void submit_build_task(
         TaskExecutor *executor,
         std::unique_ptr<Task> task);
+
+    static void run_build_task_synced(std::unique_ptr<Task> task);
 
 public:
     /**
