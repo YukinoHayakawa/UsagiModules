@@ -3,7 +3,7 @@
 #include <memory>
 #include <string>
 
-#include <Usagi/Runtime/Memory/Region.hpp>
+#include <Usagi/Runtime/Memory/View.hpp>
 
 namespace clang
 {
@@ -30,7 +30,7 @@ class CompilerInvocation
     void create_vfs();
     void create_invocation();
 
-    void add_virtual_file(std::string_view name, ReadonlyMemoryRegion bin);
+    void add_virtual_file(std::string_view name, ReadonlyMemoryView bin);
 
     // Only allow ClangJIT service to create this class to ensure that LLVM
     // is initialized.
@@ -42,15 +42,15 @@ public:
     ~CompilerInvocation();
 
     CompilerInvocation & set_pch(
-        ReadonlyMemoryRegion source,
-        ReadonlyMemoryRegion binary,
+        ReadonlyMemoryView source,
+        ReadonlyMemoryView binary,
         std::string source_name);
 
     // The name for source is meant for identifying code snippets. They don't
     // necessarily correspond to asset names.
     CompilerInvocation & add_source(
         std::string_view name,
-        ReadonlyMemoryRegion source
+        ReadonlyMemoryView source
     );
 
     RuntimeModule compile();

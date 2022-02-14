@@ -26,6 +26,7 @@
 
 #include <Usagi/Modules/Common/Logging/Logging.hpp>
 #include <Usagi/Runtime/ErrorHandling.hpp>
+#include <Usagi/Runtime/Encoding/Unicode.hpp>
 #include <Usagi/Runtime/File/RegularFile.hpp>
 
 #include "CompilerFlagBuilder.hpp"
@@ -154,9 +155,9 @@ void CompilerInvocation::create_invocation()
 
 void CompilerInvocation::add_virtual_file(
     std::string_view name,
-    ReadonlyMemoryRegion bin)
+    ReadonlyMemoryView bin)
 {
-    const llvm::StringRef ref_bin { bin.as_chars(), bin.length };
+    const llvm::StringRef ref_bin { bin.as_chars(), bin.size() };
     // This won't copy the content of our memory region.
     auto buffer = llvm::MemoryBuffer::getMemBuffer(ref_bin, "", false);
     LOG(debug, "JIT: Adding virtual file {}", name.data());
@@ -177,8 +178,8 @@ CompilerInvocation::~CompilerInvocation()
 }
 
 CompilerInvocation & CompilerInvocation::set_pch(
-    const ReadonlyMemoryRegion source,
-    const ReadonlyMemoryRegion binary,
+    const ReadonlyMemoryView source,
+    const ReadonlyMemoryView binary,
     std::string source_name)
 {
     auto &compiler_invocation = mCompilerInstance->getInvocation();
@@ -201,7 +202,7 @@ CompilerInvocation & CompilerInvocation::set_pch(
 
 CompilerInvocation & CompilerInvocation::add_source(
     std::string_view name,
-    ReadonlyMemoryRegion source)
+    ReadonlyMemoryView source)
 {
     // Add a source location marker for our code section so we can pretend to
     // have multiple sources for our compilation unit :)
@@ -213,7 +214,7 @@ CompilerInvocation & CompilerInvocation::add_source(
         fmt::make_format_args(name)
         // ReSharper restore CppPossiblyUnintendedObjectSlicing
     );
-    mSourceText += source.bom_free_string_view();
+    mSourceText += without_utf8_bom(source.to_string_view());
     return *this;
 }
 
