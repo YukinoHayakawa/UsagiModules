@@ -1,6 +1,6 @@
 ﻿#include "NativeWindowWin32.hpp"
 
-// #include <fmt/printf.h>
+#include <fmt/format.h>
 
 namespace usagi
 {
@@ -100,7 +100,8 @@ NativeWindowWin32::NativeWindowWin32(
     const wchar_t *window_class)
     : NativeWindow(position, size, dpi_scaling, state)
 {
-    update_dpi_scaling(USER_DEFAULT_SCREEN_DPI * dpi_scaling);
+    update_dpi_scaling(static_cast<UINT>(
+        (USER_DEFAULT_SCREEN_DPI * dpi_scaling)));
 
     // todo
     // const auto window_title_wide = utf8To16(mTitle);
@@ -113,7 +114,7 @@ NativeWindowWin32::NativeWindowWin32(
         WINDOW_STYLE_EX,
         window_class,
         // window_title_wide.c_str(),
-        L"test",
+        fmt::detail::utf8_to_utf16(title).c_str(),
         dw_style,
         rect.left,
         rect.top,
@@ -128,7 +129,7 @@ NativeWindowWin32::NativeWindowWin32(
     SetWindowLongPtrW(
         mWindowHandle,
         GWLP_USERDATA,
-        reinterpret_cast<ULONG_PTR>(static_cast<WindowMessageTarget*>(this))
+        reinterpret_cast<LONG_PTR>(static_cast<WindowMessageTarget*>(this))
     );
 
     // todo: handle changes in monitor position/DPI between runs of the program.
@@ -141,7 +142,9 @@ NativeWindowWin32::NativeWindowWin32(
         update_position();
     }
 
-    USAGI_WIN32_CHECK_THROW(ShowWindow, mWindowHandle, SW_SHOW);
+    // If the window was previously visible, the return value is nonzero.
+    // If the window was previously hidden, the return value is zero.
+    ShowWindow(mWindowHandle, SW_SHOW);
 }
 
 void NativeWindowWin32::destroy()

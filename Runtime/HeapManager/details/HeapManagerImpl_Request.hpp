@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include <Usagi/Library/Utility/Functional.hpp>
+#include <Usagi/Library/Utilities/Functional.hpp>
 #include <Usagi/Modules/Common/Logging/Logging.hpp>
 
 namespace usagi

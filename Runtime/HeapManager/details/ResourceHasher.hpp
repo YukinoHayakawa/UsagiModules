@@ -2,7 +2,7 @@
 
 #include "../External/xxhash/xxhash64.h"
 
-#include <Usagi/Library/Utility/StringView.hpp>
+#include <Usagi/Library/Utilities/StringView.hpp>
 
 #include <Usagi/Modules/Runtime/HeapManager/TransparentArg.hpp>
 

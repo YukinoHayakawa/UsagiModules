@@ -4,7 +4,7 @@
 
 #include <Usagi/Library/Memory/Noncopyable.hpp>
 #include <Usagi/Library/Memory/Nonmovable.hpp>
-#include <Usagi/Library/Utility/Functional.hpp>
+#include <Usagi/Library/Utilities/Functional.hpp>
 #include <Usagi/Runtime/ErrorHandling.hpp>
 
 #include "HeapResourceDescriptor.hpp"

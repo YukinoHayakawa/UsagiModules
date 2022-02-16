@@ -1,8 +1,8 @@
 ﻿#include "VulkanGpuDevice.hpp"
 
 #include <Usagi/Library/Algorithm/Container.hpp>
-#include <Usagi/Library/Utility/BitMask.hpp>
-#include <Usagi/Library/Utility/String.hpp>
+#include <Usagi/Library/Utilities/BitMask.hpp>
+#include <Usagi/Library/Utilities/String.hpp>
 #include <Usagi/Modules/Common/Logging/Logging.hpp>
 
 namespace usagi

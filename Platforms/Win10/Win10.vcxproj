@@ -82,12 +82,19 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="DirectoryWatcherWin10.cpp" />
     <ClCompile Include="Memory.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\Common\Logging\Logging.vcxproj">
+      <Project>{e13613a3-b719-4bc5-991a-507402d14c25}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\WinCommon\WinCommon.vcxproj">
       <Project>{cd325def-b361-4cc5-87ac-bf51588dbf2d}</Project>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="DirectoryWatcherWin10.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

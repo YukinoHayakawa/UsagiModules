@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-#include <Usagi/Runtime/WeakSingleton.hpp>
+#include <Usagi/Runtime/Memory/WeakSingleton.hpp>
 
 #include "NativeWindowWin32.hpp"
 
@@ -118,5 +118,11 @@ void NativeWindowManagerWin32::destroy_unused_windows()
         }
     );
     mWindows.erase(rng.begin(), rng.end());
+}
+
+std::unique_ptr<NativeWindowManager>
+NativeWindowManager::create_native_manager()
+{
+    return std::make_unique<NativeWindowManagerWin32>();
 }
 }

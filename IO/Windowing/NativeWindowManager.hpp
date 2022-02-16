@@ -25,6 +25,9 @@ public:
     virtual NativeWindow * window(std::string_view identifier) = 0;
     virtual void destroy_unused_windows() = 0;
 
+    // implemented in platform modules.
+    static std::unique_ptr<NativeWindowManager> create_native_manager();
+
     // virtual Vector2u32 currentDisplayResolution() = 0;
 
     /**

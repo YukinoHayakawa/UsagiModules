@@ -27,8 +27,9 @@ class NativeWindowManagerWin32 : public NativeWindowManager
     std::vector<WindowRecord> mWindows;
 
 public:
+    // Create the class using NativeWindowManager::create_native_manager.
     NativeWindowManagerWin32();
-    ~NativeWindowManagerWin32();
+    ~NativeWindowManagerWin32() override;
 
     NativeWindow * create_window(
         std::string_view identifier,
@@ -39,5 +40,7 @@ public:
         NativeWindowState state) override;
     NativeWindow * window(std::string_view identifier) override;
     void destroy_unused_windows() override;
+
+    using NativeWindowManager::create_native_manager;
 };
 }

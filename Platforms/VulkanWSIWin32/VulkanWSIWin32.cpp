@@ -1,4 +1,4 @@
-﻿#include <Usagi/Library/Utility/Pointer.hpp>
+﻿#include <Usagi/Library/Utilities/Pointer.hpp>
 #include <Usagi/Modules/Common/Logging/Logging.hpp>
 #include <Usagi/Modules/Platforms/WinCommon/Windowing/NativeWindowWin32.hpp>
 #include <Usagi/Modules/Platforms/Vulkan/VulkanGpuDevice.hpp>

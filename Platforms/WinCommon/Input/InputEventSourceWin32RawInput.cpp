@@ -3,7 +3,7 @@
 #include <vector>
 
 #include <Usagi/Modules/Platforms/WinCommon/Win32.hpp>
-#include <Usagi/Runtime/WeakSingleton.hpp>
+#include <Usagi/Runtime/Memory/WeakSingleton.hpp>
 
 #include "VirtualKey.hpp"
 #include "RawInputSink.hpp"

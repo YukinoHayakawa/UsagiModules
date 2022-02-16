@@ -1,6 +1,6 @@
 ﻿#include "Enum.hpp"
 
-#include <Usagi/Library/Utility/EnumTranslation.hpp>
+#include <Usagi/Library/Utilities/EnumTranslation.hpp>
 
 namespace usagi
 {
