@@ -24,7 +24,7 @@
     <ClCompile Include="details\AssetPackageManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="details\AssetPath.cpp">
+    <ClCompile Include="AssetPath.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="AssetManager2.cpp">
@@ -60,6 +60,9 @@
     <ClCompile Include="HeapAssetManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="RbAssetMemoryView.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="details\AssetEnum.hpp">
@@ -80,7 +83,7 @@
     <ClInclude Include="details\AssetPackageManager.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="details\AssetPath.hpp">
+    <ClInclude Include="AssetPath.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="AssetManager2.hpp">
@@ -120,6 +123,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="HeapAssetManager.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="RbAssetMemoryView.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

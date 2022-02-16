@@ -5,7 +5,7 @@
 #include <Usagi/Modules/Runtime/Asset/details/AssetEnum.hpp>
 #include <Usagi/Runtime/ReturnValue.hpp>
 
-#include "details/AssetPath.hpp"
+#include "AssetPath.hpp"
 
 namespace usagi
 {

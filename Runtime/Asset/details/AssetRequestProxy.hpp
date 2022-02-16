@@ -5,7 +5,7 @@
 
 #include "AssetAccessProxy.hpp"
 #include "AssetBuilder.hpp"
-#include "AssetPath.hpp"
+#include "../AssetPath.hpp"
 
 namespace usagi
 {

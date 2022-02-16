@@ -4,10 +4,6 @@
 
 namespace usagi
 {
-RbAssetMemoryView::RbAssetMemoryView(std::string normalized_asset_path): mNormalizedAssetPath(std::move(normalized_asset_path))
-{
-}
-
 ResourceState RbAssetMemoryView::construct(
     ResourceConstructDelegate<RbAssetMemoryView> &delegate)
 {
@@ -18,7 +14,7 @@ ResourceState RbAssetMemoryView::construct(
     MemoryArena arena;
     // The query goes through asset manager which sync the accesses.
     auto [status, query] = delegate.allocate(
-        mNormalizedAssetPath,
+        arg<AssetPath>(),
         arena
     );
 
@@ -30,7 +26,7 @@ ResourceState RbAssetMemoryView::construct(
     {
         query->fetch();
         assert(query->ready());
-        return ResourceState::READY;
+		return ResourceState::READY;
     }
 
     USAGI_UNREACHABLE("Invalid asset status.");

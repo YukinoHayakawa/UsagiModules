@@ -1,6 +1,7 @@
 ﻿#pragma once
 
-#include <string_view>
+#include <optional>
+#include <string>
 #include <ranges>
 
 namespace usagi
@@ -8,6 +9,7 @@ namespace usagi
 class AssetPath
 {
     std::string_view mPath;
+    mutable std::optional<std::string> mReconstructedCache;
 
 public:
     AssetPath(const char *path)
@@ -17,7 +19,7 @@ public:
 
     AssetPath(std::string_view path)
         : mPath(path)
-    {
+	{
     }
 
     AssetPath(const std::string &path)
@@ -30,7 +32,7 @@ public:
         constexpr std::string_view delimiter("/");
         return mPath |
             // normalize to slashes
-            std::views::transform([](char c) {
+			std::views::transform([](char c) {
                 if(c == '\\') return '/'; return c;
             }) |
             // split path in to components by slashes. note that two adjacent
@@ -69,9 +71,17 @@ public:
     // 123
     std::string reconstructed() const;
 
+    // todo remove
     friend void append_bytes(auto append_func, const AssetPath &p)
     {
         append_func(p.reconstructed());
+    }
+
+    friend std::string_view to_string_view(const AssetPath &p)
+    {
+        if(!p.mReconstructedCache)
+            p.mReconstructedCache = p.reconstructed();
+        return p.mReconstructedCache.value();
     }
 };
 }

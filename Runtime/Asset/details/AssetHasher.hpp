@@ -2,7 +2,7 @@
 
 #include <string_view>
 
-#include "../External/xxhash/xxhash64.h"
+#include <Usagi/Modules/Runtime/HeapManager/External/xxhash/xxhash64.h>
 
 namespace usagi
 {
@@ -35,6 +35,7 @@ public:
 	}
 };
 
+// todo remove these. go through heap manager.
 void append_bytes(auto append_func, auto val)
     requires std::is_arithmetic_v<decltype(val)>
 {

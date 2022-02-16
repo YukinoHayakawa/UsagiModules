@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include <Usagi/Library/Utility/ArgumentStorage.hpp>
 #include <Usagi/Modules/Runtime/HeapManager/ResourceBuilder.hpp>
 
 #include "HeapAssetManager.hpp"
@@ -7,12 +8,10 @@
 namespace usagi
 {
 // bug this is temp impl
-class RbAssetMemoryView
+class RbAssetMemoryView : ArgumentStorage<AssetPath>
 {
-    std::string mNormalizedAssetPath;
-
 public:
-    explicit RbAssetMemoryView(std::string normalized_asset_path);
+    using ArgumentStorage::ArgumentStorage;
 
     using TargetHeapT = HeapAssetManager;
     using ProductT = ReadonlyMemoryView;
