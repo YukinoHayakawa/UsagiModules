@@ -6,7 +6,7 @@
 
 #include <Usagi/Modules/Common/Logging/Logging.hpp>
 #include <Usagi/Library/Memory/RawResource.hpp>
-#include <Usagi/Runtime/WeakSingleton.hpp>
+#include <Usagi/Runtime/Memory/WeakSingleton.hpp>
 
 namespace glslang
 {
