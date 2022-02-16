@@ -1,6 +1,7 @@
 ﻿#pragma once
 
-#include <Usagi/Modules/Runtime/Asset/RbAssetDerivative.hpp>
+#include <Usagi/Library/Utility/ArgumentStorage.hpp>
+#include <Usagi/Modules/Runtime/Asset/AssetPath.hpp>
 #include <Usagi/Modules/Runtime/HeapManager/ResourceBuilder.hpp>
 #include <Usagi/Modules/Runtime/HeapManager/HeapFreeObjectManager.hpp>
 
@@ -8,10 +9,10 @@
 
 namespace usagi
 {
-class RbCascadingJsonConfig : RbAssetDerivative
+class RbCascadingJsonConfig : ArgumentStorage<AssetPath>
 {
 public:
-    explicit RbCascadingJsonConfig(std::string normalized_asset_path);
+    using ArgumentStorage::ArgumentStorage;
 
     using TargetHeapT = HeapFreeObjectManager;
     using ProductT = JsonDocument;

@@ -7,17 +7,12 @@
 
 namespace usagi
 {
-RbCascadingJsonConfig::RbCascadingJsonConfig(std::string normalized_asset_path)
-    : RbAssetDerivative(std::move(normalized_asset_path))
-{
-}
-
 ResourceState RbCascadingJsonConfig::construct(
     ResourceConstructDelegate<RbCascadingJsonConfig> &delegate)
 {
     // Fetch the content of the requested config file
     const auto &cur = delegate.resource<RbJsonDocument>(
-        asset_path()
+        arg<AssetPath>()
     ).await().root;
 
     // Extract the base config asset path
