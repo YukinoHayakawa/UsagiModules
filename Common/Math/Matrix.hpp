@@ -52,4 +52,16 @@ auto resize(const Eigen::Matrix<Scalar, Dim, 1, Args...> &vec)
     }
     return r;
 }
+
+template <typename Scalar, int Dim, auto... Args>
+std::string_view to_string_view(
+    const Eigen::Matrix<Scalar, Dim, 1, Args...> &vec)
+{
+    static_assert(sizeof(vec) == sizeof(Scalar) * Dim);
+
+    return {
+        reinterpret_cast<const char *>(&vec),
+        sizeof(vec)
+    };
+}
 }
