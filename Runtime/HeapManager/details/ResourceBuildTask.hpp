@@ -77,13 +77,12 @@ public:
         );
         try
         {
-            mBuilder.construct(delegate);
-            set_state(ResourceState::READY);
+            set_state(mBuilder.construct(delegate));
         }
         catch(const std::runtime_error &e)
         {
-            LOG(error, "[Heap] Resource failed to build: {}",
-                mAccessor.descriptor());
+            LOG(error, "[Heap] Resource {} failed to build: {}",
+                mAccessor.descriptor(), e.what());
             set_state(ResourceState::FAILED);
         }
     }
