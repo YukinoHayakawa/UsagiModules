@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include <Usagi/Library/Utility/Functional.hpp>
 #include <Usagi/Modules/Common/Logging/Logging.hpp>
 
 namespace usagi
@@ -28,6 +29,33 @@ requires ConstructibleFromTuple<
     };
 }
 
+/**
+ * \brief
+ * \tparam ResourceBuilderT
+ * \tparam BuildArgs
+ * \param args `ResourceBuilderT(args)`
+ * \return
+ */
+template <
+    ResourceBuilder ResourceBuilderT,
+    typename... BuildArgs
+>
+auto HeapManager::resource_immediate(BuildArgs &&...args)
+-> ResourceAccessor<ResourceBuilderT>
+requires std::constructible_from<ResourceBuilderT, BuildArgs...>
+{
+    auto params = [&] {
+        return std::forward_as_tuple(std::forward<BuildArgs>(args)...);
+    };
+
+    return ResourceRequestBuilder<ResourceBuilderT, decltype(params)> {
+        this,
+        nullptr,
+        { },
+        std::move(params)
+    }.make_request();
+}
+
 template <ResourceBuilder ResourceBuilderT, typename BuildParamTupleFunc>
 auto HeapManager::request_resource(
     const ResourceBuildOptions &options,
@@ -41,7 +69,7 @@ auto HeapManager::request_resource(
     // todo reg dependency
 
     HeapResourceDescriptor descriptor;
-    const auto heap_id = typeid(TargetHeapT).hash_code();
+    std::optional<decltype(param_func())> param_tuple;
 
     // Build resource id.
 
@@ -52,13 +80,13 @@ auto HeapManager::request_resource(
         // Result from std::forward_as_tuple()/make_tuple()
         // Be sure that the parameters returned by the tuple refer to valid
         // memory addresses.
-        auto param_tuple = param_func();
+        param_tuple.emplace(param_func());
 
         // Hash the builder type & parameters to get the id of the resource.
         // Building the hash won't alter the content of the tuple.
-        descriptor = std::apply(
-            std::bind(&HeapManager::make_resource_descriptor<ResourceBuilderT>),
-            param_tuple
+        descriptor = USAGI_APPLY(
+            make_resource_descriptor<ResourceBuilderT>,
+            param_tuple.value()
         );
     }
     else
@@ -67,7 +95,7 @@ auto HeapManager::request_resource(
 
         // Validate builder type.
         USAGI_ASSERT_THROW(
-            descriptor.heap_id() == heap_id,
+            descriptor.heap_id() == typeid(TargetHeapT).hash_code(),
             std::runtime_error("Builder type doesn't match with the one "
                 "used to create the resource.")
         );
@@ -126,9 +154,10 @@ auto HeapManager::request_resource(
             typeid(typename ResourceBuilderT::ProductT).name()
         );
 
+        if(!param_tuple) param_tuple.emplace(param_func());
+
         // Create build task.
         std::unique_ptr<ResourceBuildTask<ResourceBuilderT>> task;
-
         task = std::apply([&]<typename... Args>(Args &&...args)
         {
             // todo pool the task objects
@@ -139,7 +168,7 @@ auto HeapManager::request_resource(
                 std::move(promise),
                 std::forward<Args>(args)...
             );
-        }, param_func());
+        }, param_tuple.value());
 
         accessor.mEntry->state.store(
             ResourceState::SCHEDULED,

@@ -16,6 +16,6 @@ void HeapManager::submit_build_task(
 void HeapManager::run_build_task_synced(std::unique_ptr<Task> task)
 {
     TaskExecutorSynchronized executor;
-    executor.submit(std::move(task), {});
+    executor.submit(std::move(task), { });
 }
 }

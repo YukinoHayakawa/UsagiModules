@@ -56,7 +56,7 @@ class TaskExecutor;
  *         Unloading B does not invalidates C, unless the content of A is
  *         changed so B is invalidated.
  */
-class HeapManager
+class HeapManager : Noncopyable
 {
     std::shared_mutex mHeapMutex;
     std::map<HeapResourceIdT, std::unique_ptr<Heap>> mHeaps;
@@ -82,7 +82,8 @@ class HeapManager
     -> ResourceAccessor<ResourceBuilderT>;
 
     template <ResourceBuilder ResourceBuilderT, typename... Args>
-    static HeapResourceDescriptor make_resource_descriptor(Args &&...args);
+    static HeapResourceDescriptor make_resource_descriptor(Args &&...args)
+    requires std::constructible_from<ResourceBuilderT, Args...>;
 
     /*
     template <
@@ -143,6 +144,17 @@ public:
         ResourceBuilderT,
         decltype(lazy_build_params())
     > && NoRvalueRefInTuple<decltype(lazy_build_params())>;
+
+    // Immediate resource is constructed on the calling thread without using
+    // any task executor and no fallback is used. The ResourceBuilder is
+    // always constructed.
+    template <
+        ResourceBuilder ResourceBuilderT,
+        typename... BuildArgs
+    >
+    auto resource_immediate(BuildArgs &&... args)
+    -> ResourceAccessor<ResourceBuilderT>
+    requires std::constructible_from<ResourceBuilderT, BuildArgs...>;
 
     template <ResourceBuilder ResourceBuilderT, typename BuildParamTupleFunc>
     auto request_resource(

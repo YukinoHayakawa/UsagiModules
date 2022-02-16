@@ -11,6 +11,12 @@ class ResourceBuildTask;
 
 class ResourceAccessorBase{};
 
+template <typename Heap, typename Product>
+concept HeapHasTemplatedResourceFunc = requires(Heap h)
+{
+    h.template resource<Product>(HeapResourceIdT());
+};
+
 template <typename ResourceBuilderT>
 class ResourceAccessor
 {
@@ -53,12 +59,22 @@ public:
 
     // todo Move ops & Do ref cnt
 
-    // todo: make sure the pointer is only available when the accessor is alive
+    // todo: make sure the pointer is only available when the accessor is alive. use weak ref
     // todo: some heap may return by value?
     decltype(auto) get()
     {
+        fetch_state();
+        USAGI_ASSERT_THROW(
+            last_state().ready(),
+            std::runtime_error("Resource not ready.")
+        );
         // Asks the heap for object.
-        return mHeap->template resource<ResourceT>(mDescriptor.resource_id());
+        if constexpr(HeapHasTemplatedResourceFunc<TargetHeapT, ResourceT>)
+            return mHeap->template resource<ResourceT>(
+                mDescriptor.resource_id());
+        else
+            return mHeap->resource(
+                mDescriptor.resource_id());
     }
 
     decltype(auto) await()

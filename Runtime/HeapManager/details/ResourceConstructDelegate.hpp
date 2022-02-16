@@ -4,6 +4,7 @@
 
 #include <Usagi/Library/Memory/Noncopyable.hpp>
 #include <Usagi/Library/Memory/Nonmovable.hpp>
+#include <Usagi/Library/Utility/Functional.hpp>
 #include <Usagi/Runtime/ErrorHandling.hpp>
 
 #include "HeapResourceDescriptor.hpp"
@@ -18,7 +19,7 @@ template <typename SrcHeap, typename SrcRes, typename DstHeap, typename DstRes>
 struct HeapTransfer;
 
 template <typename Heap, typename Product, typename... Args>
-concept HeapAllocateFuncIsTemplate = requires(Heap h)
+concept HeapHasTemplatedAllocateFunc = requires(Heap h)
 {
     h.template allocate<Product>(HeapResourceIdT(), std::declval<Args>()...);
 };
@@ -69,7 +70,8 @@ public:
     {
         assert(!mObjectAllocated);
         mObjectAllocated = true;
-        if constexpr(HeapAllocateFuncIsTemplate<TargetHeapT, ProductT, Args...>)
+        if constexpr(HeapHasTemplatedAllocateFunc<
+            TargetHeapT, ProductT, Args...>)
         {
             return mHeap->template allocate<ProductT>(
                 mDescriptor.resource_id(),
@@ -83,6 +85,12 @@ public:
                 std::forward<Args>(args)...
             );
         }
+    }
+
+    template <typename ArgTuple>
+    decltype(auto) allocate_apply(ArgTuple &&args_tuple)
+    {
+        return USAGI_APPLY(allocate, args_tuple);
     }
 
     template <

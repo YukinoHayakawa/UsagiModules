@@ -74,10 +74,12 @@
     <ClInclude Include="HeapFreeObjectManager.hpp" />
     <ClInclude Include="HeapManager.hpp" />
     <ClInclude Include="details\ResourceAccessor.hpp" />
+    <ClInclude Include="HeapManagerStatic.hpp" />
     <ClInclude Include="Resource.hpp" />
     <ClInclude Include="details\ResourceBuilder.hpp" />
     <ClInclude Include="details\ResourceState.hpp" />
     <ClInclude Include="ResourceBuilder.hpp" />
+    <ClInclude Include="TransparentArg.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="details\ResourceRequestBuilderImpl.hpp" />

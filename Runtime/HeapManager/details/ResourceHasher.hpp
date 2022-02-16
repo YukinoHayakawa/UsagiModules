@@ -1,8 +1,10 @@
 ﻿#pragma once
 
+#include "../External/xxhash/xxhash64.h"
+
 #include <Usagi/Library/Utility/StringView.hpp>
 
-#include "../External/xxhash/xxhash64.h"
+#include <Usagi/Modules/Runtime/HeapManager/TransparentArg.hpp>
 
 namespace usagi
 {
@@ -20,9 +22,17 @@ public:
 	{
 		const auto current = mNumProcessedBytes;
         auto mem_view = to_string_view(val);
-        mHasher.add(mem_view.data(), mem_view.size());
+		[[maybe_unused]]
+        const bool result = mHasher.add(mem_view.data(), mem_view.size());
+		assert(result);
         mNumProcessedBytes += mem_view.size();
         return mNumProcessedBytes - current;
+	}
+
+	template <typename T>
+    std::size_t append(TransparentArg<T>)
+	{
+	    return mNumProcessedBytes;
 	}
 
     std::size_t num_processed_bytes() const
