@@ -54,18 +54,12 @@
 
 namespace usagi
 {
-RbVulkanGraphicsPipeline::RbVulkanGraphicsPipeline(
-    std::string normalized_asset_path)
-    : RbAssetDerivative(std::move(normalized_asset_path))
-{
-}
-
 ResourceState RbVulkanGraphicsPipeline::construct(
     ResourceConstructDelegate<RbVulkanGraphicsPipeline> &delegate)
 {
     // Get pipeline description.
     const auto &config = delegate.resource<RbCascadingJsonConfig>(
-        asset_path()
+        arg<AssetPath>()
     ).await().root;
 
     std::cout << config << std::endl;

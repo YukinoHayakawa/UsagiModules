@@ -7,30 +7,24 @@
 
 namespace usagi
 {
-class VulkanCommandListGraphics : VulkanDeviceAccess
+class VulkanCommandListGraphics : public VulkanDeviceAccess
 {
     friend class VulkanGpuDevice;
 
     VulkanUniqueCommandBuffer mCommandBuffer;
 
 public:
-    VulkanCommandListGraphics(
-        VulkanGpuDevice *device,
-        VulkanUniqueCommandBuffer command_buffer)
-        : VulkanDeviceAccess(device)
-        , mCommandBuffer(std::move(command_buffer))
-    {
-    }
+    VulkanCommandListGraphics(VulkanUniqueCommandBuffer command_buffer);
 
-    void begin_recording();
-    void end_recording();
+    VulkanCommandListGraphics & begin_recording();
+    VulkanCommandListGraphics & end_recording();
 
-    void clear_color_image(
+    VulkanCommandListGraphics & clear_color_image(
         vk::Image image,
         Vulkan_GpuImageLayout layout,
         Color4f color);
 
-    void image_transition(
+    VulkanCommandListGraphics & image_transition(
         vk::Image image,
         Vulkan_GpuPipelineStage src_stage,
         Vulkan_GpuAccessMask src_access,

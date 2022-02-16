@@ -1,5 +1,8 @@
 ﻿#pragma once
 
+#include <map>
+
+#include "VulkanDeviceAccess.hpp"
 #include "VulkanEnum.hpp"
 #include "VulkanGraphicsPipeline.hpp"
 #include "VulkanShaderModule.hpp"
@@ -13,7 +16,7 @@ class VulkanGpuDevice;
  * elements of the pipeline info are supposed to be set by the client through
  * the reference.
  */
-class VulkanGraphicsPipelineCompiler : VulkanDeviceAccess
+class VulkanGraphicsPipelineCompiler
 {
     vk::GraphicsPipelineCreateInfo mPipelineInfo;
     std::vector<vk::PipelineShaderStageCreateInfo> mShaderStages;
@@ -65,8 +68,6 @@ class VulkanGraphicsPipelineCompiler : VulkanDeviceAccess
         const spirv_cross::ShaderResources &res);
 
 public:
-    explicit VulkanGraphicsPipelineCompiler(VulkanGpuDevice *device);
-
     vk::GraphicsPipelineCreateInfo & pipeline_info()
     {
         return mPipelineInfo;
@@ -97,6 +98,6 @@ public:
         Vulkan_GpuBufferFormat format,
         std::uint32_t offset);
 
-    VulkanGraphicsPipeline compile();
+    VulkanGraphicsPipeline compile(const VulkanDeviceExternalAccessProvider &device);
 };
 }

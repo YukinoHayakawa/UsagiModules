@@ -15,8 +15,9 @@ protected:
     std::shared_mutex mMutex;
     std::map<HeapResourceIdT, ObjectT> mObjects;
 
-    template <typename... Args>
-    auto & allocate(const HeapResourceIdT id, Args &&...args)
+    template <typename Object, typename... Args>
+    auto & allocate_impl(const HeapResourceIdT id, Args &&...args)
+        requires std::is_same_v<Object, ObjectT>
     {
         std::unique_lock lk(mMutex);
         auto [it, inserted] = mObjects.try_emplace(
@@ -27,7 +28,9 @@ protected:
         return it->second;
     }
 
-    const auto & resource(const HeapResourceIdT id)
+    template <typename Object>
+    auto & resource_impl(const HeapResourceIdT id)
+        requires std::is_same_v<Object, ObjectT>
     {
         std::shared_lock lk(mMutex);
         const auto it = mObjects.find(id);

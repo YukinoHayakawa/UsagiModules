@@ -1,21 +1,22 @@
 ﻿#pragma once
 
+#include <Usagi/Library/Utility/ArgumentStorage.hpp>
 #include <Usagi/Modules/Platforms/Vulkan/VulkanShaderModule.hpp>
-#include <Usagi/Modules/Resources/ResGraphicsCommon/RbSpirvBytecodes.hpp>
+#include <Usagi/Modules/Runtime/Asset/AssetPath.hpp>
+#include <Usagi/Modules/Runtime/HeapManager/ResourceBuilder.hpp>
 
 #include "HeapVulkanObjectManager.hpp"
 
 namespace usagi
 {
-class RbVulkanShaderModule : RbAssetDerivative
+class RbVulkanShaderModule
+    : ArgumentStorage<
+        AssetPath,
+        GpuShaderStage
+    >
 {
-    std::string mNormalizedAssetPath;
-    GpuShaderStage mStage;
-
 public:
-    RbVulkanShaderModule(
-        std::string normalized_asset_path,
-        GpuShaderStage stage);
+    using ArgumentStorage::ArgumentStorage;
 
     using TargetHeapT = HeapVulkanObjectManager;
     using ProductT = VulkanShaderModule;

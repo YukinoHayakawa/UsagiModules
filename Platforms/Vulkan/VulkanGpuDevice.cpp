@@ -334,32 +334,44 @@ void VulkanGpuDevice::create_device_and_queues()
     mGraphicsQueueFamilyIndex = graphics_queue_index;
 }
 
-void VulkanGpuDevice::set_thread_resource_pool_size(std::size_t num_threads)
+// void VulkanGpuDevice::set_thread_resource_pool_size(std::size_t num_threads)
+// {
+//     resize_generate(mCommandPools, num_threads, [this]() {
+//         vk::CommandPoolCreateInfo info;
+//         info.setQueueFamilyIndex(mGraphicsQueueFamilyIndex);
+//         return mDevice->createCommandPoolUnique(info, nullptr, mDispatch);
+//     });
+// }
+
+VulkanUniqueCommandPool & VulkanGpuDevice::get_thread_command_pool(
+    const std::thread::id thread_id)
 {
-    resize_generate(mCommandPools, num_threads, [this]() {
+    std::unique_lock lk(mCommandPoolMutex);
+    return find_or_emplace(mCommandPools, thread_id, [this] {
         vk::CommandPoolCreateInfo info;
         info.setQueueFamilyIndex(mGraphicsQueueFamilyIndex);
         return mDevice->createCommandPoolUnique(info, nullptr, mDispatch);
     });
 }
 
-VulkanCommandListGraphics VulkanGpuDevice::allocate_graphics_command_list(
-    const std::size_t thread_id)
+VulkanUniqueCommandBuffer VulkanGpuDevice::allocate_graphics_command_list(
+    const std::thread::id thread_id)
 {
-    assert(thread_id <= mCommandPools.size());
+    auto &pool = get_thread_command_pool(thread_id);
 
     vk::CommandBufferAllocateInfo info;
 
     info.setCommandBufferCount(1);
-    info.setCommandPool(mCommandPools[thread_id].get());
+    info.setCommandPool(pool.get());
     info.setLevel(vk::CommandBufferLevel::ePrimary);
 
-    return VulkanCommandListGraphics(
-        this,
-        std::move(mDevice->allocateCommandBuffersUnique(
-            info, mDispatch
-        ).front())
-    );
+    // This allocation doesn't have to be lock-protected since a thread
+    // can only access its own command pool.
+    auto cmd_buffer = std::move(mDevice->allocateCommandBuffersUnique(
+        info, mDispatch
+    ).front());
+
+    return cmd_buffer;
 }
 
 void VulkanGpuDevice::SemaphoreInfo::add(
@@ -426,6 +438,11 @@ void VulkanGpuDevice::reclaim_resources()
             ++ii;
         }
     }
+}
+
+void VulkanGpuDevice::wait_idle()
+{
+    mDevice->waitIdle(dispatch());
 }
 
 void VulkanGpuDevice::release_semaphore(VulkanUniqueSemaphore semaphore)

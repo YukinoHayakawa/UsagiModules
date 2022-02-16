@@ -14,13 +14,22 @@ namespace usagi
 {
 class HeapVulkanObjectManager
     : public Heap
-    , VulkanDeviceAccess
+    , public VulkanDeviceAccess
     , VulkanObjectManager<VulkanShaderModule>
     , VulkanObjectManager<VulkanGraphicsPipeline>
-    , VulkanObjectManager<VulkanUniqueCommandPool>
+    , VulkanObjectManager<VulkanCommandListGraphics>
 {
-    // // todo: how to know which threads are dead? make threads into resources?
-    // std::map<std::thread::id, VulkanCommandPool> mCommandPools;
+
+    // Import the overloads into our scope so overload resolution works
+    // properly.
+
+    using VulkanObjectManager<VulkanShaderModule>::allocate_impl;
+    using VulkanObjectManager<VulkanGraphicsPipeline>::allocate_impl;
+    using VulkanObjectManager<VulkanCommandListGraphics>::allocate_impl;
+
+    using VulkanObjectManager<VulkanShaderModule>::resource_impl;
+    using VulkanObjectManager<VulkanGraphicsPipeline>::resource_impl;
+    using VulkanObjectManager<VulkanCommandListGraphics>::resource_impl;
 
 public:
     explicit HeapVulkanObjectManager(VulkanGpuDevice *device)
@@ -29,26 +38,39 @@ public:
     }
 
     template <typename Object>
-    const auto & resource(const HeapResourceIdT id)
+    auto & resource(const HeapResourceIdT id)
     {
-        return VulkanObjectManager<Object>::resource(id);
+        return resource_impl<Object>(id);
     }
 
-    template <typename Object, typename CreateInfo, typename... Args>
-    const auto & allocate(
+    template <
+        typename Object,
+        typename CreateInfo,
+        typename... Args
+    >
+    auto & allocate(
         const HeapResourceIdT id,
-        CreateInfo create_info,
+        CreateInfo &&create_info,
         Args &&...args)
     requires std::is_constructible_v<
         Object,
-        decltype( VulkanDeviceAccess::create(create_info)), Args...
+        decltype(VulkanDeviceAccess::create(std::declval<CreateInfo>())),
+        Args...
     >
     {
-        return VulkanObjectManager<Object>::allocate(
+        auto &object = allocate_impl<Object>(
             id,
             VulkanDeviceAccess::create(create_info),
             std::forward<Args>(args)...
         );
+
+        // Inject device access if the object needs it.
+        if constexpr(std::is_base_of_v<
+            VulkanDeviceAccess,
+            std::remove_cvref_t<decltype(object)>
+        >) object.connect(this);
+
+        return object;
     }
 };
 }

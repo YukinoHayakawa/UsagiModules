@@ -1,6 +1,8 @@
 ﻿#include "VulkanGraphicsPipelineCompiler.hpp"
 
+#include <format>
 #include <ranges>
+
 #include <Usagi/Modules/Common/Logging/Logging.hpp>
 
 namespace usagi
@@ -191,12 +193,6 @@ void VulkanGraphicsPipelineCompiler::reflect_push_constants(
     }
 }
 
-VulkanGraphicsPipelineCompiler::VulkanGraphicsPipelineCompiler(
-    VulkanGpuDevice *device)
-    : VulkanDeviceAccess(device)
-{
-}
-
 void VulkanGraphicsPipelineCompiler::add_stage_shader(
     Vulkan_GpuShaderStage stage,
     const VulkanShaderModule &module,
@@ -273,7 +269,8 @@ void VulkanGraphicsPipelineCompiler::add_vertex_input_attribute(
     add_vertex_input_attribute(it->second, buffer_index, format, offset);
 }
 
-VulkanGraphicsPipeline VulkanGraphicsPipelineCompiler::compile()
+VulkanGraphicsPipeline VulkanGraphicsPipelineCompiler::compile(
+    const VulkanDeviceExternalAccessProvider &device)
 {
     mPipelineInfo.setFlags(vk::PipelineCreateFlagBits::eAllowDerivatives);
 
@@ -364,7 +361,8 @@ VulkanGraphicsPipeline VulkanGraphicsPipelineCompiler::compile()
         vk::DescriptorSetLayoutCreateInfo set_layout_info;
         set_layout_info.setBindings(bindings);
         descriptor_set_layouts.emplace_back(
-            create_descriptor_set_layout(set_layout_info)
+            // todo these should be stored in pipeline
+            device.create(set_layout_info)
         );
         descriptor_set_layout_refs.emplace_back(
             descriptor_set_layouts.back().get()
@@ -375,7 +373,7 @@ VulkanGraphicsPipeline VulkanGraphicsPipelineCompiler::compile()
     pipeline_layout_info.setPushConstantRanges(mPushConstantsRanges);
     pipeline_layout_info.setSetLayouts(descriptor_set_layout_refs);
     auto compatible_pipeline_layout =
-        create_pipeline_layout(pipeline_layout_info);
+        device.create(pipeline_layout_info);
     mPipelineInfo.setLayout(compatible_pipeline_layout.get());
 
     // ============================ Render Pass ============================= //
@@ -428,12 +426,18 @@ VulkanGraphicsPipeline VulkanGraphicsPipelineCompiler::compile()
 
     render_pass_info.setSubpasses(subpasses);
 
-    auto render_pass = create_render_pass(render_pass_info);
+    auto compatible_render_pass = device.create(render_pass_info);
 
-    mPipelineInfo.setRenderPass(render_pass.get());
+    mPipelineInfo.setRenderPass(compatible_render_pass.get());
 
-    [[maybe_unused]]
-    auto x = create_graphics_pipeline(mPipelineInfo);
-    return {};
+    // todo check result
+    auto [pipeline, result] = device.create(mPipelineInfo);
+
+    return {
+        std::move(descriptor_set_layouts),
+        std::move(compatible_pipeline_layout),
+        std::move(compatible_render_pass),
+        std::move(pipeline)
+    };
 }
 }

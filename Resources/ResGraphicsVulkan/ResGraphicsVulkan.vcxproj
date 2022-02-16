@@ -65,6 +65,7 @@
     <ClInclude Include="VulkanObjectManager.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="RbVulkanCommandListGraphics.cpp" />
     <ClCompile Include="RbVulkanGraphicsPipeline.cpp" />
     <ClCompile Include="RbVulkanShaderModule.cpp" />
   </ItemGroup>

@@ -4,21 +4,31 @@
 
 namespace usagi
 {
-void VulkanCommandListGraphics::begin_recording()
+VulkanCommandListGraphics::VulkanCommandListGraphics(
+    VulkanUniqueCommandBuffer command_buffer)
+    : mCommandBuffer(std::move(command_buffer))
+{
+}
+
+VulkanCommandListGraphics & VulkanCommandListGraphics::begin_recording()
 {
     vk::CommandBufferBeginInfo info;
     info.setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
     mCommandBuffer->begin(info, dispatch());
+
+    return *this;
 }
 
-void VulkanCommandListGraphics::end_recording()
+VulkanCommandListGraphics & VulkanCommandListGraphics::end_recording()
 {
     mCommandBuffer->end(dispatch());
+
+    return *this;
 }
 
 // Note: bad performance on tile-based GPUs
 // https://developer.samsung.com/game/usage#clearingattachments
-void VulkanCommandListGraphics::clear_color_image(
+VulkanCommandListGraphics & VulkanCommandListGraphics::clear_color_image(
     const vk::Image image,
     const Vulkan_GpuImageLayout layout,
     Color4f color)
@@ -40,6 +50,8 @@ void VulkanCommandListGraphics::clear_color_image(
         { subresource_range },
         dispatch()
     );
+
+    return *this;
 }
 
 // Synchronization:
@@ -47,7 +59,7 @@ void VulkanCommandListGraphics::clear_color_image(
 // https://github.com/philiptaylor/vulkan-sxs/blob/master/04-clear/README.md
 // https://github.com/KhronosGroup/Vulkan-Guide/blob/master/chapters/extensions/VK_KHR_synchronization2.md
 // https://www.khronos.org/blog/understanding-vulkan-synchronization
-void VulkanCommandListGraphics::image_transition(
+VulkanCommandListGraphics & VulkanCommandListGraphics::image_transition(
     const vk::Image image,
     const Vulkan_GpuPipelineStage src_stage,
     const Vulkan_GpuAccessMask src_access,
@@ -84,5 +96,7 @@ void VulkanCommandListGraphics::image_transition(
     dep.pImageMemoryBarriers = &barrier;
 
     mCommandBuffer->pipelineBarrier2KHR(dep, dispatch());
+
+    return *this;
 }
 }

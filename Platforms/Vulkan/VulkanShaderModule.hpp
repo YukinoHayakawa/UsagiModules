@@ -2,21 +2,25 @@
 
 #include <spirv_cross/spirv_cross.hpp>
 
+#include <Usagi/Library/Memory/Noncopyable.hpp>
+#include <Usagi/Library/Memory/Nonmovable.hpp>
+
 #include "Vulkan.hpp"
 
 namespace usagi
 {
-class VulkanShaderModule
+class VulkanShaderModule : Noncopyable, Nonmovable
 {
     VulkanUniqueShaderModule mShaderModule;
-    std::unique_ptr<spirv_cross::Compiler> mReflectionCompiler;
+    // Contains the info that supports runtime reflection of the shader.
+    spirv_cross::Compiler mReflectionCompiler; // bug this is very big. store as ptr?
 
 public:
     VulkanShaderModule(
         VulkanUniqueShaderModule shader_module,
-        std::unique_ptr<spirv_cross::Compiler> reflection_compiler)
+        std::vector<std::uint32_t> bytecode_copy)
         : mShaderModule(std::move(shader_module))
-        , mReflectionCompiler(std::move(reflection_compiler))
+        , mReflectionCompiler(std::move(bytecode_copy))
     {
     }
 
@@ -27,7 +31,7 @@ public:
 
     const spirv_cross::Compiler & reflection() const
     {
-        return *mReflectionCompiler;
+        return mReflectionCompiler;
     }
 
     // std::vector<vk::VertexInputBindingDescription>   vertex_inputs();

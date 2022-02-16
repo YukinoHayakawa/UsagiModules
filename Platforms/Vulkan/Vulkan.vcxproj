@@ -69,6 +69,7 @@
     <ClInclude Include="Vulkan.hpp" />
     <ClInclude Include="VulkanDeviceAccess.hpp" />
     <ClInclude Include="VulkanEnum.hpp" />
+    <ClInclude Include="VulkanGraphicsPipeline.hpp" />
     <ClInclude Include="VulkanGraphicsPipelineCompiler.hpp" />
     <ClInclude Include="VulkanShaderModule.hpp" />
     <ClInclude Include="VulkanSwapchain.hpp" />
@@ -77,6 +78,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="VulkanDeviceAccess.cpp" />
+    <ClCompile Include="VulkanGraphicsPipeline.cpp" />
     <ClCompile Include="VulkanGraphicsPipelineCompiler.cpp" />
     <ClCompile Include="VulkanShaderModule.cpp" />
     <ClCompile Include="VulkanSwapchain.cpp" />
@@ -84,8 +86,8 @@
     <ClCompile Include="VulkanGpuDevice.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\Assets\SahJson\SahJson.vcxproj">
-      <Project>{07588673-2a24-4618-8eb5-025422004b68}</Project>
+    <ProjectReference Include="..\..\..\..\..\Library\Usagi\Usagi.vcxproj">
+      <Project>{f9061c06-bce6-416b-9aeb-31351810b7ba}</Project>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

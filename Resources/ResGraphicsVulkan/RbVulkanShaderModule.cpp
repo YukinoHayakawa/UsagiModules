@@ -1,24 +1,17 @@
 ﻿#include "RbVulkanShaderModule.hpp"
 
 #include <Usagi/Modules/Runtime/HeapManager/HeapManager.hpp>
+#include <Usagi/Modules/Resources/ResGraphicsCommon/RbSpirvBytecodes.hpp>
 
 namespace usagi
 {
-RbVulkanShaderModule::RbVulkanShaderModule(
-    std::string normalized_asset_path,
-    const GpuShaderStage stage)
-    : RbAssetDerivative(std::move(normalized_asset_path))
-    , mStage(stage)
-{
-}
-
 ResourceState RbVulkanShaderModule::construct(
     ResourceConstructDelegate<RbVulkanShaderModule> &delegate)
 {
     // Get shader source code
     auto &bytecodes = delegate.resource<RbSpirvBytecodes>(
-        asset_path(),
-        mStage
+        arg<AssetPath>(),
+        arg<GpuShaderStage>()
     ).await().bytecodes();
 
     // Create the object

@@ -38,6 +38,10 @@ public:
         void add(VulkanCommandListGraphics cmd_list);
     };
 
+    using GraphicsCommandListBuilderT = int;
+    using DeviceLocalImageBuilderT = int;
+    using ImageViewT = int;
+
 private:
     // core device objects
 
@@ -88,7 +92,13 @@ private:
 
     // thread resources
 
-    std::vector<VulkanUniqueCommandPool> mCommandPools;
+    // todo: how to know which threads are dead? make threads into resources?
+
+    std::mutex mCommandPoolMutex;
+    std::map<std::thread::id, VulkanUniqueCommandPool> mCommandPools;
+
+    VulkanUniqueCommandPool & get_thread_command_pool(
+        std::thread::id thread_id);
 
     // frame resources
 
@@ -115,11 +125,10 @@ public:
     // determines the number of command allocators, etc according to the
     // number of threads used in compiling the command lists. since services
     // can't have dependencies, this information must be injected.
-    void set_thread_resource_pool_size(std::size_t num_threads);
+    // void set_thread_resource_pool_size(std::size_t num_threads);
 
-    // todo ensure correct concurrent behavior
-    VulkanCommandListGraphics allocate_graphics_command_list(
-        std::size_t thread_id);
+    VulkanUniqueCommandBuffer allocate_graphics_command_list(
+        std::thread::id thread_id);
 
     static auto create_command_buffer_list() { return CommandBufferList(); }
     static auto create_semaphore_info() { return SemaphoreInfo(); }
@@ -133,6 +142,8 @@ public:
     // check for finished frames and free associated resources
     void reclaim_resources();
 
+    void wait_idle();
+
     // synchronization primitives allocated from here are either freed
     // when unused, or passed back as part of the submission. same as the
     // command buffers.
@@ -145,6 +156,7 @@ public:
 
     vk::Device device() const { return mDevice.get(); }
     vk::PhysicalDevice physical_device() const { return mPhysicalDevice; }
+
 
     // todo these functions should not be accessed by game systems
 

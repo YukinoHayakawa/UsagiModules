@@ -8,8 +8,8 @@ template <>
 struct EnumMapping<GpuShaderStage, std::string_view>
 {
     constexpr static auto MAPPING = {
-        std::pair { GpuShaderStage::VERTEX, "vertex" },
-        std::pair { GpuShaderStage::FRAGMENT, "fragment" },
+        std::pair { GpuShaderStage::VERTEX, "Vertex" },
+        std::pair { GpuShaderStage::FRAGMENT, "Fragment" },
     };
 };
 

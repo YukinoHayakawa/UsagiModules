@@ -1,17 +1,18 @@
 ﻿#pragma once
 
+#include <Usagi/Library/Utility/ArgumentStorage.hpp>
 #include <Usagi/Modules/Platforms/Vulkan/VulkanGraphicsPipeline.hpp>
-#include <Usagi/Modules/Runtime/Asset/RbAssetDerivative.hpp>
+#include <Usagi/Modules/Runtime/Asset/AssetPath.hpp>
 #include <Usagi/Modules/Runtime/HeapManager/ResourceBuilder.hpp>
 
 #include "HeapVulkanObjectManager.hpp"
 
 namespace usagi
 {
-class RbVulkanGraphicsPipeline : RbAssetDerivative
+class RbVulkanGraphicsPipeline : ArgumentStorage<AssetPath>
 {
 public:
-    explicit RbVulkanGraphicsPipeline(std::string normalized_asset_path);
+    using ArgumentStorage::ArgumentStorage;
 
     using TargetHeapT = HeapVulkanObjectManager;
     using ProductT = VulkanGraphicsPipeline;

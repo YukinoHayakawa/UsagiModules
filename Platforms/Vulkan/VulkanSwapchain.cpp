@@ -53,7 +53,7 @@ VulkanSwapchain::ImageInfo VulkanSwapchain::acquire_next_image(
     ImageInfo image;
 
     // bug sometimes hangs when debugging with RenderDoc
-    const auto result = mDevice->device().acquireNextImageKHR(
+    const auto result = device()->device().acquireNextImageKHR(
         mSwapchain.get(),
         UINT64_MAX, // 1000000000u, // 1s
         signal_sem_image_avail,
@@ -196,14 +196,14 @@ std::uint32_t VulkanSwapchain::select_presentation_queue_family() const
 {
     // todo use vkGetPhysicalDeviceWin32PresentationSupportKHR
     const auto queue_families =
-        mDevice->physical_device().getQueueFamilyProperties(
+        device()->physical_device().getQueueFamilyProperties(
             dispatch()
         );
     for(auto i = queue_families.begin(); i != queue_families.end(); ++i)
     {
         const auto queue_index =
             static_cast<uint32_t>(i - queue_families.begin());
-        if(mDevice->physical_device().getSurfaceSupportKHR(
+        if(device()->physical_device().getSurfaceSupportKHR(
             queue_index,
             mSurface.get(),
             dispatch()
@@ -228,7 +228,7 @@ void VulkanSwapchain::create(
     // Ensure that no operation involving the swapchain images is outstanding.
     // Since acquireNextImage() and drawing operations aren't parallel,
     // as long as the device is idle, it won't happen.
-    mDevice->device().waitIdle(dispatch());
+    device()->device().waitIdle(dispatch());
 
     LOG(info, "Creating swapchain");
 
@@ -238,13 +238,13 @@ void VulkanSwapchain::create(
     //     mPresentationQueueFamilyIndex);
 
     const auto surface_capabilities =
-        mDevice->physical_device().getSurfaceCapabilitiesKHR(
+        device()->physical_device().getSurfaceCapabilitiesKHR(
             mSurface.get(), dispatch());
     const auto surface_formats =
-        mDevice->physical_device().getSurfaceFormatsKHR(
+        device()->physical_device().getSurfaceFormatsKHR(
             mSurface.get(), dispatch());
     const auto surface_present_modes =
-        mDevice->physical_device().getSurfacePresentModesKHR(
+        device()->physical_device().getSurfacePresentModesKHR(
             mSurface.get(), dispatch());
 
     vk::SwapchainCreateInfoKHR create_info;
@@ -287,7 +287,7 @@ void VulkanSwapchain::create(
 
     create_info.setOldSwapchain(mSwapchain.get());
 
-    mSwapchain = create_swapchain(create_info);
+    mSwapchain = VulkanDeviceAccess::create(create_info);
     mFormat = vk_format;
     mSize = { create_info.imageExtent.width, create_info.imageExtent.height };
 
@@ -296,7 +296,7 @@ void VulkanSwapchain::create(
 
 void VulkanSwapchain::get_swapchain_images()
 {
-    mImages = mDevice->device().getSwapchainImagesKHR(
+    mImages = device()->device().getSwapchainImagesKHR(
         mSwapchain.get(),
         dispatch()
     );

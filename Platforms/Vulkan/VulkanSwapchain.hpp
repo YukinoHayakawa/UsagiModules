@@ -11,7 +11,7 @@ namespace usagi
 {
 class VulkanGpuDevice;
 
-class VulkanSwapchain : Noncopyable, VulkanDeviceAccess
+class VulkanSwapchain : public VulkanDeviceAccess
 {
     VulkanUniqueSurface mSurface;
     vk::SurfaceFormatKHR mFormat;
