@@ -3,7 +3,7 @@
 #include <future>
 #include <map>
 
-#include <Usagi/Runtime/TaskExecutor.hpp>
+#include <Usagi/Runtime/Task/TaskExecutor.hpp>
 #include <Usagi/Runtime/Service/SimpleService.hpp>
 
 namespace usagi

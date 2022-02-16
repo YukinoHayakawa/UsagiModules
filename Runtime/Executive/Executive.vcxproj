@@ -65,10 +65,12 @@
     <ClInclude Include="ServiceStateTransitionGraph.hpp" />
     <ClInclude Include="ServiceAsyncWorker.hpp" />
     <ClInclude Include="SystemTaskList.hpp" />
+    <ClInclude Include="TaskExecutorSynchronized.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CreateLib.cpp" />
     <ClCompile Include="ServiceAsyncWorker.cpp" />
+    <ClCompile Include="TaskExecutorSynchronized.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\..\..\Library\Usagi\Usagi.vcxproj">

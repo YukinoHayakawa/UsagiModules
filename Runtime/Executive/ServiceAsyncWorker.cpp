@@ -1,9 +1,10 @@
 ﻿#include "ServiceAsyncWorker.hpp"
 
 #include <cassert>
+
 #include <Usagi/Modules/Common/Logging/Logging.hpp>
 #include <Usagi/Modules/Common/Time/Clock.hpp>
-#include <Usagi/Runtime/Task.hpp>
+#include <Usagi/Runtime/Task/Task.hpp>
 
 namespace usagi
 {
@@ -39,15 +40,8 @@ std::uint64_t StdTaskExecutor::submit(
                 }
             }
 
-            if(!t->precondition())
-                throw std::runtime_error("");
-            t->on_started();
             LOG(trace, "[Executor] Executing task {} (worker thread={})", tid, std::this_thread::get_id());
-            t->run();
-            t->on_finished();
-            if(!t->postcondition())
-                throw std::runtime_error("");
-
+            run_task(*t);
             LOG(trace, "[Executor] Task {} consumed {} seconds.", tid, clk.realtime_elapsed());
         }
     );
