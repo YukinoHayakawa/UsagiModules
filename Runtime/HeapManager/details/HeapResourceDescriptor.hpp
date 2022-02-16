@@ -10,35 +10,29 @@ using HeapResourceIdT = std::uint64_t;
 
 class HeapResourceDescriptor
 {
-    HeapResourceIdT mHeapId { };
+    HeapResourceIdT mHeapTypeHash { };
     HeapResourceIdT mBuildParamHash { };
 
 public:
     HeapResourceDescriptor() = default;
 
     HeapResourceDescriptor(
-        HeapResourceIdT heap_id,
+        HeapResourceIdT heap_type_hash,
         HeapResourceIdT build_param_hash)
-        : mHeapId(heap_id)
+        : mHeapTypeHash(heap_type_hash)
         , mBuildParamHash(build_param_hash)
     {
     }
 
-    HeapResourceIdT heap_id() const { return mHeapId; }
+    HeapResourceIdT heap_id() const { return mHeapTypeHash; }
     HeapResourceIdT resource_id() const { return mBuildParamHash; }
 
-    operator bool() const
+    explicit operator bool() const
     {
-        return mHeapId && mBuildParamHash;
+        return mHeapTypeHash && mBuildParamHash;
     }
 
-    friend auto operator<=>(
-        const HeapResourceDescriptor &lhs,
-        const HeapResourceDescriptor &rhs)
-    {
-        return std::tie(lhs.mHeapId, lhs.mBuildParamHash) <=>
-            std::tie(rhs.mHeapId, rhs.mBuildParamHash);
-    }
+    auto operator<=>(const HeapResourceDescriptor &rhs) const = default;
 };
 }
 
