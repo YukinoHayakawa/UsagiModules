@@ -8,6 +8,7 @@ namespace usagi
 {
 template <ResourceBuilder ResourceBuilderT, typename ... Args>
 HeapResourceDescriptor HeapManager::make_resource_descriptor(Args &&... args)
+requires std::constructible_from<ResourceBuilderT, Args...>
 {
     // Use the type hash of the builder and build parameters to build a
     // unique id of the requested asset.
@@ -16,8 +17,10 @@ HeapResourceDescriptor HeapManager::make_resource_descriptor(Args &&... args)
     const auto type_hash = typeid(ResourceBuilderT).hash_code();
     hasher.append(type_hash);
     (..., hasher.append(args));
-    assert(hasher.hash() && "Resource Id shouldn't be zero.");
 
-    return { hasher.hash(), typeid(ResourceBuilderT).hash_code() };
+    const auto hash = hasher.hash();
+    assert(hash && "Resource Id shouldn't be zero.");
+
+    return { typeid(ResourceBuilderT).hash_code(), hash };
 }
 }
