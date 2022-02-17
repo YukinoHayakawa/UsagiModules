@@ -7,15 +7,22 @@
 
 #include <Usagi/Library/Meta/Tuple.hpp>
 
-#include "Heap.hpp"
-
 #include "details/ResourceBuilder.hpp"
 #include "details/ResourceRequestBuilder.hpp"
 
 namespace usagi
 {
+class Heap;
 class Task;
 class TaskExecutor;
+
+namespace details::heap_manager
+{
+// Avoid introducing TaskExecutor by including this header.
+
+void submit_build_task(TaskExecutor *executor, std::unique_ptr<Task> task);
+void run_build_task_synced(std::unique_ptr<Task> task);
+}
 
 /*
  * HeapManager is a generalization of AssetManager. Object construction and
@@ -56,20 +63,32 @@ class TaskExecutor;
  *         Unloading B does not invalidates C, unless the content of A is
  *         changed so B is invalidated.
  */
+// Tried to make this a template to allow different storage impl, but failed
+// because many places require a pointer to the base type of the HeapManager.
+// In that case, it would be impossible to resolve heap address at compile
+// time.
 class HeapManager : Noncopyable
 {
+    // Heap Management
+
     std::shared_mutex mHeapMutex;
     std::map<HeapResourceIdT, std::unique_ptr<Heap>> mHeaps;
     // std::map<std::uint64_t, ...> mResources;
+
+    // template <ResourceBuilder T>
+    // constexpr static bool IsResourceBuilderSupported =
+        // HeapStorageImpl::template IsResourceBuilderSupported<T>;
+
+    // Resource Entry Management
 
     std::mutex mEntryMapMutex;
     std::map<HeapResourceDescriptor, ResourceEntry> mResourceEntries;
     using ResourceEntryIt = decltype(mResourceEntries)::iterator;
 
+    // Resource Request Handling
+
     template <typename ResourceBuilderT, typename BuildParamTupleFunc>
     friend class ResourceRequestBuilder;
-
-    // std::pair<bool, HeapResourceDescriptor>
 
     template <
         ResourceBuilder ResourceBuilderT,
@@ -83,54 +102,27 @@ class HeapManager : Noncopyable
 
     template <ResourceBuilder ResourceBuilderT, typename... Args>
     static HeapResourceDescriptor make_resource_descriptor(Args &&...args)
-    requires std::constructible_from<ResourceBuilderT, Args...>;
-
-    /*
-    template <
-        ResourceBuilder ResourceBuilderT,
-        typename BuildParamTuple
-    >
-    auto make_build_task(BuildParamTuple &&params)
-    -> std::unique_ptr<ResourceBuildTask<ResourceBuilderT>>;
-    */
-
-    static void submit_build_task(
-        TaskExecutor *executor,
-        std::unique_ptr<Task> task);
-
-    static void run_build_task_synced(std::unique_ptr<Task> task);
+        requires std::constructible_from<ResourceBuilderT, Args...>;
 
 public:
+    virtual ~HeapManager();
+
     /**
      * \brief Request an access proxy to certain resource.
      * \tparam ResourceBuilderT The builder type used to build the resource
      * when it could not be found in the cache.
-     * \tparam BuildParamTupleProviderT Functor type that returns a tuple
+     * \tparam BuildParamTupleFuncT Functor type that returns a tuple
      * containing the build params.
-     * \param resource_requester_id Another resource requesting current
-     * resource. If this is provided, this function must be called from a
-     * builder, and a dependency edge from current resource to the requester
-     * will be recorded
      * \param resource_cache_id The cache id of the requested resource. If the
      * requester does not know it, leave it empty and the id can be accessed
      * via the returned accessor.
+     * \param executor Task executor.
      * \param lazy_build_params A callable object that returns a tuple of
      * parameters that will be passed to the builder when the requested
      * resource could not be found. The object will not be called if the
      * resource is found in the cache.
      * \return An accessor that can be used to access or wait for the resource.
      */
-    // template <
-    //     typename ResourceBuilderT,
-    //     typename BuildParamTupleProviderT
-    // >
-    // auto resource(
-    //     std::optional<HeapResourceDescriptor> resource_requester_id,
-    //     std::optional<HeapResourceDescriptor> resource_cache_id,
-    //     BuildParamTupleProviderT &&lazy_build_params)
-    // -> ResourceAccessor<ResourceBuilderProductT<ResourceBuilderT>>;
-
-
     template <
         ResourceBuilder ResourceBuilderT,
         typename BuildParamTupleFuncT
@@ -140,10 +132,10 @@ public:
         TaskExecutor *executor,
         BuildParamTupleFuncT &&lazy_build_params)
     -> ResourceRequestBuilder<ResourceBuilderT, BuildParamTupleFuncT>
-    requires ConstructibleFromTuple<
-        ResourceBuilderT,
-        decltype(lazy_build_params())
-    > && NoRvalueRefInTuple<decltype(lazy_build_params())>;
+    requires
+        ConstructibleFromTuple<ResourceBuilderT, decltype(lazy_build_params())>
+        && NoRvalueRefInTuple<decltype(lazy_build_params())>;
+        // && IsResourceBuilderSupported<ResourceBuilderT>;
 
     // Immediate resource is constructed on the calling thread without using
     // any task executor and no fallback is used. The ResourceBuilder is
@@ -154,20 +146,26 @@ public:
     >
     auto resource_immediate(BuildArgs &&... args)
     -> ResourceAccessor<ResourceBuilderT>
-    requires std::constructible_from<ResourceBuilderT, BuildArgs...>;
-
-    template <ResourceBuilder ResourceBuilderT, typename BuildParamTupleFunc>
-    auto request_resource(
-        const ResourceBuildOptions &options,
-        TaskExecutor *executor,
-        BuildParamTupleFunc &&param_func)
-    -> ResourceAccessor<ResourceBuilderT>;
+    requires
+        std::constructible_from<ResourceBuilderT, BuildArgs...>;
+        // && IsResourceBuilderSupported<ResourceBuilderT>;
 
     template <typename HeapT, typename... Args>
     HeapT * add_heap(Args &&...args);
 
     template <typename HeapT>
     HeapT * locate_heap();
+
+private:
+    template <
+        ResourceBuilder ResourceBuilderT,
+        typename BuildParamTupleFunc
+    >
+    auto request_resource(
+        const ResourceBuildOptions &options,
+        TaskExecutor *executor,
+        BuildParamTupleFunc &&param_func)
+    -> ResourceAccessor<ResourceBuilderT>;
 };
 }
 

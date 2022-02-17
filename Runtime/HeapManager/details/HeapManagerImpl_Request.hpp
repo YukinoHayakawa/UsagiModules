@@ -178,7 +178,7 @@ auto HeapManager::request_resource(
         // If no executor is provided, build the resource on the current thread.
         if(!executor)
         {
-            run_build_task_synced(std::move(task));
+            details::heap_manager::run_build_task_synced(std::move(task));
 
             // Validate asset state.
             accessor.fetch_state();
@@ -188,7 +188,7 @@ auto HeapManager::request_resource(
         else
         {
             // Submit the task to the executor.
-            submit_build_task(executor, std::move(task));
+            details::heap_manager::submit_build_task(executor, std::move(task));
 
             // If the user wants to use a fallback, return the fallback.
             if(options.fallback_when_building)

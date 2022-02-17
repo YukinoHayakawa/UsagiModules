@@ -8,6 +8,12 @@ namespace usagi
 template <typename... HeapTypes>
 class HeapManagerStatic : HeapManager
 {
+    using ImplementedHeaps = std::tuple<HeapTypes...>;
+
+    template <ResourceBuilder BuilderT>
+    constexpr static bool IsBuilderSupported =
+        has_type_v<typename BuilderT::TargetHeapT, ImplementedHeaps>;
+
 public:
     template <typename... ArgTuples>
     HeapManagerStatic(ArgTuples &&... arg_tuples)
@@ -15,15 +21,42 @@ public:
         (..., USAGI_APPLY(add_heap<HeapTypes>, arg_tuples));
     }
 
-    using HeapManager::resource_immediate;
-    using HeapManager::resource;
-    using HeapManager::request_resource;
-
-    template <typename HeapT>
-    HeapT * locate_heap() requires requires (HeapT h)
-    { std::get<HeapT>(std::declval<std::tuple<HeapTypes...>>()); }
+    // It would be much easier if C++ supports some kind of decorators.
+    template <
+        ResourceBuilder ResourceBuilderT,
+        typename... BuildArgs
+    >
+    decltype(auto) resource_immediate(BuildArgs &&... args)
+    // Adds a constraint that checks whether the required heap is added.
+    requires IsBuilderSupported<ResourceBuilderT>
     {
-        return HeapManager::locate_heap<HeapT>();
+        return HeapManager::resource_immediate<ResourceBuilderT>(
+            std::forward<BuildArgs>(args)...
+        );
+    }
+
+    template <
+        ResourceBuilder ResourceBuilderT,
+        typename BuildParamTupleFuncT
+    >
+    decltype(auto) resource(
+        HeapResourceDescriptor resource_cache_id,
+        TaskExecutor *executor,
+        BuildParamTupleFuncT &&lazy_build_params)
+    // Adds a constraint that checks whether the required heap is added.
+    requires IsBuilderSupported<ResourceBuilderT>
+    {
+        return HeapManager::resource<ResourceBuilderT>(
+            resource_cache_id,
+            executor,
+            std::forward<BuildParamTupleFuncT>(lazy_build_params)
+        );
+    }
+
+    // Service access interface.
+    auto & heap_manager()
+    {
+        return *this;
     }
 };
 }
