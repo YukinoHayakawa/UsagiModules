@@ -102,9 +102,6 @@
     <ProjectReference Include="..\..\Common\Logging\Logging.vcxproj">
       <Project>{e13613a3-b719-4bc5-991a-507402d14c25}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\Executive\Executive.vcxproj">
-      <Project>{345cdbb7-1ec3-4e1c-ad4f-856a774430f5}</Project>
-    </ProjectReference>
     <ProjectReference Include="..\HeapManager\HeapManager.vcxproj">
       <Project>{dd541748-d082-4558-b456-c47f9d893211}</Project>
     </ProjectReference>

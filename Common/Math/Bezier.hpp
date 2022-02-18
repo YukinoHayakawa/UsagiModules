@@ -2,7 +2,7 @@
 
 #include <cmath>
 
-#include <Usagi/Modules/Common/Math/Matrix.hpp>
+#include "Matrix.hpp"
 
 namespace usagi
 {

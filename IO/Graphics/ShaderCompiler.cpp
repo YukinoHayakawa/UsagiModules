@@ -4,9 +4,9 @@
 #include <glslang/Include/ResourceLimits.h>
 #include <glslang/SPIRV/GlslangToSpv.h>
 
-#include <Usagi/Modules/Common/Logging/Logging.hpp>
 #include <Usagi/Library/Memory/RawResource.hpp>
 #include <Usagi/Runtime/Memory/WeakSingleton.hpp>
+#include <Usagi/Modules/Common/Logging/Logging.hpp>
 
 namespace glslang
 {

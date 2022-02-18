@@ -21,11 +21,11 @@
     <ClInclude Include="ShaderCompiler.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Image.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="CreateLib.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="ShaderCompiler.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

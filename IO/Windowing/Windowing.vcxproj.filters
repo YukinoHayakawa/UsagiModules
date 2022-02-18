@@ -27,7 +27,7 @@
     <ClInclude Include="NativeWindowManager.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="SystemNativeWindowCoordinator.hpp">
+    <ClInclude Include="SystemNativeWindowStateSynchronizer.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="NativeWindowState.hpp">

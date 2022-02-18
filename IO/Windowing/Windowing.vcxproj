@@ -63,11 +63,19 @@
     <ClInclude Include="NativeWindow.hpp" />
     <ClInclude Include="NativeWindowState.hpp" />
     <ClInclude Include="ServiceNativeWindowManager.hpp" />
-    <ClInclude Include="SystemNativeWindowCoordinator.hpp" />
+    <ClInclude Include="SystemNativeWindowStateSynchronizer.hpp" />
     <ClInclude Include="NativeWindowManager.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CreateLib.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Common\Math\Math.vcxproj">
+      <Project>{d4e79012-d153-40c0-b62d-fc9b31495442}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Runtime\Executive\Executive.vcxproj">
+      <Project>{345cdbb7-1ec3-4e1c-ad4f-856a774430f5}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

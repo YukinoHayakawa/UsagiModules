@@ -76,6 +76,15 @@
     <ProjectReference Include="..\..\Runtime\Asset\Asset.vcxproj">
       <Project>{8722e8a6-ddc8-4283-8dff-45cd15e7dc6f}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\..\Runtime\HeapManager\HeapManager.vcxproj">
+      <Project>{dd541748-d082-4558-b456-c47f9d893211}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\ResGraphicsCommon\ResGraphicsCommon.vcxproj">
+      <Project>{5ac75a07-fb79-4059-b9bf-0a159a75151f}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\ResJson\ResJson.vcxproj">
+      <Project>{b77582cc-ec91-413a-b942-38e38cc90e16}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
