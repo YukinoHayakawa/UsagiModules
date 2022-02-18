@@ -2,12 +2,14 @@
 
 #include <cassert>
 
+#include <Usagi/Library/Utilities/Functional.hpp>
+
 #include "ResourceHasher.hpp"
 
-namespace usagi
+namespace usagi::details::heap_manager
 {
 template <ResourceBuilder ResourceBuilderT, typename ... Args>
-HeapResourceDescriptor HeapManager::make_resource_descriptor(Args &&... args)
+HeapResourceDescriptor make_resource_descriptor(Args &&... args)
 requires std::constructible_from<ResourceBuilderT, Args...>
 {
     // Use the type hash of the builder and build parameters to build a
@@ -22,5 +24,15 @@ requires std::constructible_from<ResourceBuilderT, Args...>
     assert(hash && "Resource Id shouldn't be zero.");
 
     return { typeid(ResourceBuilderT).hash_code(), hash };
+}
+
+template <ResourceBuilder ResourceBuilderT, typename Tuple>
+HeapResourceDescriptor make_resource_descriptor_from_tuple(
+    Tuple &&tuple)
+{
+    return USAGI_APPLY(
+        make_resource_descriptor<ResourceBuilderT>,
+        tuple
+    );
 }
 }

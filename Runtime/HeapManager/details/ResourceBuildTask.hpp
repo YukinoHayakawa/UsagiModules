@@ -17,6 +17,10 @@ protected:
     TaskExecutor *mExecutor = nullptr;
     std::promise<void> mPromise;
 
+    // todo refactor
+    friend void details::heap_manager::run_build_task_synced(
+        std::unique_ptr<ResourceBuildTaskBase> task);
+
 public:
     ResourceBuildTaskBase(
         HeapManager *manager,

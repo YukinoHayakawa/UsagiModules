@@ -8,7 +8,8 @@ class ResourceState
 {
     using ValueT = std::uint16_t;
 
-    ValueT mValue;
+    [[maybe_unused]]
+    ValueT mValue = ABSENT.mValue;
 
     constexpr ResourceState(ValueT value)
         : mValue(value)
@@ -18,6 +19,8 @@ class ResourceState
     constexpr static ValueT BASE_STATE_MASK     { 0b1111'1111'0000'0000 };
 
 public:
+    constexpr ResourceState() = default;
+
 #define USAGI_CVAL_DECL static const ResourceState
 
     // In absent/failed states, the heap should not have the resource.

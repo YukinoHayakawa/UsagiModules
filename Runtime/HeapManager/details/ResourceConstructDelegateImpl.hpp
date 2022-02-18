@@ -18,7 +18,7 @@ auto ResourceConstructDelegate<ResourceBuilderT>::resource(
     // of the parameters. So it doesn't matter if there are rvalue refs in
     // the parameters.
     return mManager->request_resource<AnotherBuilderT>(
-        options,
+        &options,
         mExecutor,
         [&]{return std::forward_as_tuple(std::forward<Args>(build_params)...);}
     );

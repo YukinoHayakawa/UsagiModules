@@ -17,19 +17,27 @@ concept HeapHasTemplatedResourceFunc = requires(Heap h)
     h.template resource<Product>(HeapResourceIdT());
 };
 
+/**
+ * \brief Use this like a smart pointer!
+ * \tparam ResourceBuilderT
+ */
 template <typename ResourceBuilderT>
 class ResourceAccessor
 {
     using TargetHeapT = typename ResourceBuilderT::TargetHeapT;
     using ResourceT = typename ResourceBuilderT::ProductT;
 
-    friend class HeapManager;
-
     template <typename BuilderT>
     friend class ResourceBuildTask;
 
     template <typename BuilderT>
     friend class ResourceConstructDelegate;
+
+    template <
+        typename BuilderT,
+        typename BuildParamTupleFunc
+    >
+    friend struct ResourceRequestHandler;
 
     HeapResourceDescriptor mDescriptor;
     ResourceEntry *mEntry = nullptr;
@@ -43,6 +51,8 @@ class ResourceAccessor
     }
 
 public:
+    ResourceAccessor() = default;
+
     ResourceAccessor(
         HeapResourceDescriptor descriptor,
         ResourceEntry *entry,

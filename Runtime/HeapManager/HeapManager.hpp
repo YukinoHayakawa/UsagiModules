@@ -15,13 +15,21 @@ namespace usagi
 class Heap;
 class Task;
 class TaskExecutor;
+class ResourceBuildTaskBase;
 
 namespace details::heap_manager
 {
-// Avoid introducing TaskExecutor by including this header.
-
+// Avoid header dependency on TaskExecutor.
 void submit_build_task(TaskExecutor *executor, std::unique_ptr<Task> task);
-void run_build_task_synced(std::unique_ptr<Task> task);
+void run_build_task_synced(std::unique_ptr<ResourceBuildTaskBase> task);
+
+template <ResourceBuilder ResourceBuilderT, typename... Args>
+HeapResourceDescriptor make_resource_descriptor(Args &&...args)
+    requires std::constructible_from<ResourceBuilderT, Args...>;
+
+template <ResourceBuilder ResourceBuilderT, typename Tuple>
+HeapResourceDescriptor make_resource_descriptor_from_tuple(
+    Tuple &&tuple);
 }
 
 /*
@@ -100,9 +108,11 @@ class HeapManager : Noncopyable
         bool is_fallback)
     -> ResourceAccessor<ResourceBuilderT>;
 
-    template <ResourceBuilder ResourceBuilderT, typename... Args>
-    static HeapResourceDescriptor make_resource_descriptor(Args &&...args)
-        requires std::constructible_from<ResourceBuilderT, Args...>;
+    template <
+        typename ResourceBuilderT,
+        typename BuildParamTupleFunc
+    >
+    friend struct ResourceRequestHandler;
 
 public:
     virtual ~HeapManager();
@@ -137,14 +147,24 @@ public:
         && NoRvalueRefInTuple<decltype(lazy_build_params())>;
         // && IsResourceBuilderSupported<ResourceBuilderT>;
 
-    // Immediate resource is constructed on the calling thread without using
-    // any task executor and no fallback is used. The ResourceBuilder is
-    // always constructed.
+    /*
+     * Transient resource: The resource is temporary and only intended to be
+     * used by the current frame. Examples include GPU command buffers/
+     * semaphores/etc. It is allocated via the heap manager to benefit from
+     * the reference counting mechanism universally applied to all resources.
+     * It is supposed to have a very short lifetime, and is very likely
+     * to be recycled within several frames. To optimize for these scenarios,
+     * transient resources are built on the calling thread and no fallback
+     * will be used if it is failed to construct.
+     *
+     * Note: If the user only wants to construct the resource synchronously,
+     * use `resource()` and pass in a synchronized task executor.
+     */
     template <
         ResourceBuilder ResourceBuilderT,
         typename... BuildArgs
     >
-    auto resource_immediate(BuildArgs &&... args)
+    auto resource_transient(BuildArgs &&... args)
     -> ResourceAccessor<ResourceBuilderT>
     requires
         std::constructible_from<ResourceBuilderT, BuildArgs...>;
@@ -157,12 +177,18 @@ public:
     HeapT * locate_heap();
 
 private:
+    template <typename ResourceBuilderT>
+    friend class ResourceConstructDelegate;
+
     template <
         ResourceBuilder ResourceBuilderT,
-        typename BuildParamTupleFunc
+        typename BuildParamTupleFunc,
+        // When set to true, code paths unrelated to immediate resources
+        // are ignored.
+        bool Transient = false
     >
-    auto request_resource(
-        const ResourceBuildOptions &options,
+    constexpr auto request_resource(
+        const ResourceBuildOptions *options,
         TaskExecutor *executor,
         BuildParamTupleFunc &&param_func)
     -> ResourceAccessor<ResourceBuilderT>;

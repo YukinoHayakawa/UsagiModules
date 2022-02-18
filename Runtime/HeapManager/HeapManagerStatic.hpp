@@ -10,13 +10,16 @@ class HeapManagerStatic : HeapManager
 {
     using ImplementedHeaps = std::tuple<HeapTypes...>;
 
+    // If this evaluates to false, it means that BuilderT::TargetHeapT
+    // is not added to HeapTypes.
     template <ResourceBuilder BuilderT>
-    constexpr static bool IsBuilderSupported =
+    constexpr static bool IsTargetHeapRegistered =
         has_type_v<typename BuilderT::TargetHeapT, ImplementedHeaps>;
 
 public:
     template <typename... ArgTuples>
     HeapManagerStatic(ArgTuples &&... arg_tuples)
+        requires (... && ConstructibleFromTuple<HeapTypes, ArgTuples>)
     {
         (..., USAGI_APPLY(add_heap<HeapTypes>, arg_tuples));
     }
@@ -26,11 +29,11 @@ public:
         ResourceBuilder ResourceBuilderT,
         typename... BuildArgs
     >
-    decltype(auto) resource_immediate(BuildArgs &&... args)
+    decltype(auto) resource_transient(BuildArgs &&... args)
     // Adds a constraint that checks whether the required heap is added.
-    requires IsBuilderSupported<ResourceBuilderT>
+    requires IsTargetHeapRegistered<ResourceBuilderT>
     {
-        return HeapManager::resource_immediate<ResourceBuilderT>(
+        return HeapManager::resource_transient<ResourceBuilderT>(
             std::forward<BuildArgs>(args)...
         );
     }
@@ -44,7 +47,7 @@ public:
         TaskExecutor *executor,
         BuildParamTupleFuncT &&lazy_build_params)
     // Adds a constraint that checks whether the required heap is added.
-    requires IsBuilderSupported<ResourceBuilderT>
+    requires IsTargetHeapRegistered<ResourceBuilderT>
     {
         return HeapManager::resource<ResourceBuilderT>(
             resource_cache_id,

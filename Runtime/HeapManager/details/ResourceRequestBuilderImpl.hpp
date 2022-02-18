@@ -8,7 +8,7 @@ make_request()
 -> ResourceAccessor<ResourceBuilderT>
 {
     return mManager->request_resource<ResourceBuilderT>(
-        mOptions,
+        &mOptions,
         mExecutor,
         std::move(mParamFunc)
     );

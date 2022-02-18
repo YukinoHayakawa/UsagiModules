@@ -15,6 +15,8 @@ auto HeapManager::make_accessor_nolock(
     const bool is_fallback)
 -> ResourceAccessor<ResourceBuilderT>
 {
+    assert(static_cast<bool>(descriptor));
+
     ResourceEntryIt it;
 
     if(!is_fallback)
