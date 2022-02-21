@@ -21,7 +21,7 @@ ResourceState RbSpirvBytecodes::construct(
     >(arg<AssetPath>()).await();
 
     auto bytecodes = spirv::from_glsl(
-        shader_source.to_string_view(),
+        shader_source->to_string_view(),
         arg<GpuShaderStage>()
     );
 

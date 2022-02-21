@@ -58,9 +58,10 @@ ResourceState RbVulkanGraphicsPipeline::construct(
     ResourceConstructDelegate<RbVulkanGraphicsPipeline> &delegate)
 {
     // Get pipeline description.
-    const auto &config = delegate.resource<RbCascadingJsonConfig>(
+    const auto res = delegate.resource<RbCascadingJsonConfig>(
         arg<AssetPath>()
-    ).await().root;
+    ).await();
+    const auto &config = res->root;
 
     std::cout << config << std::endl;
 
@@ -98,20 +99,20 @@ ResourceState RbVulkanGraphicsPipeline::construct(
         GpuShaderStage::FRAGMENT
     );
 
-    auto &module_vert = future_vert.await();
-    auto &module_frag = future_frag.await();
+    auto module_vert = future_vert.await();
+    auto module_frag = future_frag.await();
 
     std::string entry_vert = config["/shaders/vertex/entry"_json_pointer];
     std::string entry_frag = config["/shaders/fragment/entry"_json_pointer];
 
     compiler.add_stage_shader(
         GpuShaderStage::VERTEX,
-        module_vert,
+        *module_vert,
         entry_vert
     );
     compiler.add_stage_shader(
         GpuShaderStage::FRAGMENT,
-        module_frag,
+        *module_frag,
         entry_frag
     );
 

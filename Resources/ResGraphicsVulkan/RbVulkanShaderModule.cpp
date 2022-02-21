@@ -9,10 +9,11 @@ ResourceState RbVulkanShaderModule::construct(
     ResourceConstructDelegate<RbVulkanShaderModule> &delegate)
 {
     // Get shader source code
-    auto &bytecodes = delegate.resource<RbSpirvBytecodes>(
+    const auto res = delegate.resource<RbSpirvBytecodes>(
         arg<AssetPath>(),
         arg<GpuShaderStage>()
-    ).await().bytecodes();
+    ).await();
+    const auto &bytecodes = res->bytecodes();
 
     // Create the object
     vk::ShaderModuleCreateInfo info;

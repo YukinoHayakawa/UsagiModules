@@ -59,14 +59,16 @@ template <typename ReturnT>
 using DeduceResourceRefCntT =
     std::conditional_t<
         std::is_reference_v<ReturnT>,
-        std::add_pointer_t<ReturnT>,    // Convert reference to pointer
-        ReturnT                         // Otherwise store the value
+        std::remove_reference_t<ReturnT>,   // Convert reference to pointer
+        InPlace<ReturnT>                    // Otherwise store the value
     >;
 
-static_assert(std::is_same_v<DeduceResourceRefCntT<int>, int>);
-static_assert(std::is_same_v<DeduceResourceRefCntT<int &>, int*>);
-static_assert(std::is_same_v<DeduceResourceRefCntT<const int &>, const int*>);
-static_assert(std::is_same_v<DeduceResourceRefCntT<const int &&>, const int*>);
+static_assert(std::is_same_v<DeduceResourceRefCntT<int>, InPlace<int>>);
+static_assert(std::is_same_v<DeduceResourceRefCntT<int *>, InPlace<int *>>);
+static_assert(std::is_same_v<DeduceResourceRefCntT<const int *>, InPlace<const int *>>);
+static_assert(std::is_same_v<DeduceResourceRefCntT<int &>, int>);
+static_assert(std::is_same_v<DeduceResourceRefCntT<const int &>, const int>);
+static_assert(std::is_same_v<DeduceResourceRefCntT<const int &&>, const int>);
 
 template <typename ResourceBuilderT>
 using ResourceRefCntT = 
@@ -106,6 +108,15 @@ class ResourceAccessor
             return mHeap->template resource<ResourceT>(rid);
         else
             return mHeap->resource(rid);
+    }
+
+    decltype(auto) request_resource_converted()
+    {
+        decltype(auto) res = request_resource();
+        if constexpr(std::is_reference_v<decltype(res)>)
+            return &res;
+        else
+            return res;
     }
 
     using ResourceRefCntT =
@@ -152,7 +163,7 @@ public:
     // todo: some heap may return by value
     auto get()
     {
-        if(mObject.has_object()) 
+        if(mObject.has_value()) 
             return mObject;
 
         fetch_state();
@@ -163,7 +174,7 @@ public:
 
         mObject = RefCounted<ResourceRefCntT> {
             &mEntry->ref_counter,
-            request_resource()
+            request_resource_converted()
         };
 
         return mObject;
@@ -171,7 +182,7 @@ public:
 
     auto await()
     {
-        if(mObject.has_object()) 
+        if(mObject.has_value()) 
             return mObject;
 
         // Wait for the future.

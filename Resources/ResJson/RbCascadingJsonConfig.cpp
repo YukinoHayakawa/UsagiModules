@@ -11,9 +11,10 @@ ResourceState RbCascadingJsonConfig::construct(
     ResourceConstructDelegate<RbCascadingJsonConfig> &delegate)
 {
     // Fetch the content of the requested config file
-    const auto &cur = delegate.resource<RbJsonDocument>(
+    const auto doc = delegate.resource<RbJsonDocument>(
         arg<AssetPath>()
-    ).await().root;
+    ).await();
+    const auto &cur = doc->root;
 
     // Extract the base config asset path
     const auto it = cur.find("inherit");
@@ -32,7 +33,7 @@ ResourceState RbCascadingJsonConfig::construct(
     // Recursively request the parent config tree and make a copy of it.
     auto parent_doc = delegate.resource<RbCascadingJsonConfig>(
         base_path
-    ).await().root;
+    ).await()->root;
 
     parent_doc.merge_patch(cur);
     parent_doc.erase("inherit");

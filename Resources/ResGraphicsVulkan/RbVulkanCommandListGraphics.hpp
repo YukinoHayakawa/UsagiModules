@@ -26,7 +26,6 @@ public:
     using TargetHeapT = HeapVulkanObjectManager;
     using ProductT = VulkanCommandListGraphics;
 
-    using Immediate = void;
     using Transient = void;
 
     ResourceState construct(

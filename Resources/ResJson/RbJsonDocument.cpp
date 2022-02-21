@@ -8,9 +8,10 @@ namespace usagi
 ResourceState RbJsonDocument::construct(
     ResourceConstructDelegate<RbJsonDocument> &delegate)
 {
-    const ReadonlyMemoryView src = delegate.resource<
+    const auto res = delegate.resource<
         RbAssetMemoryView
     >(arg<AssetPath>()).await();
+    const ReadonlyMemoryView src = res.value();
     assert(src);
 
     delegate.allocate(nlohmann::json::parse(src.to_string_view()));
