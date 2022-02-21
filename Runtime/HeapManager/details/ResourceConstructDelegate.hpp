@@ -122,7 +122,7 @@ public:
             TargetHeapT,
             ProductT
         > transfer_func;
-        return transfer_func(*src_heap, src_res, *mHeap, dst_res);
+        return transfer_func(*src_heap, src_res.cref(), *mHeap, dst_res);
     }
 };
 }

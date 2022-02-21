@@ -4,6 +4,8 @@
 #include <future>
 #include <typeindex>
 
+#include <Usagi/Runtime/Memory/RefCount.hpp>
+
 #include "HeapResourceDescriptor.hpp"
 #include "ResourceState.hpp"
 
@@ -12,7 +14,7 @@ namespace usagi
 struct ResourceEntry
 {
     // HeapResourceDescriptor descriptor;
-    std::atomic<std::uint64_t> num_refs = 0;
+    RefCounter ref_counter;
     std::type_index builder_type = typeid(void);
     std::atomic<ResourceState> state = ResourceState::ABSENT_FIRST_REQUEST;
     std::shared_future<void> future;

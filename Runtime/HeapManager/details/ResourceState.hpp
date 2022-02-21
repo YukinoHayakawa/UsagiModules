@@ -11,7 +11,7 @@ class ResourceState
     [[maybe_unused]]
     ValueT mValue = ABSENT.mValue;
 
-    constexpr ResourceState(ValueT value)
+    explicit constexpr ResourceState(ValueT value)
         : mValue(value)
     {
     }
@@ -59,12 +59,12 @@ public:
 
     ResourceState base_state() const
     {
-        return { static_cast<ValueT>(mValue & BASE_STATE_MASK) };
+        return ResourceState { static_cast<ValueT>(mValue & BASE_STATE_MASK) };
     }
 
     bool ready() const
     {
-        return mValue == READY;
+        return mValue == READY.mValue;
     }
 
     bool failed() const

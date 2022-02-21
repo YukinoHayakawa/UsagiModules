@@ -31,6 +31,7 @@ struct ResourceRequestHandler
     {
     }
 
+    // todo constructor too many var inits adds overhead
     HeapResourceDescriptor descriptor;
     TargetHeapT *heap = nullptr;
     std::optional<decltype(param_func())> param_tuple;
@@ -116,7 +117,7 @@ struct ResourceRequestHandler
         state = accessor.last_state();
     }
 
-    template <bool Immediate>
+    template <bool Transient>
     auto & build_resource()
     {
         // When turned into preparing state, it's guaranteed that no another
@@ -148,7 +149,7 @@ struct ResourceRequestHandler
         );
 
         // Ensure parameters are evaluated.
-        if constexpr(!Immediate)
+        if constexpr(!Transient)
         {
             if(!param_tuple) param_tuple.emplace(param_func());
         }
@@ -159,6 +160,7 @@ struct ResourceRequestHandler
         }
             
         // Create build task.
+        // todo reduce value copying
         task = std::apply([&]<typename... Args>(Args &&...args)
         {
             // todo pool the task objects
@@ -177,7 +179,7 @@ struct ResourceRequestHandler
         );
 
         // If no executor is provided, build the resource on the current thread.
-        if constexpr(Immediate)
+        if constexpr(Transient)
         {
             details::heap_manager::run_build_task_synced(std::move(task));
         }
@@ -197,7 +199,7 @@ struct ResourceRequestHandler
 
         accessor.fetch_state();
 
-        if constexpr(Immediate)
+        if constexpr(Transient)
         {
             // Validate asset state. These are the only two states that
             // should appear after the build task is finished.
@@ -256,7 +258,7 @@ struct ResourceRequestHandler
         return branch_on_resource_state();
     }
 
-    auto process_request_immediate()
+    auto process_request_transient()
     {
         assert(!executor);
         assert(!options);
@@ -270,7 +272,9 @@ struct ResourceRequestHandler
         {
             return build_resource<true>();
         }
-        return accessor;
+
+        // todo enforce during compile time?
+        USAGI_UNREACHABLE("Transient resource shouldn't be requested twice.");
     }
 };
 
@@ -313,6 +317,7 @@ auto HeapManager::resource_transient(BuildArgs &&...args)
 -> ResourceAccessor<ResourceBuilderT>
 requires std::constructible_from<ResourceBuilderT, BuildArgs...>                
 {
+    // todo: this copies values.
 	auto params = [&] {
         return std::forward_as_tuple(std::forward<BuildArgs>(args)...);
     };
@@ -324,7 +329,7 @@ requires std::constructible_from<ResourceBuilderT, BuildArgs...>
         params
     };
 
-    return handler.process_request_immediate();
+    return handler.process_request_transient();
 }
 
 template <

@@ -73,6 +73,7 @@ public:
 
     void run() override
     {
+        // todo reduce copy overhead (introduce ResourceBuildContext?)
         ResourceConstructDelegate<ResourceBuilderT> delegate(
             mAccessor.descriptor(),
             mManager,

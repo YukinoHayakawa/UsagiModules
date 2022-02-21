@@ -157,6 +157,8 @@ public:
      * transient resources are built on the calling thread and no fallback
      * will be used if it is failed to construct.
      *
+     * todo: still adds too much overhead compared with direct allocation from GpuDevice, etc. Lots of value copying, etc.
+     *
      * Note: If the user only wants to construct the resource synchronously,
      * use `resource()` and pass in a synchronized task executor.
      */
