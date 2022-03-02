@@ -2,7 +2,7 @@
 
 #include <type_traits>
 
-#include <Usagi/Library/Meta/Type.hpp>
+#include <Usagi/Library/Meta/Template.hpp>
 
 #include "../Asset.hpp"
 
