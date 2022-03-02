@@ -60,6 +60,7 @@
   <ItemGroup>
     <ClInclude Include="details\HeapManagerImpl_Heap.hpp" />
     <ClInclude Include="details\HeapManagerImpl_Util.hpp" />
+    <ClInclude Include="details\HeapManagerImpl_Context.hpp" />
     <ClInclude Include="details\ResourceBuildOptions.hpp" />
     <ClInclude Include="details\ResourceConstructDelegate.hpp" />
     <ClInclude Include="details\ResourceConstructDelegateImpl.hpp" />
@@ -70,6 +71,7 @@
     <ClInclude Include="details\ResourceBuildTask.hpp" />
     <ClInclude Include="details\ResourceEntry.hpp" />
     <ClInclude Include="details\ResourceRequestBuilder.hpp" />
+    <ClInclude Include="details\ResourceRequestContext.hpp" />
     <ClInclude Include="Heap.hpp" />
     <ClInclude Include="HeapFreeObjectManager.hpp" />
     <ClInclude Include="HeapManager.hpp" />

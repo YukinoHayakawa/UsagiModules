@@ -10,26 +10,31 @@ using HeapResourceIdT = std::uint64_t;
 
 class HeapResourceDescriptor
 {
-    HeapResourceIdT mHeapTypeHash { };
+    // Check return type size of type_info.hash_code().
+    static_assert(sizeof(std::size_t) <= sizeof(HeapResourceIdT));
+
+    // typeid(HeapT).hash_code()
+    HeapResourceIdT mBuilderTypeHash { };
+    // (..., ResourceHasher.append(build_args));
     HeapResourceIdT mBuildParamHash { };
 
 public:
     HeapResourceDescriptor() = default;
 
     HeapResourceDescriptor(
-        HeapResourceIdT heap_type_hash,
+        HeapResourceIdT builder_type_hash,
         HeapResourceIdT build_param_hash)
-        : mHeapTypeHash(heap_type_hash)
+        : mBuilderTypeHash(builder_type_hash)
         , mBuildParamHash(build_param_hash)
     {
     }
 
-    HeapResourceIdT heap_id() const { return mHeapTypeHash; }
+    HeapResourceIdT builder_id() const { return mBuilderTypeHash; }
     HeapResourceIdT resource_id() const { return mBuildParamHash; }
 
     explicit operator bool() const
     {
-        return mHeapTypeHash && mBuildParamHash;
+        return mBuilderTypeHash && mBuildParamHash;
     }
 
     auto operator<=>(const HeapResourceDescriptor &rhs) const = default;
@@ -54,7 +59,7 @@ struct fmt::formatter<usagi::HeapResourceDescriptor>
         return format_to(
             ctx.out(),
             "[{:#0x}|{:#016x}]",
-            d.heap_id(),
+            d.builder_id(),
             d.resource_id()
         );
     }

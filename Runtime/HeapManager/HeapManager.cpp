@@ -20,7 +20,7 @@ void run_build_task_synced(std::unique_ptr<ResourceBuildTaskBase> task)
 {
     TaskExecutorSynchronized executor;
     // todo refactor
-    task->mExecutor = &executor;
+    task->set_executor(&executor);
     executor.submit(std::move(task), { });
 }
 }
@@ -29,5 +29,11 @@ namespace usagi
 {
 HeapManager::~HeapManager()
 {
+}
+
+void HeapManager::deallocate_request_context(
+    const ResourceBuildContextCommon &context)
+{
+    mRequestContextPool.deallocate(context.context_index);
 }
 }

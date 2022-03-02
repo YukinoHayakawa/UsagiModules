@@ -1,14 +1,18 @@
 ﻿#pragma once
 
+#include <deque>
 #include <map>
 #include <memory>
 #include <mutex>
+#include <set>
 #include <shared_mutex>
 
+#include <Usagi/Library/Memory/PoolAllocator.hpp>
 #include <Usagi/Library/Meta/Tuple.hpp>
 
 #include "details/ResourceBuilder.hpp"
 #include "details/ResourceRequestBuilder.hpp"
+#include "details/ResourceRequestContext.hpp"
 
 namespace usagi
 {
@@ -23,13 +27,12 @@ namespace details::heap_manager
 void submit_build_task(TaskExecutor *executor, std::unique_ptr<Task> task);
 void run_build_task_synced(std::unique_ptr<ResourceBuildTaskBase> task);
 
-template <ResourceBuilder ResourceBuilderT, typename... Args>
+template <ResourceBuilder Builder, typename... Args>
 HeapResourceDescriptor make_resource_descriptor(Args &&...args)
-    requires std::constructible_from<ResourceBuilderT, Args...>;
+    requires std::constructible_from<Builder, Args...>;
 
-template <ResourceBuilder ResourceBuilderT, typename Tuple>
-HeapResourceDescriptor make_resource_descriptor_from_tuple(
-    Tuple &&tuple);
+template <ResourceBuilder Builder, typename Tuple>
+HeapResourceDescriptor make_resource_descriptor_from_tuple(Tuple &&tuple);
 }
 
 /*
@@ -77,75 +80,88 @@ HeapResourceDescriptor make_resource_descriptor_from_tuple(
 // time.
 class HeapManager : Noncopyable
 {
-    // Heap Management
+    // ********************************************************************* //    
+    //                             Heap Management                           //
+    // ********************************************************************* //
 
     std::shared_mutex mHeapMutex;
     std::map<HeapResourceIdT, std::unique_ptr<Heap>> mHeaps;
-    // std::map<std::uint64_t, ...> mResources;
 
-    // template <ResourceBuilder T>
-    // constexpr static bool IsResourceBuilderSupported =
-        // HeapStorageImpl::template IsResourceBuilderSupported<T>;
+public:
+    template <typename HeapT, typename... Args>
+    HeapT * add_heap(Args &&...args);
 
-    // Resource Entry Management
+    template <typename HeapT>
+    HeapT * locate_heap();
 
+    // ********************************************************************* //    
+    //                       Resource Entry Management                       //
+    // ********************************************************************* //
+private:
     std::mutex mEntryMapMutex;
-    std::map<HeapResourceDescriptor, ResourceEntry> mResourceEntries;
+    std::set<ResourceEntry, std::less<>> mResourceEntries;
     using ResourceEntryIt = decltype(mResourceEntries)::iterator;
 
-    // Resource Request Handling
-
-    template <typename ResourceBuilderT, typename BuildParamTupleFunc>
-    friend class ResourceRequestBuilder;
-
-    template <
-        ResourceBuilder ResourceBuilderT,
-        typename TargetHeapT = typename ResourceBuilderT::TargetHeap
-    >
+    template <ResourceBuilder Builder>
     auto make_accessor_nolock(
         HeapResourceDescriptor descriptor,
-        TargetHeapT *heap,
+        typename Builder::TargetHeapT *heap,
         bool is_fallback)
-    -> ResourceAccessor<ResourceBuilderT>;
+    -> ResourceAccessor<Builder>;
 
-    template <
-        typename ResourceBuilderT,
-        typename BuildParamTupleFunc
-    >
+    template <typename Builder, typename LazyBuildArgFunc>
     friend struct ResourceRequestHandler;
+
+    // ********************************************************************* //    
+    //                       Resource Request Handling                       //
+    // ********************************************************************* //
+
+    // PoolAllocator has an internal mutex.
+    // std::mutex mRequestContextPoolMutex;
+    // References to elements inside std::deque won't be affected when
+    // inserting at the end.
+    PoolAllocator<ResourceRequestContextBlock, std::deque> mRequestContextPool;
+
+    template <ResourceBuilder Builder, typename LazyBuildArgFunc>
+    ResourceRequestContext<Builder, LazyBuildArgFunc> &
+    allocate_request_context();
+    void deallocate_request_context(const ResourceBuildContextCommon &context); 
 
 public:
     virtual ~HeapManager();
 
+    // ********************************************************************* //    
+    //                          Async Resource Request                       //
+    // ********************************************************************* //
+
     /**
      * \brief Request an access proxy to certain resource.
-     * \tparam ResourceBuilderT The builder type used to build the resource
+     * \tparam Builder The builder type used to build the resource
      * when it could not be found in the cache.
-     * \tparam BuildParamTupleFuncT Functor type that returns a tuple
+     * \tparam LazyBuildArgFunc Functor type that returns a tuple
      * containing the build params.
-     * \param resource_cache_id The cache id of the requested resource. If the
+     * \param resource_id The cache id of the requested resource. If the
      * requester does not know it, leave it empty and the id can be accessed
      * via the returned accessor.
      * \param executor Task executor.
-     * \param lazy_build_params A callable object that returns a tuple of
+     * \param arg_func A callable object that returns a tuple of
      * parameters that will be passed to the builder when the requested
      * resource could not be found. The object will not be called if the
      * resource is found in the cache.
      * \return An accessor that can be used to access or wait for the resource.
      */
-    template <
-        ResourceBuilder ResourceBuilderT,
-        typename BuildParamTupleFuncT
-    >
-    auto resource(
-        HeapResourceDescriptor resource_cache_id,
+    template <ResourceBuilder Builder, typename LazyBuildArgFunc>
+    ResourceRequestBuilder<Builder, LazyBuildArgFunc> resource(
+        HeapResourceDescriptor resource_id,
         TaskExecutor *executor,
-        BuildParamTupleFuncT &&lazy_build_params)
-    -> ResourceRequestBuilder<ResourceBuilderT, BuildParamTupleFuncT>
+        LazyBuildArgFunc &&arg_func)
     requires
-        ConstructibleFromTuple<ResourceBuilderT, decltype(lazy_build_params())>
-        && NoRvalueRefInTuple<decltype(lazy_build_params())>;
-        // && IsResourceBuilderSupported<ResourceBuilderT>;
+        ConstructibleFromTuple<Builder, decltype(arg_func())>
+        && NoRvalueRefInTuple<decltype(arg_func())>;
+
+    // ********************************************************************* //    
+    //                       Transient Resource Request                      //
+    // ********************************************************************* //
 
     /*
      * Transient resource: The resource is temporary and only intended to be
@@ -162,43 +178,26 @@ public:
      * Note: If the user only wants to construct the resource synchronously,
      * use `resource()` and pass in a synchronized task executor.
      */
-    template <
-        ResourceBuilder ResourceBuilderT,
-        typename... BuildArgs
-    >
-    auto resource_transient(BuildArgs &&... args)
-    -> ResourceAccessor<ResourceBuilderT>
-    requires
-        std::constructible_from<ResourceBuilderT, BuildArgs...>;
-        // && IsResourceBuilderSupported<ResourceBuilderT>;
+    template <ResourceBuilder Builder, typename... BuildArgs>
+    ResourceAccessor<Builder> resource_transient(BuildArgs &&... args) 
+    requires std::constructible_from<Builder, BuildArgs...>;
 
-    template <typename HeapT, typename... Args>
-    HeapT * add_heap(Args &&...args);
-
-    template <typename HeapT>
-    HeapT * locate_heap();
+    template <typename Builder, typename LazyBuildArgFunc>
+    friend class ResourceRequestBuilder;
 
 private:
     template <typename ResourceBuilderT>
     friend class ResourceConstructDelegate;
 
-    template <
-        ResourceBuilder ResourceBuilderT,
-        typename BuildParamTupleFunc,
-        // When set to true, code paths unrelated to immediate resources
-        // are ignored.
-        bool Transient = false
-    >
-    constexpr auto request_resource(
-        const ResourceBuildOptions *options,
-        TaskExecutor *executor,
-        BuildParamTupleFunc &&param_func)
-    -> ResourceAccessor<ResourceBuilderT>;
+    template <ResourceBuilder Builder, typename LazyBuildArgFunc>
+    constexpr ResourceAccessor<Builder> request_resource(
+        ResourceRequestContext<Builder, LazyBuildArgFunc> *context);
 };
 }
 
 #include "details/HeapManagerImpl_Heap.hpp"
 #include "details/HeapManagerImpl_Accessor.hpp"
+#include "details/HeapManagerImpl_Context.hpp"
 #include "details/HeapManagerImpl_Request.hpp"
 #include "details/HeapManagerImpl_Build.hpp"
 #include "details/HeapManagerImpl_Util.hpp"

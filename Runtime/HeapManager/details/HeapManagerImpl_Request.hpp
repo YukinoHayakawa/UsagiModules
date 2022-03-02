@@ -4,79 +4,68 @@
 
 namespace usagi
 {
-template <
-    typename ResourceBuilderT,
-    typename BuildParamTupleFunc
->
+template <typename Builder, typename LazyBuildArgFunc>
 struct ResourceRequestHandler
 {
-    using TargetHeapT = typename ResourceBuilderT::TargetHeapT;
-    using ResourceT = typename ResourceBuilderT::ProductT;
+    using TargetHeapT = typename Builder::TargetHeapT;
+    using ResourceT = typename Builder::ProductT;
+    using ContextT = ResourceRequestContext<Builder, LazyBuildArgFunc>;
 
-    HeapManager *manager = nullptr;
+    ContextT *context = nullptr;
 
-    const ResourceBuildOptions *options = nullptr;
-    TaskExecutor *executor = nullptr;
-    const BuildParamTupleFunc &param_func;
+    ResourceBuildOptions & options() const
+    {
+        return context->options;
+    }
 
-    ResourceRequestHandler(
-        HeapManager *manager,
-        const ResourceBuildOptions *options,
-        TaskExecutor *executor,
-        const BuildParamTupleFunc &param_func)
-        : manager(manager)
-        , options(options)
-        , executor(executor)
-        , param_func(param_func)
+    HeapManager * manager() const
+    {
+        return context->manager;
+    }
+
+    explicit ResourceRequestHandler(ContextT *context)
+        : context(context)
     {
     }
 
     // todo constructor too many var inits adds overhead
-    HeapResourceDescriptor descriptor;
-    TargetHeapT *heap = nullptr;
-    std::optional<decltype(param_func())> param_tuple;
-    std::unique_lock<std::mutex> lock;
-    std::unique_ptr<ResourceBuildTask<ResourceBuilderT>> task;
-    std::promise<void> promise;
-    ResourceAccessor<ResourceBuilderT> accessor;
-    ResourceState state;
 
-    void build_descriptor()
+    std::optional<decltype(std::declval<LazyBuildArgFunc>()())> param_tuple;
+    std::unique_lock<std::mutex> entry_map_lock;
+    ResourceAccessor<Builder> accessor;
+
+    void ensure_build_args()
     {
-        assert(!param_tuple.has_value());
+        if(!param_tuple)
+            param_tuple.emplace((*context->arg_func)());
+    }
+
+    void ensure_requested_descriptor()
+    {
+        if(options().requested_resource)
+            return;
 
         // Result from std::forward_as_tuple()/make_tuple()
         // Be sure that the parameters returned by the tuple refer to valid
         // memory addresses.
-        param_tuple.emplace(param_func());
+        ensure_build_args();
 
         // Hash the builder type & parameters to get the id of the resource.
         // Building the hash won't alter the content of the tuple.
-        descriptor = details::heap_manager::make_resource_descriptor_from_tuple<
-            ResourceBuilderT
-        >(std::forward<decltype(param_func())>(param_tuple.value()));
-    }
-
-    void ensure_descriptor()
-    {
-        // If the resource id is unknown, we must construct the builder to
-        // obtain it.
-        if(!options->requested_resource)
-        {
-            build_descriptor();
-        }
-        else
-        {
-            descriptor = options->requested_resource;
-            validate_builder_type();
-        }
+        options().requested_resource = 
+            details::heap_manager::make_resource_descriptor_from_tuple<
+            Builder
+        >(param_tuple.value());
     }
 
     void validate_builder_type() const
     {
+        const auto left = options().requested_resource.builder_id();
+        const auto right = typeid(Builder).hash_code();
+
         // Validate builder type.
         USAGI_ASSERT_THROW(
-            descriptor.heap_id() == typeid(TargetHeapT).hash_code(),
+            left == right,
             std::runtime_error("Builder type doesn't match with the one "
                 "used to create the resource.")
         );
@@ -85,9 +74,9 @@ struct ResourceRequestHandler
     // Return an accessor to the specified resource or a proper fallback.
     auto make_accessor(HeapResourceDescriptor desc, bool is_fallback)
     {
-        return manager->make_accessor_nolock<ResourceBuilderT>(
+        return context->manager->template make_accessor_nolock<Builder>(
             desc,
-            heap,
+            context->heap,
             is_fallback
         );
     }
@@ -96,7 +85,7 @@ struct ResourceRequestHandler
     {
         // Try to get the heap. The heap must exist before the resource
         // could be fetched or built. If this fails, exception will be thrown.
-        heap = manager->locate_heap<TargetHeapT>();
+        context->heap = context->manager->template locate_heap<TargetHeapT>();
     }
 
     void init_accessor()
@@ -110,11 +99,11 @@ struct ResourceRequestHandler
         //
 
         // Lock the table.
-        std::unique_lock lk { manager->mEntryMapMutex };
-        lock.swap(lk);
+        std::unique_lock lk { context->manager->mEntryMapMutex };
+        entry_map_lock.swap(lk);
 
-        accessor = make_accessor(descriptor, false);
-        state = accessor.last_state();
+        accessor = make_accessor(options().requested_resource, false);
+        context->entry = accessor.mEntry;
     }
 
     template <bool Transient>
@@ -122,20 +111,21 @@ struct ResourceRequestHandler
     {
         // When turned into preparing state, it's guaranteed that no another
         // build task will be created.
-        accessor.mEntry->state.store(
+        context->entry->state.store(
             ResourceState::PREPARING,
             std::memory_order::release
         );
 
         // Create the promise outside the construction of the builder task
         // to shorten the critical section.
-        accessor.mEntry->future = promise.get_future();
+        std::promise<void> promise;
+        context->entry->future = promise.get_future();
 
         // The future object is accessible from now on and the resource entry
         // enters a state that the entry will not be recreated/removed.
         // Safe to unlock here. Our accessor holds a ref to it so it won't be
         // removed.
-        lock.unlock();
+        entry_map_lock.unlock();
 
         // .................................................................. //
         // ------------------------------------------------------------------ //
@@ -143,37 +133,37 @@ struct ResourceRequestHandler
 
         LOG(trace,
             "[Heap] Building resource: {} (builder={}, resource={})",
-            descriptor,
-            typeid(ResourceBuilderT).name(),
-            typeid(typename ResourceBuilderT::ProductT).name()
+            context->entry->descriptor,
+            typeid(Builder).name(),
+            typeid(typename Builder::ProductT).name()
         );
 
         // Ensure parameters are evaluated.
         if constexpr(!Transient)
         {
-            if(!param_tuple) param_tuple.emplace(param_func());
+            ensure_build_args();
         }
         else
         {
             assert(param_tuple && "Should have been initialized when building "
                 "the descriptor.");
         }
-            
+
         // Create build task.
         // todo reduce value copying
+        std::unique_ptr<ResourceBuildTask<Builder>> task;
         task = std::apply([&]<typename... Args>(Args &&...args)
         {
-            // todo pool the task objects
-            return std::make_unique<ResourceBuildTask<ResourceBuilderT>>(
-                manager,
-                executor, // todo: executor injected in run_build_task_synced
-                accessor,
+            return std::make_unique<ResourceBuildTask<Builder>>(
+                context,
                 std::move(promise),
                 std::forward<Args>(args)...
             );
+            // todo pool the task objects
+            // todo: fix executor injected in run_build_task_synced
         }, param_tuple.value());
 
-        accessor.mEntry->state.store(
+        context->entry->state.store(
             ResourceState::SCHEDULED,
             std::memory_order::release
         );
@@ -186,14 +176,17 @@ struct ResourceRequestHandler
         else
         {
             // Submit the task to the executor.
-            details::heap_manager::submit_build_task(executor, std::move(task));
+            details::heap_manager::submit_build_task(
+                context->executor,
+                std::move(task)
+            );
 
             // If the user wants to use a fallback, return the fallback.
-            if(options->fallback_when_building)
+            if(options().fallback_when_building)
             {
                 // Creating accessor requires locking.
-                lock.lock();
-                accessor = make_accessor(options->fallback_when_building, true);
+                entry_map_lock.lock();
+                accessor = make_accessor(options().fallback_when_building,true);
             }
         }
 
@@ -212,6 +205,8 @@ struct ResourceRequestHandler
 
     auto branch_on_resource_state()
     {
+        const auto state = accessor.last_state();
+
         // Ready state won't change when in critical section.
         if(state.ready()) [[likely]]
         {
@@ -227,18 +222,18 @@ struct ResourceRequestHandler
         // fallback.
         if(state == ResourceState::ABSENT_EVICTED)
         {
-            if(options->rebuild_if_evicted)
+            if(options().rebuild_if_evicted)
                 return build_resource<false>();
-            if(options->fallback_if_evicted)
-                return make_accessor(options->fallback_if_evicted, true);
+            if(options().fallback_if_evicted)
+                return make_accessor(options().fallback_if_evicted, true);
         }
         // Failed state will be only changed here too.
         else if(state.failed()) [[unlikely]]
         {
-            if(options->rebuild_if_failed)
+            if(options().rebuild_if_failed)
                 return build_resource<false>();
-            if(options->fallback_if_failed)
-                return make_accessor(options->fallback_if_failed, true);
+            if(options().fallback_if_failed)
+                return make_accessor(options().fallback_if_failed, true);
         }
         // Otherwise, either the resource is being built, or the user doesn't
         // want to use a fallback. The state of the resource could be volatile.
@@ -248,10 +243,10 @@ struct ResourceRequestHandler
 
     auto process_request()
     {
-        assert(executor);
-        assert(options);
+        assert(context->executor);
 
-        ensure_descriptor();
+        ensure_requested_descriptor();
+        validate_builder_type();
         get_heap();
         init_accessor();
 
@@ -260,15 +255,14 @@ struct ResourceRequestHandler
 
     auto process_request_transient()
     {
-        assert(!executor);
-        assert(!options);
+        assert(!context->executor);
 
-        build_descriptor();
+        ensure_requested_descriptor();
         get_heap();
         init_accessor();
 
         // Manually simplified code path.
-        if(state == ResourceState::ABSENT_FIRST_REQUEST)
+        if(accessor.last_state() == ResourceState::ABSENT_FIRST_REQUEST)
         {
             return build_resource<true>();
         }
@@ -278,77 +272,64 @@ struct ResourceRequestHandler
     }
 };
 
-template <ResourceBuilder ResourceBuilderT, typename BuildParamTupleFuncT>
-auto HeapManager::resource(
-    HeapResourceDescriptor resource_cache_id,
+template <ResourceBuilder Builder, typename LazyBuildArgFunc>
+ResourceRequestBuilder<Builder, LazyBuildArgFunc>
+HeapManager::resource(
+    HeapResourceDescriptor resource_id,
     TaskExecutor *executor,
-    BuildParamTupleFuncT &&lazy_build_params)
--> ResourceRequestBuilder<ResourceBuilderT, BuildParamTupleFuncT>
-requires ConstructibleFromTuple<
-    ResourceBuilderT,
-    decltype(lazy_build_params())
-// The build params shouldn't return rvalue refs like integer literals.
-// Because at the point of using, they are much likely already out-of-scope.
-// todo: this however won't prevent forwarding refs to local variables.
-> && NoRvalueRefInTuple<decltype(lazy_build_params())>
+    LazyBuildArgFunc &&arg_func)
+requires
+    ConstructibleFromTuple<Builder, decltype(arg_func())>
+    // The build params shouldn't return rvalue refs like integer literals.
+    // Because at the point of using, they are much likely already out-of-scope.
+    // todo: this however won't prevent forwarding refs to local variables.
+    && NoRvalueRefInTuple<decltype(arg_func())>
 {
+    auto &context = allocate_request_context<Builder, LazyBuildArgFunc>();
+
+    context.executor = executor;
+    context.arg_func = &arg_func;
+    context.options.requested_resource = resource_id;
+
     // The request really happens when RequestBuilder.make_request()
     // is called.
-    return {
-        this,
-        executor,
-        resource_cache_id,
-        std::forward<BuildParamTupleFuncT>(lazy_build_params)
-    };
+    return ResourceRequestBuilder<Builder, LazyBuildArgFunc> { &context };
 }
 
 /**
  * \brief
- * \tparam ResourceBuilderT
+ * \tparam Builder
  * \tparam BuildArgs
  * \param args `ResourceBuilderT(args)`
  * \return
  */
 template <
-    ResourceBuilder ResourceBuilderT,
+    ResourceBuilder Builder,
     typename... BuildArgs
 >
 auto HeapManager::resource_transient(BuildArgs &&...args)
--> ResourceAccessor<ResourceBuilderT>
-requires std::constructible_from<ResourceBuilderT, BuildArgs...>                
+-> ResourceAccessor<Builder>
+requires std::constructible_from<Builder, BuildArgs...>                
 {
     // todo: this copies values.
 	auto params = [&] {
         return std::forward_as_tuple(std::forward<BuildArgs>(args)...);
     };
 
-    ResourceRequestHandler<ResourceBuilderT, decltype(params)> handler {
-        this,
-        nullptr,
-        nullptr,
-        params
-    };
+    auto &context = allocate_request_context<Builder, decltype(params)>();
+
+    context.arg_func = &params;
+
+    ResourceRequestHandler<Builder, decltype(params)> handler { &context };
 
     return handler.process_request_transient();
 }
 
-template <
-    ResourceBuilder ResourceBuilderT,
-    typename BuildParamTupleFunc,
-    bool ImmediateResource
->
-constexpr auto HeapManager::request_resource(
-    const ResourceBuildOptions *options,
-    TaskExecutor *executor,
-    BuildParamTupleFunc &&param_func)
--> ResourceAccessor<ResourceBuilderT>
+template <ResourceBuilder Builder, typename LazyBuildArgFunc>
+constexpr ResourceAccessor<Builder> HeapManager::request_resource(
+    ResourceRequestContext<Builder, LazyBuildArgFunc> *context)
 {
-    ResourceRequestHandler<ResourceBuilderT, BuildParamTupleFunc> handler {
-        this,
-        options,
-        executor,
-        std::forward<BuildParamTupleFunc>(param_func)
-    };
+    ResourceRequestHandler<Builder, LazyBuildArgFunc> handler { context };
 
     return handler.process_request();
 }

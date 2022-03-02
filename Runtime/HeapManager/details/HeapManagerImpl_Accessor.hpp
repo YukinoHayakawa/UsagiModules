@@ -5,15 +5,12 @@
 
 namespace usagi
 {
-template <
-    ResourceBuilder ResourceBuilderT,
-    typename TargetHeapT
->
+template <ResourceBuilder Builder>
 auto HeapManager::make_accessor_nolock(
     const HeapResourceDescriptor descriptor,
-    TargetHeapT *heap,
+    typename Builder::TargetHeapT *heap,
     const bool is_fallback)
--> ResourceAccessor<ResourceBuilderT>
+-> ResourceAccessor<Builder>
 {
     assert(static_cast<bool>(descriptor));
 
@@ -22,14 +19,14 @@ auto HeapManager::make_accessor_nolock(
     if(!is_fallback)
     {
         bool inserted = false;
-        std::tie(it, inserted) = mResourceEntries.try_emplace(descriptor);
+        std::tie(it, inserted) = mResourceEntries.emplace(descriptor);
         if(inserted)
         {
             LOG(trace,
                 "[Heap] New resource added: {} (builder={}, resource={})",
                 descriptor,
-                typeid(ResourceBuilderT).name(),
-                typeid(typename ResourceBuilderT::ProductT).name()
+                typeid(Builder).name(),
+                typeid(typename Builder::ProductT).name()
             );
         }
     }
@@ -62,12 +59,6 @@ auto HeapManager::make_accessor_nolock(
     // The accessor will increase the refcnt of the resource.
     // Therefore, as long as the accessor is alive, the resource should
     // always be in ready state.
-    return ResourceAccessor<ResourceBuilderT>(
-        descriptor,
-        &it->second,
-        heap,
-        it->second.state.load(std::memory_order::acquire),
-        is_fallback
-    );
+    return ResourceAccessor<Builder>(&*it, heap, is_fallback);
 }
 }

@@ -84,6 +84,12 @@
     <ClInclude Include="HeapManagerStatic.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="details\ResourceRequestContext.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="details\HeapManagerImpl_Context.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="HeapManager.cpp">

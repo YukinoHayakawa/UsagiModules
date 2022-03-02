@@ -101,7 +101,7 @@ class ResourceAccessor
     {
         using namespace details::heap_manager;
 
-        const auto rid = mDescriptor.resource_id();
+        const auto rid = mEntry->descriptor.resource_id();
 
         // Asks the heap for object.
         if constexpr(TargetHeapUsingTemplatedAlloc<ResourceBuilderT>)
@@ -122,8 +122,7 @@ class ResourceAccessor
     using ResourceRefCntT =
         details::heap_manager::ResourceRefCntT<ResourceBuilderT>;
 
-    HeapResourceDescriptor mDescriptor;
-    ResourceEntry *mEntry = nullptr;
+    const ResourceEntry *mEntry = nullptr;
     // todo maybe should be moved into ResourceEntry
     TargetHeapT *mHeap = nullptr;
     ResourceState mStateSnapshot;
@@ -141,19 +140,16 @@ public:
     ResourceAccessor() = default;
 
     ResourceAccessor(
-        HeapResourceDescriptor descriptor,
-        ResourceEntry *entry,
+        const ResourceEntry *entry,
         TargetHeapT *heap,
-        ResourceState state_snapshot,
         const bool is_fallback)
-        : mDescriptor(std::move(descriptor))
-        , mEntry(entry)
+        : mEntry(entry)
         , mHeap(heap)
-        , mStateSnapshot(std::move(state_snapshot))
+        , mStateSnapshot(mEntry->state.load(std::memory_order::acquire))
         , mIsFallback(is_fallback)
         // Increment the counter first to keep alive the record. The object
         // will be injected later.
-        , mObject(&mEntry->ref_counter)
+        , mObject(&mEntry->use_count)
     {
     }
 
@@ -173,7 +169,7 @@ public:
         );
 
         mObject = RefCounted<ResourceRefCntT> {
-            &mEntry->ref_counter,
+            &mEntry->use_count,
             request_resource_converted()
         };
 
@@ -197,7 +193,7 @@ public:
 
     HeapResourceDescriptor descriptor() const
     {
-        return mDescriptor;
+        return mEntry->descriptor;
     }
 
     bool is_fallback() const

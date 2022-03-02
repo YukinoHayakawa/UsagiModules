@@ -9,6 +9,7 @@
 
 #include "HeapResourceDescriptor.hpp"
 #include "ResourceAccessor.hpp"
+#include "ResourceRequestContext.hpp"
 
 namespace usagi
 {
@@ -30,24 +31,15 @@ class ResourceConstructDelegate : Noncopyable, Nonmovable
 public:
     using TargetHeapT = typename ResourceBuilderT::TargetHeapT;
     using ProductT = typename ResourceBuilderT::ProductT;
+    using ContextT = ResourceBuildContext<ResourceBuilderT>;
 
 private:
-    HeapResourceDescriptor mDescriptor;
-    HeapManager *mManager = nullptr;
-    TargetHeapT *mHeap = nullptr;
-    TaskExecutor *mExecutor = nullptr;
+    ContextT *mContext = nullptr;
     bool mObjectAllocated = false;
 
 public:
-    ResourceConstructDelegate(
-        HeapResourceDescriptor descriptor,
-        HeapManager *manager,
-        TargetHeapT *heap,
-        TaskExecutor *executor)
-        : mDescriptor(std::move(descriptor))
-        , mManager(manager)
-        , mHeap(heap)
-        , mExecutor(executor)
+    explicit ResourceConstructDelegate(ContextT *context)
+        : mContext(context)
     {
     }
 
@@ -68,23 +60,37 @@ public:
     template <typename... Args>
     decltype(auto) allocate(Args &&...args)
     {
+        // todo stronger test?
         assert(!mObjectAllocated);
-        mObjectAllocated = true;
+
         if constexpr(HeapHasTemplatedAllocateFunc<
             TargetHeapT, ProductT, Args...>)
         {
-            return mHeap->template allocate<ProductT>(
-                mDescriptor.resource_id(),
+            decltype(auto) ret = mContext->heap->template allocate<ProductT>(
+                mContext->entry->descriptor.resource_id(),
                 std::forward<Args>(args)...
             );
+            mObjectAllocated = true;
+            return ret;
         }
         else
         {
-            return mHeap->allocate(
-                mDescriptor.resource_id(),
+            decltype(auto) ret = mContext->heap->allocate(
+                mContext->entry->descriptor.resource_id(),
                 std::forward<Args>(args)...
             );
+            mObjectAllocated = true;
+            return ret;
         }
+
+        // decltype(auto) ret = mContext->heap->allocate(
+        //     Tag<ProductT>(),
+        //     mContext->entry->descriptor.resource_id(),
+        //     std::forward<Args>(args)...
+        // );
+        // mObjectAllocated = true;
+        //
+        // return ret;
     }
 
     template <typename ArgTuple>
@@ -122,7 +128,13 @@ public:
             TargetHeapT,
             ProductT
         > transfer_func;
-        return transfer_func(*src_heap, src_res.cref(), *mHeap, dst_res);
+
+        return transfer_func(
+            *src_heap,
+            src_res.cref(),
+            *mContext->heap,
+            dst_res
+        );
     }
 };
 }

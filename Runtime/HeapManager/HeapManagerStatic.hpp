@@ -18,7 +18,7 @@ class HeapManagerStatic : HeapManager
 
 public:
     template <typename... ArgTuples>
-    HeapManagerStatic(ArgTuples &&... arg_tuples)
+    explicit HeapManagerStatic(ArgTuples &&... arg_tuples)
         requires (... && ConstructibleFromTuple<HeapTypes, ArgTuples>)
     {
         (..., USAGI_APPLY(add_heap<HeapTypes>, arg_tuples));

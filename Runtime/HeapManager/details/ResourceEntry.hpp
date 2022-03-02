@@ -4,6 +4,7 @@
 #include <future>
 #include <typeindex>
 
+#include <Usagi/Library/Utilities/TransparentlyComparable.hpp>
 #include <Usagi/Runtime/Memory/RefCount.hpp>
 
 #include "HeapResourceDescriptor.hpp"
@@ -12,19 +13,26 @@
 namespace usagi
 {
 struct ResourceEntry
+    : TransparentlyComparable<ResourceEntry, HeapResourceDescriptor>
 {
-    // HeapResourceDescriptor descriptor;
-    RefCounter ref_counter;
-    std::type_index builder_type = typeid(void);
-    std::atomic<ResourceState> state = ResourceState::ABSENT_FIRST_REQUEST;
-    std::shared_future<void> future;
-    //
-    // bool can_unload() const;
-    // bool is_ready() const;
-    // bool is_failed() const;
-    // bool is_constructing() const;
-    // bool is_present() const; // building / ready
-    //
-    // // state.load(std::memory_order::acquire).is_resource_allocated()
+    HeapResourceDescriptor descriptor;
+
+    mutable RefCounter use_count;
+    mutable std::atomic<ResourceState> state = 
+        ResourceState::ABSENT_FIRST_REQUEST;
+
+    // std::shared_mutex availability;
+    // todo simplify the block behavior
+    mutable std::shared_future<void> future;
+
+    explicit ResourceEntry(HeapResourceDescriptor descriptor)
+        : descriptor(std::move(descriptor))
+    {
+    }
+
+    const HeapResourceDescriptor & key() const
+    {
+        return descriptor;
+    }
 };
 }

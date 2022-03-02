@@ -1,6 +1,5 @@
 ﻿#pragma once
 
-#include <future>
 #include <cassert>
 
 #include <Usagi/Runtime/Task/Task.hpp>
@@ -12,58 +11,49 @@ namespace usagi
 {
 class ResourceBuildTaskBase : public Task
 {
-protected:
-    HeapManager *mManager = nullptr;
-    TaskExecutor *mExecutor = nullptr;
-    std::promise<void> mPromise;
-
-    // todo refactor
-    friend void details::heap_manager::run_build_task_synced(
-        std::unique_ptr<ResourceBuildTaskBase> task);
-
 public:
-    ResourceBuildTaskBase(
-        HeapManager *manager,
-        TaskExecutor *executor,
-        std::promise<void> promise)
-        : mManager(manager)
-        , mExecutor(executor)
-        , mPromise(std::move(promise))
-    {
-    }
+    // todo this is a temporary solution
+    virtual void set_executor(TaskExecutor *executor) = 0;
 };
 
 template <typename ResourceBuilderT>
 class ResourceBuildTask : public ResourceBuildTaskBase
 {
     using AccessorT = ResourceAccessor<ResourceBuilderT>;
+    using ContextT = ResourceBuildContext<ResourceBuilderT>;
+    using ProductT = typename ResourceBuilderT::ProductT;
 
-    AccessorT mAccessor;
+    ContextT *mContext = nullptr;
+    // Notified by ResourceBuildTask after constructing the resource, whether
+    // the resource building was successful or failed.
+    std::promise<void> mPromise;
     ResourceBuilderT mBuilder;
 
     void set_state(const ResourceState state)
     {
-        mAccessor.mEntry->state.store(state);
+        mContext->entry->state.store(state);
+    }
+
+    void set_executor(TaskExecutor *executor) override
+    {
+        mContext->executor = executor;
     }
 
 public:
     template <typename... Args>
     ResourceBuildTask(
-        HeapManager *manager,
-        TaskExecutor *executor,
-        AccessorT accessor,
+        ContextT *context,
         std::promise<void> promise,
         Args &&...args)
-        : ResourceBuildTaskBase(manager, executor, std::move(promise))
-        , mAccessor(std::move(accessor))
+        : mContext(context)
+        , mPromise(std::move(promise))
         , mBuilder(std::forward<Args>(args)...)
     {
-        assert(mAccessor.is_fallback() == false);
     }
 
     bool precondition() override
     {
-        return mAccessor.mEntry->state.load() == ResourceState::SCHEDULED;
+        return mContext->entry->state.load() == ResourceState::SCHEDULED;
     }
 
     void on_started() override
@@ -73,21 +63,15 @@ public:
 
     void run() override
     {
-        // todo reduce copy overhead (introduce ResourceBuildContext?)
-        ResourceConstructDelegate<ResourceBuilderT> delegate(
-            mAccessor.descriptor(),
-            mManager,
-            mAccessor.mHeap,
-            mExecutor
-        );
         try
         {
+            ResourceConstructDelegate<ResourceBuilderT> delegate(mContext);
             set_state(mBuilder.construct(delegate));
         }
         catch(const std::runtime_error &e)
         {
             LOG(error, "[Heap] Resource {} failed to build: {}",
-                mAccessor.descriptor(), e.what());
+                mContext->entry->descriptor, e.what());
             set_state(ResourceState::FAILED);
         }
     }

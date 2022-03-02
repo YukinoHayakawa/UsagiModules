@@ -2,15 +2,12 @@
 
 namespace usagi
 {
-template <typename ResourceBuilderT, typename BuildParamTupleFunc>
-auto ResourceRequestBuilder<ResourceBuilderT, BuildParamTupleFunc>::
-make_request()
--> ResourceAccessor<ResourceBuilderT>
+template <typename ResourceBuilderT, typename LazyBuildArgFunc>
+ResourceAccessor<ResourceBuilderT>
+ResourceRequestBuilder<ResourceBuilderT, LazyBuildArgFunc>::make_request()
 {
-    return mManager->request_resource<ResourceBuilderT>(
-        &mOptions,
-        mExecutor,
-        std::move(mParamFunc)
+    return mContext->manager->template request_resource<ResourceBuilderT>(
+        mContext
     );
 }
 }
