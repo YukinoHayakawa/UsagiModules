@@ -34,8 +34,7 @@ protected:
         const vk::SwapchainCreateInfoKHR &create_info) const;
     VulkanGraphicsPipeline create(
         VulkanGraphicsPipelineCompiler &compiler) const;
-    VulkanUniqueCommandBuffer create(
-        std::thread::id thread_id) const;
+    // VulkanUniqueCommandBuffer create(std::thread::id thread_id) const;
 
     const vk::DispatchLoaderDynamic & dispatch() const;
 

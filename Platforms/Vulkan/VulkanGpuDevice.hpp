@@ -4,6 +4,9 @@
 #include <map>
 #include <mutex>
 
+#include <Usagi/Runtime/Memory/RefCount.hpp>
+#include <Usagi/Modules/IO/Graphics/Enum.hpp>
+
 #include "VulkanCommandListGraphics.hpp"
 #include "VulkanSwapchain.hpp"
 
@@ -11,7 +14,17 @@ namespace usagi
 {
 class NativeWindow;
 
-class VulkanGpuDevice
+/*
+ * Ownership of frame resources:
+ *
+ * - Allocated from GpuDevice.
+ *   - todo Pool the objects. Put frame resources from each batch in a linked list node. Check the fence and lazily free used resources.
+ * - RenderSystem allocates a frame submission object, which the frame resources
+ *   are transferred into.
+ * - Frame resources go back into GpuDevices.
+ * - No need to do RefCnt.
+ */
+class VulkanGpuDevice : VulkanDeviceAccess
 {
     friend class VulkanDeviceAccess;
 
@@ -31,14 +44,13 @@ public:
     {
         friend class VulkanGpuDevice;
 
-        std::vector<VulkanUniqueCommandBuffer> mCommandBuffers;
+        std::vector<VulkanCommandListGraphics> mCommandBuffers;
         std::vector<vk::CommandBufferSubmitInfoKHR> mInfos;
 
     public:
         void add(VulkanCommandListGraphics cmd_list);
     };
 
-    using GraphicsCommandListBuilderT = int;
     using DeviceLocalImageBuilderT = int;
     using ImageViewT = int;
 
@@ -127,8 +139,7 @@ public:
     // can't have dependencies, this information must be injected.
     // void set_thread_resource_pool_size(std::size_t num_threads);
 
-    VulkanUniqueCommandBuffer allocate_graphics_command_list(
-        std::thread::id thread_id);
+    VulkanCommandListGraphics allocate_graphics_command_list();
 
     static auto create_command_buffer_list() { return CommandBufferList(); }
     static auto create_semaphore_info() { return SemaphoreInfo(); }
@@ -157,6 +168,10 @@ public:
     vk::Device device() const { return mDevice.get(); }
     vk::PhysicalDevice physical_device() const { return mPhysicalDevice; }
 
+    // Resource builder types
+
+    // using RbCommandListGraphics = class RbVulkanCommandListGraphics;
+    // using RbSemaphore = class RbVulkanSemaphore;
 
     // todo these functions should not be accessed by game systems
 
@@ -198,6 +213,7 @@ private:
             create_info, nullptr, dispatch());
     }
 
+    // todo: sync
     vk::Queue present_queue() const { return mGraphicsQueue; }
     vk::Queue graphics_queue() const { return mGraphicsQueue; }
 

@@ -8,20 +8,38 @@ VulkanCommandListGraphics::VulkanCommandListGraphics(
     VulkanUniqueCommandBuffer command_buffer)
     : mCommandBuffer(std::move(command_buffer))
 {
+    assert(mCommandBuffer);
+}
+
+void VulkanCommandListGraphics::check_buffer() const
+{
+    assert(mCommandBuffer && "Command buffer ownership transferred?");
 }
 
 VulkanCommandListGraphics & VulkanCommandListGraphics::begin_recording()
 {
+    check_buffer();
+    assert(!mRecording);
+
     vk::CommandBufferBeginInfo info;
+    // This command buffer will only be used once. It will be reset before
+    // next submission and after the last execution is finished.
     info.setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
     mCommandBuffer->begin(info, dispatch());
+
+    mRecording = true;
 
     return *this;
 }
 
 VulkanCommandListGraphics & VulkanCommandListGraphics::end_recording()
 {
+    check_buffer();
+    assert(mRecording);
+
     mCommandBuffer->end(dispatch());
+
+    mRecording = false;
 
     return *this;
 }
@@ -33,6 +51,8 @@ VulkanCommandListGraphics & VulkanCommandListGraphics::clear_color_image(
     const Vulkan_GpuImageLayout layout,
     Color4f color)
 {
+    check_buffer();
+
     // todo: depending on image format, float/uint/int should be used
     const vk::ClearColorValue color_value { std::array {
         color.x(), color.y(), color.z(), color.w()
@@ -68,6 +88,8 @@ VulkanCommandListGraphics & VulkanCommandListGraphics::image_transition(
     const Vulkan_GpuAccessMask dst_access,
     const Vulkan_GpuImageLayout new_layout)
 {
+check_buffer();
+
     vk::ImageMemoryBarrier2KHR barrier;
 
     barrier.setImage(image);

@@ -12,6 +12,9 @@ class VulkanCommandListGraphics : public VulkanDeviceAccess
     friend class VulkanGpuDevice;
 
     VulkanUniqueCommandBuffer mCommandBuffer;
+    bool mRecording = false;
+
+    void check_buffer() const;
 
 public:
     VulkanCommandListGraphics(VulkanUniqueCommandBuffer command_buffer);

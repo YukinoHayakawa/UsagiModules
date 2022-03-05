@@ -5,9 +5,13 @@
 #include <Usagi/Library/Utilities/String.hpp>
 #include <Usagi/Modules/Common/Logging/Logging.hpp>
 
+#include "VulkanCommandListGraphics.hpp"
+#include "VulkanEnum.hpp"
+
 namespace usagi
 {
 VulkanGpuDevice::VulkanGpuDevice()
+    : VulkanDeviceAccess(this)
 {
     create_instance();
     create_debug_report();
@@ -249,9 +253,10 @@ void VulkanGpuDevice::create_debug_report()
 void VulkanGpuDevice::select_physical_device()
 {
     LOG(info, "--------------------------------");
-    LOG(info, "Available physical devices");
+    LOG(info, "Available physical devices"      );
     LOG(info, "--------------------------------");
-    for(auto physical_devices = mInstance->enumeratePhysicalDevices(mDispatch);
+    for(const auto physical_devices = 
+        mInstance->enumeratePhysicalDevices(mDispatch);
         auto &&dev : physical_devices)
     {
         const auto prop = dev.getProperties(mDispatch);
@@ -262,11 +267,9 @@ void VulkanGpuDevice::select_physical_device()
         LOG(info, "Driver Version: {}", prop.vendorID);
         LOG(info, "Vendor ID     : {}", prop.vendorID);
         LOG(info, "--------------------------------");
-        // todo: select device based on features and score them / let the
-        // user choose
-        if(!mPhysicalDevice)
-            mPhysicalDevice = dev;
-        else if(prop.deviceType == vk::PhysicalDeviceType::eDiscreteGpu)
+        // todo: select device based on features and score them or let the user choose
+        if(!mPhysicalDevice || 
+            prop.deviceType == vk::PhysicalDeviceType::eDiscreteGpu)
             mPhysicalDevice = dev;
     }
 
@@ -350,14 +353,18 @@ VulkanUniqueCommandPool & VulkanGpuDevice::get_thread_command_pool(
     return find_or_emplace(mCommandPools, thread_id, [this] {
         vk::CommandPoolCreateInfo info;
         info.setQueueFamilyIndex(mGraphicsQueueFamilyIndex);
+        // Allow the command buffers to be reset individually or by
+        // calling beginCommandBuffer(). So that the command buffers can be
+        // pooled to improve performance.
+        // https://arm-software.github.io/vulkan_best_practice_for_mobile_developers/samples/performance/command_buffer_usage/command_buffer_usage_tutorial.html#resetting-individual-command-buffers
+        info.setFlags(vk::CommandPoolCreateFlagBits::eResetCommandBuffer);
         return mDevice->createCommandPoolUnique(info, nullptr, mDispatch);
     });
 }
 
-VulkanUniqueCommandBuffer VulkanGpuDevice::allocate_graphics_command_list(
-    const std::thread::id thread_id)
+VulkanCommandListGraphics VulkanGpuDevice::allocate_graphics_command_list()
 {
-    auto &pool = get_thread_command_pool(thread_id);
+    auto &pool = get_thread_command_pool(std::this_thread::get_id());
 
     vk::CommandBufferAllocateInfo info;
 
@@ -367,11 +374,25 @@ VulkanUniqueCommandBuffer VulkanGpuDevice::allocate_graphics_command_list(
 
     // This allocation doesn't have to be lock-protected since a thread
     // can only access its own command pool.
-    auto cmd_buffer = std::move(mDevice->allocateCommandBuffersUnique(
-        info, mDispatch
-    ).front());
-
-    return cmd_buffer;
+    // todo fix overhead of using std::vector
+    vk::CommandBuffer out;
+    const auto result = mDevice->allocateCommandBuffers(
+        &info,
+        &out,
+        dispatch()
+    );
+    USAGI_ASSERT_THROW(
+        result == vk::Result::eSuccess,
+        std::runtime_error("vk::allocateCommandBuffers failed.")
+    );
+    VulkanCommandListGraphics ret {
+        VulkanUniqueCommandBuffer(
+            out,
+            { device(), pool.get(), dispatch() }
+        )
+    };
+    ret.connect(this);
+    return ret;
 }
 
 void VulkanGpuDevice::SemaphoreInfo::add(
@@ -395,7 +416,7 @@ void VulkanGpuDevice::CommandBufferList::add(
     auto &info = mInfos.emplace_back();
     info.commandBuffer = cmd_list.mCommandBuffer.get();
     info.deviceMask = 0;
-    mCommandBuffers.emplace_back(std::move(cmd_list.mCommandBuffer));
+    mCommandBuffers.emplace_back(std::move(cmd_list));
 }
 
 // https://github.com/KhronosGroup/Vulkan-Guide/blob/master/chapters/extensions/VK_KHR_synchronization2.md
