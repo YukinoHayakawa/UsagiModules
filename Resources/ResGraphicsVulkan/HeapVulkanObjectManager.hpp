@@ -1,12 +1,11 @@
 ﻿#pragma once
 
 #include <Usagi/Modules/Runtime/HeapManager/Heap.hpp>
-#include <Usagi/Modules/Runtime/HeapManager/details/HeapResourceDescriptor.hpp>
 
-#include <Usagi/Modules/Platforms/Vulkan/VulkanGpuDevice.hpp>
-#include <Usagi/Modules/Platforms/Vulkan/VulkanGraphicsPipeline.hpp>
 #include <Usagi/Modules/Platforms/Vulkan/VulkanGraphicsPipelineCompiler.hpp>
 #include <Usagi/Modules/Platforms/Vulkan/VulkanShaderModule.hpp>
+#include <Usagi/Modules/Platforms/Vulkan/VulkanCommandListGraphics.hpp>
+#include <Usagi/Modules/Platforms/Vulkan/VulkanSwapchain.hpp>
 
 #include "VulkanObjectManager.hpp"
 
@@ -17,7 +16,8 @@ class HeapVulkanObjectManager
     , public VulkanDeviceAccess
     , VulkanObjectManager<VulkanShaderModule>
     , VulkanObjectManager<VulkanGraphicsPipeline>
-    , VulkanObjectManager<VulkanCommandListGraphics>
+    , VulkanObjectManager<VulkanSwapchain>
+    // , VulkanObjectManager<VulkanCommandListGraphics>
 {
 
     // Import the overloads into our scope so overload resolution works
@@ -25,11 +25,13 @@ class HeapVulkanObjectManager
 
     using VulkanObjectManager<VulkanShaderModule>::allocate_impl;
     using VulkanObjectManager<VulkanGraphicsPipeline>::allocate_impl;
-    using VulkanObjectManager<VulkanCommandListGraphics>::allocate_impl;
+    using VulkanObjectManager<VulkanSwapchain>::allocate_impl;
+    // using VulkanObjectManager<VulkanCommandListGraphics>::allocate_impl;
 
     using VulkanObjectManager<VulkanShaderModule>::resource_impl;
     using VulkanObjectManager<VulkanGraphicsPipeline>::resource_impl;
-    using VulkanObjectManager<VulkanCommandListGraphics>::resource_impl;
+    using VulkanObjectManager<VulkanSwapchain>::resource_impl;
+    // using VulkanObjectManager<VulkanCommandListGraphics>::resource_impl;
 
 public:
     explicit HeapVulkanObjectManager(VulkanGpuDevice *device)
@@ -48,7 +50,7 @@ public:
         typename CreateInfo,
         typename... Args
     >
-    auto & allocate(
+    decltype(auto) allocate(
         const HeapResourceIdT id,
         CreateInfo &&create_info,
         Args &&...args)
@@ -58,7 +60,7 @@ public:
         Args...
     >
     {
-        auto &object = allocate_impl<Object>(
+        decltype(auto) object = allocate_impl<Object>(
             id,
             VulkanDeviceAccess::create(create_info),
             std::forward<Args>(args)...

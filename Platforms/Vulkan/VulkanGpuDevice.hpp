@@ -98,9 +98,8 @@ private:
         uint32_t queue_family_index) const;
     static const char * platform_surface_extension_name();
 
-    std::map<NativeWindow *, std::unique_ptr<VulkanSwapchain>> mSwapchainCache;
     // implemented in platform-specific WSI integration libs
-    std::unique_ptr<VulkanSwapchain> & create_swapchain(NativeWindow *window);
+    VulkanUniqueSurface create_surface(NativeWindow *window);
 
     // thread resources
 
@@ -132,7 +131,6 @@ private:
 
 public:
     VulkanGpuDevice();
-    ~VulkanGpuDevice();
 
     // determines the number of command allocators, etc according to the
     // number of threads used in compiling the command lists. since services
@@ -162,9 +160,6 @@ public:
     VulkanUniqueSemaphore allocate_semaphore();
     VulkanUniqueFence allocate_fence();
 
-    VulkanSwapchain & swapchain(NativeWindow *window);
-    void destroy_swapchain(NativeWindow *window);
-
     vk::Device device() const { return mDevice.get(); }
     vk::PhysicalDevice physical_device() const { return mPhysicalDevice; }
 
@@ -172,6 +167,7 @@ public:
 
     // using RbCommandListGraphics = class RbVulkanCommandListGraphics;
     // using RbSemaphore = class RbVulkanSemaphore;
+    using RbSwapchain = class RbVulkanSwapchain;
 
     // todo these functions should not be accessed by game systems
 

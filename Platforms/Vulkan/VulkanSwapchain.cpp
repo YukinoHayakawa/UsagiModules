@@ -4,15 +4,13 @@
 
 #include <Usagi/Modules/Common/Logging/Logging.hpp>
 
+#include "VulkanEnum.hpp"
 #include "VulkanGpuDevice.hpp"
 
 namespace usagi
 {
-VulkanSwapchain::VulkanSwapchain(
-    VulkanGpuDevice *device,
-    VulkanUniqueSurface vk_surface_khr)
-    : VulkanDeviceAccess { device }
-    , mSurface { std::move(vk_surface_khr) }
+VulkanSwapchain::VulkanSwapchain(VulkanUniqueSurface vk_surface_khr)
+    : mSurface { std::move(vk_surface_khr) }
     // todo linear color format? https://stackoverflow.com/questions/12524623/what-are-the-practical-differences-when-working-with-colors-in-a-linear-vs-a-no
     , mFormat { vk::Format::eUndefined, vk::ColorSpaceKHR::eSrgbNonlinear }
 {

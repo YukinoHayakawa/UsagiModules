@@ -54,6 +54,12 @@ VulkanUniqueSwapchain VulkanDeviceAccess::create(
     return mDevice->create_swapchain(create_info);
 }
 
+VulkanUniqueSurface VulkanDeviceAccess::create(NativeWindow *window) const
+{
+    assert(mDevice);
+    return mDevice->create_surface(window);
+}
+
 VulkanGraphicsPipeline VulkanDeviceAccess::create(
     VulkanGraphicsPipelineCompiler &compiler) const
 {
@@ -85,7 +91,7 @@ vk::Queue VulkanDeviceAccess::graphics_queue() const
     return mDevice->graphics_queue();
 }
 
-void VulkanDeviceAccess::connect(VulkanDeviceAccess *another)
+void VulkanDeviceAccess::connect(const VulkanDeviceAccess *another)
 {
     assert(!mDevice && "Target device should only be set once.");
     mDevice = another->device();

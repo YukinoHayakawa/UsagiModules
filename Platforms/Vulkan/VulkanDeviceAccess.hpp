@@ -9,6 +9,7 @@
 
 namespace usagi
 {
+class NativeWindow;
 class VulkanGraphicsPipelineCompiler;
 class VulkanGpuDevice;
 
@@ -32,6 +33,7 @@ protected:
         const vk::GraphicsPipelineCreateInfo &create_info) const;
     VulkanUniqueSwapchain create(
         const vk::SwapchainCreateInfoKHR &create_info) const;
+    VulkanUniqueSurface create(NativeWindow *window) const;
     VulkanGraphicsPipeline create(
         VulkanGraphicsPipelineCompiler &compiler) const;
     // VulkanUniqueCommandBuffer create(std::thread::id thread_id) const;
@@ -44,7 +46,7 @@ protected:
     vk::Queue graphics_queue() const;
 
 public:
-    void connect(VulkanDeviceAccess *another);
+    void connect(const VulkanDeviceAccess *another);
 };
 
 class VulkanDeviceExternalAccessProvider : VulkanDeviceAccess

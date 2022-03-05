@@ -22,10 +22,10 @@ void VulkanGpuDevice::check_queue_presentation_capacity_throw(
     );
 }
 
-std::unique_ptr<VulkanSwapchain> &
-VulkanGpuDevice::create_swapchain(NativeWindow *window)
+VulkanUniqueSurface VulkanGpuDevice::create_surface(NativeWindow *window)
 {
-    auto &win32_window = dynamic_cast_ref_throw<NativeWindowWin32>(window);
+    const auto &win32_window = dynamic_cast_ref_throw<NativeWindowWin32>(
+        window);
 
     // todo
     // LOG(info, "Creating Win32Surface for window: {}", win32_window.title());
@@ -51,21 +51,6 @@ VulkanGpuDevice::create_swapchain(NativeWindow *window)
             "Graphics queue doesn't support Win32 surface")
     );
 
-    auto swapchain = std::make_unique<VulkanSwapchain>(
-        this,
-        std::move(surface)
-    );
-    swapchain->create(
-        win32_window.surface_size().cast<std::uint32_t>(),
-        vk::Format::eB8G8R8A8Unorm
-    );
-
-    const auto [fst, snd] = mSwapchainCache.try_emplace(
-        window,
-        std::move(swapchain)
-    );
-    assert(snd);
-
-    return fst->second;
+    return surface;
 }
 }

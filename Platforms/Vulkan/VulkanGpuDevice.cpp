@@ -19,11 +19,6 @@ VulkanGpuDevice::VulkanGpuDevice()
     create_device_and_queues();
 }
 
-VulkanGpuDevice::~VulkanGpuDevice()
-{
-    assert(mSwapchainCache.empty());
-}
-
 VkBool32 VulkanGpuDevice::debug_messenger_callback_dispatcher(
     const VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
     const VkDebugUtilsMessageTypeFlagsEXT message_type,
@@ -337,15 +332,6 @@ void VulkanGpuDevice::create_device_and_queues()
     mGraphicsQueueFamilyIndex = graphics_queue_index;
 }
 
-// void VulkanGpuDevice::set_thread_resource_pool_size(std::size_t num_threads)
-// {
-//     resize_generate(mCommandPools, num_threads, [this]() {
-//         vk::CommandPoolCreateInfo info;
-//         info.setQueueFamilyIndex(mGraphicsQueueFamilyIndex);
-//         return mDevice->createCommandPoolUnique(info, nullptr, mDispatch);
-//     });
-// }
-
 VulkanUniqueCommandPool & VulkanGpuDevice::get_thread_command_pool(
     const std::thread::id thread_id)
 {
@@ -499,20 +485,5 @@ VulkanUniqueFence VulkanGpuDevice::allocate_fence()
     return pop_or_create(mFenceAvail, [this]() {
         return mDevice->createFenceUnique({ }, nullptr, mDispatch);
     });
-}
-
-VulkanSwapchain & VulkanGpuDevice::swapchain(NativeWindow * window)
-{
-    auto *swapchain = find_or_create(
-        mSwapchainCache,
-        window,
-        [this](auto&& wnd) -> auto & { return create_swapchain(wnd); }
-    ).get();
-    return *swapchain;
-}
-
-void VulkanGpuDevice::destroy_swapchain(NativeWindow *window)
-{
-    mSwapchainCache.erase(window);
 }
 }
