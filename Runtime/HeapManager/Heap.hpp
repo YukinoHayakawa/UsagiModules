@@ -2,6 +2,8 @@
 
 #include <cstddef>
 
+#include "details/HeapResourceDescriptor.hpp"
+
 namespace usagi
 {
 /*

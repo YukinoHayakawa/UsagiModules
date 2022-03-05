@@ -118,6 +118,7 @@ struct ResourceRequestHandler
 
         // Create the promise outside the construction of the builder task
         // to shorten the critical section.
+        // todo transient resource doesn't need a promise.
         std::promise<void> promise;
         context->entry->future = promise.get_future();
 
@@ -150,7 +151,7 @@ struct ResourceRequestHandler
         }
 
         // Create build task.
-        // todo reduce value copying
+        // todo eval build args into the builder directly
         std::unique_ptr<ResourceBuildTask<Builder>> task;
         task = std::apply([&]<typename... Args>(Args &&...args)
         {

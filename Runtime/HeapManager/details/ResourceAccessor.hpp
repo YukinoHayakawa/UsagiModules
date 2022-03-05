@@ -186,6 +186,11 @@ public:
         return get();
     }
 
+    bool ready() const
+    {
+        return last_state().ready();
+    }
+
     ResourceState last_state() const
     {
         return mStateSnapshot;
