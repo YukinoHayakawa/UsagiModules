@@ -3,7 +3,7 @@
 namespace usagi
 {
 template <ResourceBuilder Builder, typename LazyBuildArgFunc>
-ResourceRequestContext<Builder, LazyBuildArgFunc> &
+UniqueResourceRequestContext<Builder, LazyBuildArgFunc>
 HeapManager::allocate_request_context()
 {
     const auto index = mRequestContextPool.allocate();
@@ -20,6 +20,6 @@ HeapManager::allocate_request_context()
     context.context_index = index;
     context.manager = this;
 
-    return context;
+    return UniqueResourceRequestContext<Builder, LazyBuildArgFunc> { &context };
 }
 }

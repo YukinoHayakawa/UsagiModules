@@ -46,8 +46,8 @@ struct ResourceRequestContext : ResourceBuildContext<ResourceBuilderT>
     // The function that returns a tuple of arguments passed to ResourceBuilder
     // when invoked. This ref only have to be valid until
     // HeapManager.resource() returns. That's the only opportunity of
-    // evaluating the builder arguments. The arguments will be directly
-    // forwarded to the builder constructor. todo
+    // evaluating the builder arguments. todo The arguments will be directly
+    // forwarded to the builder constructor. 
     const BuildArgFuncT *arg_func = nullptr;
 };
 
@@ -61,4 +61,19 @@ union ResourceRequestContextBlock
     ResourceRequestContext<DummyResourceBuilder, int> context;
     char bytes[sizeof(decltype(context))] { };
 };
+
+namespace details::heap_manager
+{
+// Implemented in HeapManager.cpp
+struct RequestContextDeleter
+{
+    void operator()(const ResourceBuildContextCommon *context) const;
+};
+}
+
+template <typename Builder, typename LazyBuildArgFunc>
+using UniqueResourceRequestContext = std::unique_ptr<
+    ResourceRequestContext<Builder, LazyBuildArgFunc>,
+    details::heap_manager::RequestContextDeleter
+>;
 }

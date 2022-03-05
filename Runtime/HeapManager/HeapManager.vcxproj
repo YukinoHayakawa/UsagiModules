@@ -59,6 +59,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="details\HeapManagerImpl_Heap.hpp" />
+    <ClInclude Include="details\HeapManagerImpl_RequestHandler.hpp" />
     <ClInclude Include="details\HeapManagerImpl_Util.hpp" />
     <ClInclude Include="details\HeapManagerImpl_Context.hpp" />
     <ClInclude Include="details\ResourceBuildOptions.hpp" />

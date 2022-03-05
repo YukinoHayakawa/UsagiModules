@@ -20,10 +20,13 @@ template <typename ResourceBuilderT>
 class ResourceBuildTask : public ResourceBuildTaskBase
 {
     using AccessorT = ResourceAccessor<ResourceBuilderT>;
-    using ContextT = ResourceBuildContext<ResourceBuilderT>;
+    using ContextT = std::unique_ptr<
+        ResourceBuildContext<ResourceBuilderT>,
+        details::heap_manager::RequestContextDeleter
+    >;
     using ProductT = typename ResourceBuilderT::ProductT;
 
-    ContextT *mContext = nullptr;
+    ContextT mContext;
     // Notified by ResourceBuildTask after constructing the resource, whether
     // the resource building was successful or failed.
     std::promise<void> mPromise;
@@ -42,10 +45,10 @@ class ResourceBuildTask : public ResourceBuildTaskBase
 public:
     template <typename... Args>
     ResourceBuildTask(
-        ContextT *context,
+        ContextT context,
         std::promise<void> promise,
         Args &&...args)
-        : mContext(context)
+        : mContext(std::move(context))
         , mPromise(std::move(promise))
         , mBuilder(std::forward<Args>(args)...)
     {
@@ -65,7 +68,7 @@ public:
     {
         try
         {
-            ResourceConstructDelegate<ResourceBuilderT> delegate(mContext);
+            ResourceConstructDelegate<ResourceBuilderT> delegate(&*mContext);
             set_state(mBuilder.construct(delegate));
         }
         catch(const std::runtime_error &e)

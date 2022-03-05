@@ -6,8 +6,7 @@ template <typename ResourceBuilderT, typename LazyBuildArgFunc>
 ResourceAccessor<ResourceBuilderT>
 ResourceRequestBuilder<ResourceBuilderT, LazyBuildArgFunc>::make_request()
 {
-    return mContext->manager->template request_resource<ResourceBuilderT>(
-        mContext
-    );
+    HeapManager *manager = mContext->manager;
+    return manager->request_resource<ResourceBuilderT>(std::move(mContext));
 }
 }

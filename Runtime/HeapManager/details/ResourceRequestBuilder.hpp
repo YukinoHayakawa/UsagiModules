@@ -12,20 +12,20 @@ namespace usagi
 class TaskExecutor;
 class HeapManager;
 
-template <typename ResourceBuilderT, typename LazyBuildArgFunc>
+template <typename Builder, typename LazyBuildArgFunc>
 class ResourceRequestBuilder
 {
     // friend class HeapManager;
 
-    using ContextT = ResourceRequestContext<ResourceBuilderT, LazyBuildArgFunc>;
+    using ContextT = UniqueResourceRequestContext<Builder, LazyBuildArgFunc>;
 
-    ContextT *mContext = nullptr;
+    ContextT mContext;
 
     ResourceBuildOptions & options() { return mContext->options; }
 
 public:
-    explicit ResourceRequestBuilder(ContextT *context)
-        : mContext(context)
+    explicit ResourceRequestBuilder(ContextT context)
+        : mContext(std::move(context))
     {
     }
 
@@ -66,6 +66,11 @@ public:
         return *this;
     }
 
-    ResourceAccessor<ResourceBuilderT> make_request();
+    ResourceAccessor<Builder> make_request();
 };
+
+template <typename Builder, typename BuildArgFuncT>
+ResourceRequestBuilder(UniqueResourceRequestContext<
+    Builder, BuildArgFuncT
+> context) -> ResourceRequestBuilder<Builder, BuildArgFuncT>;
 }

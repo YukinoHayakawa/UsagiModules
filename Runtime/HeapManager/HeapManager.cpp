@@ -23,6 +23,12 @@ void run_build_task_synced(std::unique_ptr<ResourceBuildTaskBase> task)
     task->set_executor(&executor);
     executor.submit(std::move(task), { });
 }
+
+void RequestContextDeleter::operator()(
+    const ResourceBuildContextCommon *context) const
+{
+    context->manager->deallocate_request_context(*context);
+}
 }
 
 namespace usagi

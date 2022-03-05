@@ -123,9 +123,11 @@ private:
     PoolAllocator<ResourceRequestContextBlock, std::deque> mRequestContextPool;
 
     template <ResourceBuilder Builder, typename LazyBuildArgFunc>
-    ResourceRequestContext<Builder, LazyBuildArgFunc> &
+    UniqueResourceRequestContext<Builder, LazyBuildArgFunc>
     allocate_request_context();
     void deallocate_request_context(const ResourceBuildContextCommon &context); 
+
+    friend struct details::heap_manager::RequestContextDeleter;
 
 public:
     virtual ~HeapManager();
@@ -190,14 +192,15 @@ private:
     friend class ResourceConstructDelegate;
 
     template <ResourceBuilder Builder, typename LazyBuildArgFunc>
-    constexpr ResourceAccessor<Builder> request_resource(
-        ResourceRequestContext<Builder, LazyBuildArgFunc> *context);
+    ResourceAccessor<Builder> request_resource(
+        UniqueResourceRequestContext<Builder, LazyBuildArgFunc> context);
 };
 }
 
 #include "details/HeapManagerImpl_Heap.hpp"
 #include "details/HeapManagerImpl_Accessor.hpp"
 #include "details/HeapManagerImpl_Context.hpp"
+#include "details/HeapManagerImpl_RequestHandler.hpp"
 #include "details/HeapManagerImpl_Request.hpp"
 #include "details/HeapManagerImpl_Build.hpp"
 #include "details/HeapManagerImpl_Util.hpp"
