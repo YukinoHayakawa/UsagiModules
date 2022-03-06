@@ -157,7 +157,7 @@ public:
 
     // todo: make sure the pointer is only available when the accessor is alive. use weak ref
     // todo: some heap may return by value
-    auto get()
+    RefCounted<ResourceRefCntT> get()
     {
         if(mObject.has_value()) 
             return mObject;
@@ -176,7 +176,7 @@ public:
         return mObject;
     }
 
-    auto await()
+    RefCounted<ResourceRefCntT> await()
     {
         if(mObject.has_value()) 
             return mObject;

@@ -11,7 +11,7 @@ class HeapManagerStatic : HeapManager
     using ImplementedHeaps = std::tuple<HeapTypes...>;
 
     // If this evaluates to false, it means that BuilderT::TargetHeapT
-    // is not added to HeapTypes.
+    // is not added to HeapTypes, or definition of BuilderT is not complete.
     template <ResourceBuilder BuilderT>
     constexpr static bool IsTargetHeapRegistered =
         has_type_v<typename BuilderT::TargetHeapT, ImplementedHeaps>;
@@ -26,33 +26,43 @@ public:
 
     // It would be much easier if C++ supports some kind of decorators.
     template <
-        ResourceBuilder ResourceBuilderT,
+        ResourceBuilder Builder,
         typename... BuildArgs
     >
-    decltype(auto) resource_transient(BuildArgs &&... args)
+    ResourceAccessor<Builder> resource_transient(BuildArgs &&... args)
     // Adds a constraint that checks whether the required heap is added.
-    requires IsTargetHeapRegistered<ResourceBuilderT>
+    requires (is_type_complete_v<Builder> && IsTargetHeapRegistered<Builder>)
     {
-        return HeapManager::resource_transient<ResourceBuilderT>(
+        return HeapManager::resource_transient<Builder>(
             std::forward<BuildArgs>(args)...
         );
     }
 
+    /*
+    USAGI_APPEND_CONSTRAINTS(
+        HeapManager, 
+        resource_transient, 
+        IsTargetHeapRegistered<ResourceBuilderT>,
+        typename ResourceBuilderT
+    );
+    */
+
     template <
-        ResourceBuilder ResourceBuilderT,
-        typename BuildParamTupleFuncT
+        ResourceBuilder Builder,
+        typename LazyBuildArgFunc
     >
-    decltype(auto) resource(
+    ResourceRequestBuilder<Builder, LazyBuildArgFunc> resource(
         HeapResourceDescriptor resource_cache_id,
         TaskExecutor *executor,
-        BuildParamTupleFuncT &&lazy_build_params)
+        LazyBuildArgFunc &&lazy_build_params)
     // Adds a constraint that checks whether the required heap is added.
-    requires IsTargetHeapRegistered<ResourceBuilderT>
+    // bug is_type_complete_v seems not working
+    requires (is_type_complete_v<Builder> && IsTargetHeapRegistered<Builder>)
     {
-        return HeapManager::resource<ResourceBuilderT>(
+        return HeapManager::resource<Builder>(
             resource_cache_id,
             executor,
-            std::forward<BuildParamTupleFuncT>(lazy_build_params)
+            std::forward<LazyBuildArgFunc>(lazy_build_params)
         );
     }
 

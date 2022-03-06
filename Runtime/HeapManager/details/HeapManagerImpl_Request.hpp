@@ -27,8 +27,7 @@ requires
 }
 
 template <ResourceBuilder Builder, typename... BuildArgs>
-auto HeapManager::resource_transient(BuildArgs &&...args)
--> ResourceAccessor<Builder>
+ResourceAccessor<Builder> HeapManager::resource_transient(BuildArgs &&...args)
 requires std::constructible_from<Builder, BuildArgs...>                
 {
     // todo: this copies values.
