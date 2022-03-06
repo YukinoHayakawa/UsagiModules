@@ -55,6 +55,15 @@ struct Win32NativeWindowClass
 };
 }
 
+decltype(NativeWindowManagerWin32::mWindows)::iterator
+NativeWindowManagerWin32::locate_window(std::string_view identifier)
+{
+    return std::ranges::find_if(
+        mWindows,
+        [&](auto &&r) { return r.identifier == identifier; }
+    );
+}
+
 NativeWindowManagerWin32::NativeWindowManagerWin32()
 {
     using namespace win32;
@@ -74,6 +83,7 @@ NativeWindow * NativeWindowManagerWin32::create_window(
     float dpi_scaling,
     NativeWindowState state)
 {
+    // todo check unique id
     WindowRecord record;
     record.window = std::make_unique<NativeWindowWin32>(
         title,
@@ -90,35 +100,37 @@ NativeWindow * NativeWindowManagerWin32::create_window(
     return p_wnd;
 }
 
+void NativeWindowManagerWin32::destroy_window(std::string_view identifier)
+{
+    mWindows.erase(locate_window(identifier));
+}
+
 NativeWindow * NativeWindowManagerWin32::window(
     std::string_view identifier)
 {
-    const auto iter = std::ranges::find_if(
-        mWindows,
-        [&](auto &&r) { return r.identifier == identifier; }
-    );
+    const auto iter = locate_window(identifier);
     if(iter == mWindows.end())
         return nullptr;
     iter->touched = true;
     return iter->window.get();
 }
 
-void NativeWindowManagerWin32::destroy_unused_windows()
-{
-    const auto rng = std::ranges::remove_if(
-        mWindows,
-        [](auto &&wnd) {
-            if(wnd.touched == false || wnd.window->closed())
-            {
-                wnd.window.reset();
-                return true;
-            }
-            wnd.touched = false;
-            return false;
-        }
-    );
-    mWindows.erase(rng.begin(), rng.end());
-}
+// void NativeWindowManagerWin32::destroy_unused_windows()
+// {
+//     const auto rng = std::ranges::remove_if(
+//         mWindows,
+//         [](auto &&wnd) {
+//             if(wnd.touched == false || wnd.window->closed())
+//             {
+//                 wnd.window.reset();
+//                 return true;
+//             }
+//             wnd.touched = false;
+//             return false;
+//         }
+//     );
+//     mWindows.erase(rng.begin(), rng.end());
+// }
 
 std::unique_ptr<NativeWindowManager>
 NativeWindowManager::create_native_manager()

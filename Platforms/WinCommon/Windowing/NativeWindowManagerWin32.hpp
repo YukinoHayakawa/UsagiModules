@@ -21,10 +21,12 @@ class NativeWindowManagerWin32 : public NativeWindowManager
     {
         std::unique_ptr<class NativeWindowWin32> window;
         FixedCapacityString<16> identifier;
-        bool touched = true;
+        bool touched = true; // todo remove. use heap res refcnt.
     };
     // HWND -> Record
     std::vector<WindowRecord> mWindows;
+
+    decltype(mWindows)::iterator locate_window(std::string_view identifier);
 
 public:
     // Create the class using NativeWindowManager::create_native_manager.
@@ -38,8 +40,11 @@ public:
         const Vector2f &size,
         float dpi_scaling,
         NativeWindowState state) override;
+    void destroy_window(std::string_view identifier) override;
+
     NativeWindow * window(std::string_view identifier) override;
-    void destroy_unused_windows() override;
+
+    // void destroy_unused_windows() override;
 
     using NativeWindowManager::create_native_manager;
 };
