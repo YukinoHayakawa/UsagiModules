@@ -55,6 +55,7 @@ struct Win32NativeWindowClass
 };
 }
 
+/*
 decltype(NativeWindowManagerWin32::mWindows)::iterator
 NativeWindowManagerWin32::locate_window(std::string_view identifier)
 {
@@ -63,6 +64,7 @@ NativeWindowManagerWin32::locate_window(std::string_view identifier)
         [&](auto &&r) { return r.identifier == identifier; }
     );
 }
+*/
 
 NativeWindowManagerWin32::NativeWindowManagerWin32()
 {
@@ -75,8 +77,8 @@ NativeWindowManagerWin32::~NativeWindowManagerWin32()
 {
 }
 
-NativeWindow * NativeWindowManagerWin32::create_window(
-    std::string_view identifier,
+std::shared_ptr<NativeWindow> NativeWindowManagerWin32::create_window(
+    // std::string_view identifier,
     std::string_view title,
     const Vector2f &position,
     const Vector2f &size,
@@ -84,8 +86,9 @@ NativeWindow * NativeWindowManagerWin32::create_window(
     NativeWindowState state)
 {
     // todo check unique id
-    WindowRecord record;
-    record.window = std::make_unique<NativeWindowWin32>(
+    // WindowRecord record;
+    // record.window =
+    return std::make_unique<NativeWindowWin32>(
         title,
         position,
         size,
@@ -93,13 +96,14 @@ NativeWindow * NativeWindowManagerWin32::create_window(
         state,
         gWin32WindowClassName
     );
-    record.identifier = identifier;
-    record.touched = true;
-    const auto p_wnd = record.window.get();
-    mWindows.emplace_back(std::move(record));
-    return p_wnd;
+    // record.identifier = identifier;
+    // record.touched = true;
+    // const auto p_wnd = record.window.get();
+    // mWindows.emplace_back(std::move(record));
+    // return p_wnd;
 }
 
+/*
 void NativeWindowManagerWin32::destroy_window(std::string_view identifier)
 {
     mWindows.erase(locate_window(identifier));
@@ -114,6 +118,7 @@ NativeWindow * NativeWindowManagerWin32::window(
     iter->touched = true;
     return iter->window.get();
 }
+*/
 
 // void NativeWindowManagerWin32::destroy_unused_windows()
 // {

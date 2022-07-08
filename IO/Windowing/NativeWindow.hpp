@@ -97,7 +97,5 @@ public:
     //
     // virtual std::string getClipboardText() = 0;
     // virtual void setClipboardText(const std::string &text) = 0;
-
-
 };
 }
