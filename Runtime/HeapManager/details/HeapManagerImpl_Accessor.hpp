@@ -8,14 +8,38 @@ namespace usagi
 template <ResourceBuilder Builder>
 auto HeapManager::make_accessor_nolock(
     const HeapResourceDescriptor descriptor,
-    typename Builder::TargetHeapT *heap,
+    // typename Builder::TargetHeapT *heap,
     const bool is_fallback)
 -> ResourceAccessor<Builder>
 {
     assert(static_cast<bool>(descriptor));
 
-    ResourceEntryIt it;
+    using ProductT = typename Builder::ProductT;
+    using EntryT = ResourceEntry<ProductT>;
 
+    ResourceEntryIt it = mResourceEntries.find(descriptor);
+
+    // do not create record when requesting fallback resource
+    if(it == mResourceEntries.end() && !is_fallback)
+    {
+        auto entry = std::make_unique<EntryT>(descriptor);
+
+        bool inserted = false;
+        std::tie(it, inserted) = mResourceEntries.emplace(std::move(entry));
+        if(inserted)
+        {
+            LOG(trace,
+                "[Heap] New resource added: {} (builder={}, resource={})",
+                descriptor,
+                typeid(Builder).name(),
+                typeid(typename Builder::ProductT).name()
+            );
+
+        }
+    }
+
+    /*
+    // todo allocate type dependent resource entry oh fuck me
     if(!is_fallback)
     {
         bool inserted = false;
@@ -28,12 +52,13 @@ auto HeapManager::make_accessor_nolock(
                 typeid(Builder).name(),
                 typeid(typename Builder::ProductT).name()
             );
+
         }
     }
     else
     {
         it = mResourceEntries.find(descriptor);
-    }
+    }*/
 
     // LOG(trace,
     //     "[Heap] Creating resource accessor (fallback={}): {}",
@@ -59,6 +84,10 @@ auto HeapManager::make_accessor_nolock(
     // The accessor will increase the refcnt of the resource.
     // Therefore, as long as the accessor is alive, the resource should
     // always be in ready state.
-    return ResourceAccessor<Builder>(&*it, heap, is_fallback);
+    return ResourceAccessor<Builder>(
+        static_cast<EntryT *>(it->get()),
+        /*heap,*/
+        is_fallback
+    );
 }
 }

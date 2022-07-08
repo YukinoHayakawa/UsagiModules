@@ -26,9 +26,15 @@ requires
     return ResourceRequestBuilder { std::move(context) };
 }
 
+// request to a transient resource doesn't require resource id and executor,
+// because a transient resource is only supposed to be requested once,
+// and it will be built on the requesting thread. the resource id will be
+// computed when creating the building task.
 template <ResourceBuilder Builder, typename... BuildArgs>
 ResourceAccessor<Builder> HeapManager::resource_transient(BuildArgs &&...args)
-requires std::constructible_from<Builder, BuildArgs...>                
+// resource builder do not receive build params during construction anymore.
+// they are passed in when construct is called.
+// requires std::constructible_from<Builder, BuildArgs...>                
 {
     // todo: this copies values.
 	auto params = [&] {

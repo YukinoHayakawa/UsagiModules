@@ -1,11 +1,13 @@
 ﻿#pragma once
 
+#include <any>
 #include <deque>
 #include <map>
 #include <memory>
 #include <mutex>
 #include <set>
 #include <shared_mutex>
+#include <typeindex>
 
 #include <Usagi/Library/Memory/PoolAllocator.hpp>
 #include <Usagi/Library/Meta/Tuple.hpp>
@@ -28,8 +30,8 @@ void submit_build_task(TaskExecutor *executor, std::unique_ptr<Task> task);
 void run_build_task_synced(std::unique_ptr<ResourceBuildTaskBase> task);
 
 template <ResourceBuilder Builder, typename... Args>
-HeapResourceDescriptor make_resource_descriptor(Args &&...args)
-    requires std::constructible_from<Builder, Args...>;
+HeapResourceDescriptor make_resource_descriptor(Args &&...args);
+    // requires std::constructible_from<Builder, Args...>;
 
 template <ResourceBuilder Builder, typename Tuple>
 HeapResourceDescriptor make_resource_descriptor_from_tuple(Tuple &&tuple);
@@ -73,6 +75,9 @@ HeapResourceDescriptor make_resource_descriptor_from_tuple(Tuple &&tuple);
  *         and made into a tomb, or A shall be directly linked to C?
  *         Unloading B does not invalidates C, unless the content of A is
  *         changed so B is invalidated.
+ *
+ * A heap is a generalized runtime resource management unit. It can be a region
+ * of managed memory, a factory, etc. 
  */
 // Tried to make this a template to allow different storage impl, but failed
 // because many places require a pointer to the base type of the HeapManager.
@@ -85,11 +90,16 @@ class HeapManager : Noncopyable
     // ********************************************************************* //
 
     std::shared_mutex mHeapMutex;
-    std::map<HeapResourceIdT, std::unique_ptr<Heap>> mHeaps;
+    // std::map<HeapResourceIdT, std::unique_ptr<Heap>> mHeaps;
+    std::map<std::type_index, std::any> mHeaps;
 
 public:
     template <typename HeapT, typename... Args>
     HeapT * add_heap(Args &&...args);
+
+    // overload that takes a constructed heap. allows polymorphism.
+    template <typename HeapT>
+    HeapT * add_heap(std::unique_ptr<HeapT> heap);
 
     template <typename HeapT>
     HeapT * locate_heap();
@@ -99,19 +109,43 @@ public:
     // ********************************************************************* //
 private:
     std::mutex mEntryMapMutex;
-    std::set<ResourceEntry, std::less<>> mResourceEntries;
+
+    struct ResourceEntryComparator
+    {
+        using is_transparent = void;
+
+        bool operator()(const std::unique_ptr<ResourceEntryBase> &lhs, 
+            const std::unique_ptr<ResourceEntryBase> &rhs) const;
+        bool operator()(const HeapResourceDescriptor &lhs, 
+            const std::unique_ptr<ResourceEntryBase> &rhs) const;
+        bool operator()(const std::unique_ptr<ResourceEntryBase> &lhs, 
+            const HeapResourceDescriptor &rhs) const;
+    };
+
+    // todo manage the memory of resource entries
+    std::set<
+        std::unique_ptr<ResourceEntryBase>,
+        ResourceEntryComparator
+    > mResourceEntries;
     using ResourceEntryIt = decltype(mResourceEntries)::iterator;
 
     template <ResourceBuilder Builder>
     auto make_accessor_nolock(
         HeapResourceDescriptor descriptor,
-        typename Builder::TargetHeapT *heap,
+        // typename Builder::TargetHeapT *heap,
         bool is_fallback)
     -> ResourceAccessor<Builder>;
 
     template <typename Builder, typename LazyBuildArgFunc>
     friend struct ResourceRequestHandler;
 
+    constexpr static HeapResourceIdT DummyBuilderId = -1;
+    std::atomic<HeapResourceIdT> mUniqueResourceIdCounter = 0;
+
+public:
+    HeapResourceDescriptor make_unique_descriptor();
+
+private:
     // ********************************************************************* //    
     //                       Resource Request Handling                       //
     // ********************************************************************* //
@@ -181,8 +215,8 @@ public:
      * use `resource()` and pass in a synchronized task executor.
      */
     template <ResourceBuilder Builder, typename... BuildArgs>
-    ResourceAccessor<Builder> resource_transient(BuildArgs &&... args) 
-    requires std::constructible_from<Builder, BuildArgs...>;
+    ResourceAccessor<Builder> resource_transient(BuildArgs &&... args);
+    // requires std::constructible_from<Builder, BuildArgs...>;
 
     template <typename Builder, typename LazyBuildArgFunc>
     friend class ResourceRequestBuilder;

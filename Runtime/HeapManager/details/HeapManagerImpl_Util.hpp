@@ -10,7 +10,7 @@ namespace usagi::details::heap_manager
 {
 template <ResourceBuilder ResourceBuilderT, typename ... Args>
 HeapResourceDescriptor make_resource_descriptor(Args &&... args)
-requires std::constructible_from<ResourceBuilderT, Args...>
+// requires std::constructible_from<ResourceBuilderT, Args...>
 {
     // Use the type hash of the builder and build parameters to build a
     // unique id of the requested asset.
@@ -26,6 +26,7 @@ requires std::constructible_from<ResourceBuilderT, Args...>
     return { typeid(ResourceBuilderT).hash_code(), hash };
 }
 
+// todo if two tuples have a different set of value types but will result in identical argument values passed to the builder due to implicit conversion, two resource objects may be created where there should only be one.
 template <ResourceBuilder ResourceBuilderT, typename Tuple>
 HeapResourceDescriptor make_resource_descriptor_from_tuple(
     Tuple &&tuple)

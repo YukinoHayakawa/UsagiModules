@@ -4,6 +4,7 @@
 
 namespace usagi
 {
+// todo maybe status is the more suitable word
 class ResourceState
 {
     using ValueT = std::uint16_t;
@@ -39,6 +40,7 @@ public:
     USAGI_CVAL_DECL FAILED_MISSING_DEPENDENCY ;
     USAGI_CVAL_DECL FAILED_BUSY               ;
 
+    // todo add partially ready (e.g. progressively decoded resources)
     USAGI_CVAL_DECL READY                     ;
 
 #undef USAGI_CVAL_DECL

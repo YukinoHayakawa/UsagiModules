@@ -7,7 +7,7 @@ namespace usagi
 template <typename Builder, typename LazyBuildArgFunc>
 struct ResourceRequestHandler
 {
-    using TargetHeapT = typename Builder::TargetHeapT;
+    // using TargetHeapT = typename Builder::TargetHeapT;
     using ResourceT = typename Builder::ProductT;
     using ContextT = UniqueResourceRequestContext<Builder, LazyBuildArgFunc>;
 
@@ -76,17 +76,19 @@ struct ResourceRequestHandler
     {
         return context->manager->template make_accessor_nolock<Builder>(
             desc,
-            context->heap,
+            // context->heap,
             is_fallback
         );
     }
 
+    /*
     void get_heap()
     {
         // Try to get the heap. The heap must exist before the resource
         // could be fetched or built. If this fails, exception will be thrown.
         context->heap = context->manager->template locate_heap<TargetHeapT>();
     }
+    */
 
     void init_accessor()
     {
@@ -256,7 +258,7 @@ struct ResourceRequestHandler
 
         ensure_requested_descriptor();
         validate_builder_type();
-        get_heap();
+        // get_heap();
         init_accessor();
 
         return branch_on_resource_state();
@@ -267,7 +269,7 @@ struct ResourceRequestHandler
         assert(!context->executor);
 
         ensure_requested_descriptor();
-        get_heap();
+        // get_heap();
         init_accessor();
 
         // Manually simplified code path.

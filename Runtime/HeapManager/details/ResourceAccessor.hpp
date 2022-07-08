@@ -33,6 +33,7 @@ template <typename ResourceBuilderT>
 class HeapResourceReturnT
 {
     using TargetHeapT = typename ResourceBuilderT::TargetHeapT;
+    using ResourceT = typename ResourceBuilderT::ProductT;
 
 public:
     using Type = decltype(
@@ -55,6 +56,10 @@ public:
 template <typename ResourceBuilderT>
 using ResourceReturnT = typename HeapResourceReturnT<ResourceBuilderT>::Type;
 
+// Some resource is simply a value. In that case, the value is stored inside
+// the ref counter. Otherwise, a pointer to the resource is stored.
+// - resources are now stored in resource entries instead. InPlace is not
+//   useful anymore.
 template <typename ReturnT>
 using DeduceResourceRefCntT =
     std::conditional_t<
@@ -70,6 +75,7 @@ static_assert(std::is_same_v<DeduceResourceRefCntT<int &>, int>);
 static_assert(std::is_same_v<DeduceResourceRefCntT<const int &>, const int>);
 static_assert(std::is_same_v<DeduceResourceRefCntT<const int &&>, const int>);
 
+// Inform the reference counter of the proper type of the resource object.
 template <typename ResourceBuilderT>
 using ResourceRefCntT = 
     DeduceResourceRefCntT<ResourceReturnT<ResourceBuilderT>>;
@@ -78,11 +84,12 @@ using ResourceRefCntT =
 /**
  * \brief Use this like a smart pointer!
  * \tparam ResourceBuilderT Builder type.
+ * todo builder type is not needed. use resource type.
  */
 template <typename ResourceBuilderT>
 class ResourceAccessor
 {
-    using TargetHeapT = typename ResourceBuilderT::TargetHeapT;
+    // using TargetHeapT = typename ResourceBuilderT::TargetHeapT;
     using ResourceT = typename ResourceBuilderT::ProductT;
 
     template <typename BuilderT>
@@ -97,6 +104,8 @@ class ResourceAccessor
     >
     friend struct ResourceRequestHandler;
 
+    /*
+    // todo transient resource should be returned upon allocation immediately
     decltype(auto) request_resource()
     {
         using namespace details::heap_manager;
@@ -109,7 +118,9 @@ class ResourceAccessor
         else
             return mHeap->resource(rid);
     }
+    */
 
+    /*
     decltype(auto) request_resource_converted()
     {
         decltype(auto) res = request_resource();
@@ -118,18 +129,26 @@ class ResourceAccessor
         else
             return res;
     }
+    */
 
-    using ResourceRefCntT =
-        details::heap_manager::ResourceRefCntT<ResourceBuilderT>;
+    // using ResourceRefCntT =
+        // details::heap_manager::ResourceRefCntT<ResourceBuilderT>;
 
-    const ResourceEntry *mEntry = nullptr;
+    // todo some are returning weird types, like InPlace/const ref. check they.
+    // static_assert(
+    //     std::is_same_v<std::remove_cvref_t<ResourceRefCntT>, ResourceT>,
+    //     "Heap not returning the correct product type."
+    // );
+
+    ResourceEntry<ResourceT> *mEntry = nullptr;
     // todo maybe should be moved into ResourceEntry
-    TargetHeapT *mHeap = nullptr;
+    // TargetHeapT *mHeap = nullptr;
     ResourceState mStateSnapshot;
     bool mIsFallback = false;
     // Resource accessor always holds a ref to the resource to prevent the
     // resource being evicted.
-    RefCounted<ResourceRefCntT> mObject;
+    // bug ResourceRefCntT is too difficult for auto completion to infer
+    RefCounted<ResourceT> mObject;
 
     void fetch_state()
     {
@@ -140,11 +159,11 @@ public:
     ResourceAccessor() = default;
 
     ResourceAccessor(
-        const ResourceEntry *entry,
-        TargetHeapT *heap,
+        ResourceEntry<ResourceT> *entry,
+        // TargetHeapT *heap,
         const bool is_fallback)
         : mEntry(entry)
-        , mHeap(heap)
+        // , mHeap(heap)
         , mStateSnapshot(mEntry->state.load(std::memory_order::acquire))
         , mIsFallback(is_fallback)
         // Increment the counter first to keep alive the record. The object
@@ -157,7 +176,7 @@ public:
 
     // todo: make sure the pointer is only available when the accessor is alive. use weak ref
     // todo: some heap may return by value
-    RefCounted<ResourceRefCntT> get()
+    RefCounted<ResourceT> get()
     {
         if(mObject.has_value()) 
             return mObject;
@@ -168,15 +187,15 @@ public:
             std::runtime_error("Resource not ready.")
         );
 
-        mObject = RefCounted<ResourceRefCntT> {
+        mObject = RefCounted<ResourceT> {
             &mEntry->use_count,
-            request_resource_converted()
+            &mEntry->payload.value()
         };
 
         return mObject;
     }
 
-    RefCounted<ResourceRefCntT> await()
+    RefCounted<ResourceT> await()
     {
         if(mObject.has_value()) 
             return mObject;

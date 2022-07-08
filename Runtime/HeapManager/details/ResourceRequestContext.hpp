@@ -26,19 +26,24 @@ struct ResourceBuildContextCommon
     // May be used when a resource builder requests another resource.
     TaskExecutor *executor = nullptr;
 
-    const ResourceEntry *entry = nullptr;
+    // const ResourceEntryBase *entry = nullptr;
 };
 
-template <typename ResourceBuilderT>
+template <typename Product>
 struct ResourceBuildContext : ResourceBuildContextCommon
 {
-    using HeapT = typename ResourceBuilderT::TargetHeapT;
+    // using HeapT = typename ResourceBuilderT::TargetHeapT;
+    //
+    // HeapT *heap = nullptr;
+    using ProductT = Product;
 
-    HeapT *heap = nullptr;
+    // todo type specific resource entry
+    ResourceEntry<ProductT> *entry = nullptr;
 };
 
 template <typename ResourceBuilderT, typename BuildArgFuncT>
-struct ResourceRequestContext : ResourceBuildContext<ResourceBuilderT>
+struct ResourceRequestContext
+    : ResourceBuildContext<typename ResourceBuilderT::ProductT>
 {
     // Only used in ResourceRequestHandler
     ResourceBuildOptions options;
@@ -53,7 +58,8 @@ struct ResourceRequestContext : ResourceBuildContext<ResourceBuilderT>
 
 struct DummyResourceBuilder
 {
-    using TargetHeapT = int;
+    // using TargetHeapT = int;
+    using ProductT = void;
 };
 
 union ResourceRequestContextBlock

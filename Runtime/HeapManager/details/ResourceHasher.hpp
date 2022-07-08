@@ -2,7 +2,7 @@
 
 #include "../External/xxhash/xxhash64.h"
 
-#include <Usagi/Library/Utilities/StringView.hpp>
+#include <Usagi/Library/Utilities/ByteView.hpp>
 
 #include <Usagi/Modules/Runtime/HeapManager/TransparentArg.hpp>
 
@@ -21,7 +21,7 @@ public:
     std::size_t append(T &&val)
 	{
 		const auto current = mNumProcessedBytes;
-        auto mem_view = to_string_view(val);
+        auto mem_view = to_byte_view(val);
 		[[maybe_unused]]
         const bool result = mHasher.add(mem_view.data(), mem_view.size());
 		assert(result);
@@ -29,6 +29,7 @@ public:
         return mNumProcessedBytes - current;
 	}
 
+	// ignore transparent arguments
 	template <typename T>
     std::size_t append(TransparentArg<T>)
 	{

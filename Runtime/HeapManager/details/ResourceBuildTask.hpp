@@ -16,21 +16,29 @@ public:
     virtual void set_executor(TaskExecutor *executor) = 0;
 };
 
+// todo maybe the build arguments should be stored in build task instead of forcing each resource builder to impl its own
 template <typename ResourceBuilderT>
 class ResourceBuildTask : public ResourceBuildTaskBase
 {
     using AccessorT = ResourceAccessor<ResourceBuilderT>;
+    using ProductT = typename ResourceBuilderT::ProductT;
+    using BuildArguments = typename ResourceBuilderT::BuildArguments;
     using ContextT = std::unique_ptr<
-        ResourceBuildContext<ResourceBuilderT>,
+        ResourceBuildContext<ProductT>,
         details::heap_manager::RequestContextDeleter
     >;
-    using ProductT = typename ResourceBuilderT::ProductT;
 
     ContextT mContext;
     // Notified by ResourceBuildTask after constructing the resource, whether
     // the resource building was successful or failed.
     std::promise<void> mPromise;
-    ResourceBuilderT mBuilder;
+    // ResourceBuilderT mBuilder;
+    BuildArguments mArguments;
+
+    ResourceState get_state() const
+    {
+        return mContext->entry->state.load();
+    }
 
     void set_state(const ResourceState state)
     {
@@ -50,13 +58,16 @@ public:
         Args &&...args)
         : mContext(std::move(context))
         , mPromise(std::move(promise))
-        , mBuilder(std::forward<Args>(args)...)
+        , mArguments(std::forward<Args>(args)...)
     {
     }
 
     bool precondition() override
     {
-        return mContext->entry->state.load() == ResourceState::SCHEDULED;
+        const auto a = get_state() == ResourceState::SCHEDULED;
+        const auto b = mContext->entry->payload.has_value() == false;
+
+        return a && b;
     }
 
     void on_started() override
@@ -68,8 +79,12 @@ public:
     {
         try
         {
-            ResourceConstructDelegate<ResourceBuilderT> delegate(&*mContext);
-            set_state(mBuilder.construct(delegate));
+            ResourceConstructDelegate<ProductT> delegate(mContext.get());
+            ResourceBuilderT builder;
+            const auto state = std::apply([&]<typename...Args>(Args &&...args) {
+                return builder.construct(delegate, std::forward<Args>(args)...);
+            }, mArguments);
+            set_state(state);
         }
         catch(const std::runtime_error &e)
         {
@@ -86,7 +101,7 @@ public:
 
     bool postcondition() override
     {
-        return true;
+        return get_state().failed() || mContext->entry->payload.has_value();
     }
 };
 }

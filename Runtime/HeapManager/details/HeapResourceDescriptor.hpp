@@ -13,6 +13,7 @@ class HeapResourceDescriptor
     // Check return type size of type_info.hash_code().
     static_assert(sizeof(std::size_t) <= sizeof(HeapResourceIdT));
 
+    // todo maybe just merge these two into one? - no. because builder type sometime has to be verified against
     // typeid(HeapT).hash_code()
     HeapResourceIdT mBuilderTypeHash { };
     // (..., ResourceHasher.append(build_args));
@@ -39,6 +40,14 @@ public:
 
     auto operator<=>(const HeapResourceDescriptor &rhs) const = default;
 };
+
+inline std::string_view to_string_view(const HeapResourceDescriptor descriptor)
+{
+    return {
+        reinterpret_cast<const char *>(&descriptor),
+        sizeof(HeapResourceDescriptor)
+    };
+}
 }
 
 template <>
