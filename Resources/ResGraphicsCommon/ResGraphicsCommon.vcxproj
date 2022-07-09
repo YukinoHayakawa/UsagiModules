@@ -59,7 +59,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="RbSpirvBytecodes.hpp" />
-    <ClInclude Include="SpirvBytecodes.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="RbSpirvBytecodes.cpp" />

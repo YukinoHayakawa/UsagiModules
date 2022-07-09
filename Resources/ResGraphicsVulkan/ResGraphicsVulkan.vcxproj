@@ -58,14 +58,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="HeapVulkanObjectManager.hpp" />
-    <ClInclude Include="RbVulkanGraphicsPipeline.hpp" />
-    <ClInclude Include="RbVulkanShaderModule.hpp" />
-    <ClInclude Include="VulkanObjectManager.hpp" />
+    <ClInclude Include="Pipeline\RbVulkanGraphicsPipeline.hpp" />
+    <ClInclude Include="Pipeline\RbVulkanShaderModule.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="RbVulkanGraphicsPipeline.cpp" />
-    <ClCompile Include="RbVulkanShaderModule.cpp" />
+    <ClCompile Include="Pipeline\RbVulkanGraphicsPipeline.cpp" />
+    <ClCompile Include="Pipeline\RbVulkanShaderModule.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Platforms\Vulkan\Vulkan.vcxproj">
@@ -76,6 +74,9 @@
     </ProjectReference>
     <ProjectReference Include="..\..\Runtime\HeapManager\HeapManager.vcxproj">
       <Project>{dd541748-d082-4558-b456-c47f9d893211}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\ResCommonImages\ResCommonImages.vcxproj">
+      <Project>{3a3da748-e7bf-4ea8-b596-a103062a9ec3}</Project>
     </ProjectReference>
     <ProjectReference Include="..\ResGraphicsCommon\ResGraphicsCommon.vcxproj">
       <Project>{5ac75a07-fb79-4059-b9bf-0a159a75151f}</Project>

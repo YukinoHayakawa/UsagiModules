@@ -8,24 +8,24 @@
 namespace usagi
 {
 ResourceState RbSpirvBytecodes::construct(
-    ResourceConstructDelegate<RbSpirvBytecodes> &delegate)
+    ResourceConstructDelegate<ProductT> &delegate,
+    const AssetPath &path,
+    const GpuShaderStage stage)
 {
     LOG(info,
         "[glslang] Compiling {} shader: {}",
-        to_string(arg<GpuShaderStage>()),
-        arg<AssetPath>()
+        to_string(stage),
+        path
     );
 
-    const auto shader_source = delegate.resource<
-        RbAssetMemoryView
-    >(arg<AssetPath>()).await();
+    const auto source_text = delegate.resource<RbAssetMemoryView>(path).await();
 
     auto bytecodes = spirv::from_glsl(
-        shader_source->to_string_view(),
-        arg<GpuShaderStage>()
+        source_text->to_string_view(),
+        stage
     );
 
-    delegate.allocate(std::move(bytecodes));
+    delegate.emplace(std::move(bytecodes));
 
     return ResourceState::READY;
 }

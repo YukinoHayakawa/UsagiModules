@@ -15,24 +15,18 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="HeapVulkanObjectManager.hpp">
+    <ClInclude Include="Pipeline\RbVulkanShaderModule.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="RbVulkanShaderModule.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="RbVulkanGraphicsPipeline.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="VulkanObjectManager.hpp">
+    <ClInclude Include="Pipeline\RbVulkanGraphicsPipeline.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="RbVulkanShaderModule.cpp">
+    <ClCompile Include="Pipeline\RbVulkanShaderModule.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="RbVulkanGraphicsPipeline.cpp">
+    <ClCompile Include="Pipeline\RbVulkanGraphicsPipeline.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -6,22 +6,25 @@
 namespace usagi
 {
 ResourceState RbVulkanShaderModule::construct(
-    ResourceConstructDelegate<RbVulkanShaderModule> &delegate)
+    ResourceConstructDelegate<ProductT> &delegate,
+    const AssetPath &path,
+    GpuShaderStage stage)
 {
-    // Get shader source code
+    connect(*delegate.heap<VulkanDeviceAccess *>());
+
+    // Get shader byte code
     const auto res = delegate.resource<RbSpirvBytecodes>(
-        arg<AssetPath>(),
-        arg<GpuShaderStage>()
+        path,
+        stage
     ).await();
-    const auto &bytecodes = res->bytecodes();
 
     // Create the object
     vk::ShaderModuleCreateInfo info;
 
-    info.pCode = bytecodes.data();
-    info.codeSize = bytecodes.size() * sizeof(std::uint32_t);
+    info.pCode = res->data();
+    info.codeSize = res->size() * sizeof(std::uint32_t);
 
-    delegate.allocate(info, bytecodes);
+    delegate.emplace(create(info), *res);
 
     return ResourceState::READY;
 }

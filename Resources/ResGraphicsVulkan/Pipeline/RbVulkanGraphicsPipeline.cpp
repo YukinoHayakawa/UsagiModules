@@ -2,7 +2,10 @@
 
 #include <iostream>
 
+#include <nlohmann/json.hpp>
+
 #include <Usagi/Modules/Platforms/Vulkan/VulkanGraphicsPipelineCompiler.hpp>
+#include <Usagi/Modules/Resources/ResGraphicsVulkan/VulkanDeviceAccessDelegate.hpp>
 #include <Usagi/Modules/Resources/ResJson/RbCascadingJsonConfig.hpp>
 #include <Usagi/Modules/Runtime/HeapManager/HeapManager.hpp>
 
@@ -55,18 +58,20 @@
 namespace usagi
 {
 ResourceState RbVulkanGraphicsPipeline::construct(
-    ResourceConstructDelegate<RbVulkanGraphicsPipeline> &delegate)
+    ResourceConstructDelegate<ProductT> &delegate,
+    const AssetPath &path)
 {
+    connect(*delegate.heap<VulkanDeviceAccess *>());
+
     // Get pipeline description.
-    const auto res = delegate.resource<RbCascadingJsonConfig>(
-        arg<AssetPath>()
-    ).await();
-    const auto &config = res->root;
+    const auto res = delegate.resource<RbCascadingJsonConfig>(path).await();
+    const auto &config = *res;
 
     std::cout << config << std::endl;
 
-    // todo how to get the compiler
     VulkanGraphicsPipelineCompiler compiler;
+    compiler.connect(this);
+
     vk::GraphicsPipelineCreateInfo &pipeline_info = compiler.pipeline_info();
 
     // =========================== Shader Stages ============================ //
@@ -80,11 +85,11 @@ ResourceState RbVulkanGraphicsPipeline::construct(
     {
         const auto &asset_path = obj[nlohmann::json::json_pointer(key)];
         CHECK_TYPE(asset_path, key, string)
-        auto path = asset_path.get<std::string>();
+        auto src_path = asset_path.get<std::string>();
 
         return std::make_pair(
-            delegate.resource<RbVulkanShaderModule>(path, stage),
-            std::move(path)
+            delegate.resource<RbVulkanShaderModule>(src_path, stage),
+            std::move(src_path)
         );
     };
 
@@ -255,8 +260,7 @@ ResourceState RbVulkanGraphicsPipeline::construct(
 
     // ============================== Compile =============================== //
 
-    // The compilation is delegated to the object manager.
-    delegate.allocate(compiler);
+    delegate.emplace(compiler.compile());
 
     return ResourceState::READY;
 }
