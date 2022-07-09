@@ -36,12 +36,9 @@ ResourceState RbAssetMemoryView::construct(
         query->fetch();
         assert(query->ready());
 
-        delegate.emplace(
-            query->data(),
-            [] {
-                // todo: notify the asset manager to release asset
-            }
-        );
+        delegate.emplace(query->data());
+        // todo: notify the asset manager to release asset
+        // delegate.set_deleter(...);
 
         return ResourceState::READY;
     }
