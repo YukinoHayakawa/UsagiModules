@@ -32,7 +32,9 @@ public:
     //                           Resource Allocation                         //
     // ********************************************************************* //
 
-    void emplace(ProductT product, std::function<void()> deleter = []{});
+    template <typename Arg>
+    Product & emplace(Arg &&product, std::function<void()> deleter = []{})
+        requires std::is_constructible_v<Product, Arg &&>;
 
     template <typename HeapT>
     HeapT * heap();

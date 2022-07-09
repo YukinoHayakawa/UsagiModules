@@ -9,17 +9,18 @@ ResourceConstructDelegate<ProductT>::ResourceConstructDelegate(
 {
 }
 
-
 template <typename ProductT>
-void ResourceConstructDelegate<ProductT>::emplace(
-    ProductT product,
+template <typename Arg>
+ProductT & ResourceConstructDelegate<ProductT>::emplace(
+    Arg &&product,
     std::function<void()> deleter)
+    requires std::is_constructible_v<ProductT, Arg &&>
 {
     const auto entry = mContext->entry;
     assert(!entry->payload.has_value());
-    entry->payload.emplace(std::move(product));
     // todo add a default deleter
     entry->deleter = std::move(deleter);
+    return entry->payload.emplace(std::forward<Arg>(product));
 }
 
 template <typename ProductT>
