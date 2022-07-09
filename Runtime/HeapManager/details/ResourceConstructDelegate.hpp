@@ -32,9 +32,11 @@ public:
     //                           Resource Allocation                         //
     // ********************************************************************* //
 
-    template <typename Arg>
-    Product & emplace(Arg &&product, std::function<void()> deleter = []{})
-        requires std::is_constructible_v<Product, Arg &&>;
+    template <typename... Args>
+    Product & emplace(Args &&...args)
+        requires std::is_constructible_v<Product, Args &&...>;
+
+    void set_deleter(std::function<void()> deleter);
 
     template <typename HeapT>
     HeapT * heap();

@@ -1,5 +1,7 @@
 ﻿#pragma once
 
+#include <Usagi/Library/Utilities/Functional.hpp>
+
 namespace usagi
 {
 template <typename ProductT>
@@ -10,17 +12,23 @@ ResourceConstructDelegate<ProductT>::ResourceConstructDelegate(
 }
 
 template <typename ProductT>
-template <typename Arg>
-ProductT & ResourceConstructDelegate<ProductT>::emplace(
-    Arg &&product,
-    std::function<void()> deleter)
-    requires std::is_constructible_v<ProductT, Arg &&>
+template <typename... Args>
+ProductT & ResourceConstructDelegate<ProductT>::emplace(Args &&...args)
+    requires std::is_constructible_v<ProductT, Args &&...>
 {
     const auto entry = mContext->entry;
     assert(!entry->payload.has_value());
-    // todo add a default deleter
+    assert(!entry->deleter);
+    return entry->payload.emplace(std::forward<Args>(args)...);
+}
+
+template <typename ProductT>
+void ResourceConstructDelegate<ProductT>::set_deleter(
+    std::function<void()> deleter)
+{
+    const auto entry = mContext->entry;
+    assert(entry->payload.has_value());
     entry->deleter = std::move(deleter);
-    return entry->payload.emplace(std::forward<Arg>(product));
 }
 
 template <typename ProductT>
