@@ -8,19 +8,17 @@ namespace usagi
 {
 class NativeWindow;
 
-class RbNativeWindow
+class RbNativeWindow : public ResourceBuilderDecl<
+    std::shared_ptr<NativeWindow>,
+    std::string_view,                   // identifier
+    TransparentArg<std::string_view>,   // default title
+    TransparentArg<const Vector2f &>,   // default position
+    TransparentArg<const Vector2f &>,   // default size
+    TransparentArg<float>,              // default dpi scaling
+    TransparentArg<NativeWindowState>   // default state
+>
 {
 public:
-    using ProductT = std::shared_ptr<NativeWindow>;
-    using BuildArguments = std::tuple<
-        std::string_view,                   // identifier
-        TransparentArg<std::string_view>,   // default title
-        TransparentArg<Vector2f>,           // default position
-        TransparentArg<Vector2f>,           // default size
-        TransparentArg<float>,              // default dpi scaling
-        TransparentArg<NativeWindowState>   // default state
-    >;
-
     ResourceState construct(
         ResourceConstructDelegate<ProductT> &delegate,
         std::string_view identifier,
@@ -28,6 +26,6 @@ public:
         const Vector2f &default_position,
         const Vector2f &default_size,
         float default_dpi_scaling,
-        NativeWindowState default_state) const;
+        NativeWindowState default_state) override;
 };
 }

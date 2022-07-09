@@ -12,7 +12,7 @@ ResourceState RbNativeWindow::construct(
     const Vector2f &default_position,
     const Vector2f &default_size,
     float default_dpi_scaling,
-    NativeWindowState default_state) const
+    NativeWindowState default_state)
 {
     const auto heap = delegate.heap<NativeWindowManager>();
 
