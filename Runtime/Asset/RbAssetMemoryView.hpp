@@ -1,22 +1,21 @@
 ﻿#pragma once
 
-#include <Usagi/Library/Utilities/ArgumentStorage.hpp>
 #include <Usagi/Modules/Runtime/HeapManager/ResourceBuilder.hpp>
+#include <Usagi/Runtime/Memory/View.hpp>
 
-#include "HeapAssetManager.hpp"
+#include "AssetPath.hpp"
 
 namespace usagi
 {
 // bug this is temp impl
-class RbAssetMemoryView : ArgumentStorage<AssetPath>
+class RbAssetMemoryView
 {
 public:
-    using ArgumentStorage::ArgumentStorage;
-
-    using TargetHeapT = HeapAssetManager;
     using ProductT = ReadonlyMemoryView;
+    using BuildArguments = std::tuple<AssetPath>;
 
-    ResourceState construct(
-        ResourceConstructDelegate<RbAssetMemoryView> &delegate);
+    static ResourceState construct(
+        ResourceConstructDelegate<ProductT> &delegate,
+        const AssetPath &asset_path);
 };
 }

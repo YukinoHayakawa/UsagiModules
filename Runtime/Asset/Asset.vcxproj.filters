@@ -57,9 +57,6 @@
     <ClCompile Include="AssetManager_Unload.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="HeapAssetManager.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="RbAssetMemoryView.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -122,10 +119,10 @@
     <ClInclude Include="details\AssetChangeCallbackProxy.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="HeapAssetManager.hpp">
+    <ClInclude Include="RbAssetMemoryView.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="RbAssetMemoryView.hpp">
+    <ClInclude Include="ComponentAssetSource.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

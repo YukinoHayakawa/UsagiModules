@@ -20,8 +20,8 @@ class AssetManager2;
 template <typename Builder>
 struct AssetBuilderProductType
 {
-    using ProductT = typename ExtractFirstTemplateParameter<
-        typename ExtractSecondTemplateParameter<
+    using ProductT = typename ExtractFirstTemplateArgument<
+        typename ExtractSecondTemplateArgument<
             decltype(std::declval<Builder>().construct_with(
                 std::declval<AssetRequestProxy &>()
             ))

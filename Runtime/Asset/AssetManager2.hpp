@@ -193,7 +193,7 @@ public:
 
     void poll_asset_changes();
 
-protected:
+// protected:
     friend class AssetRequestProxy;
 
     ReturnValue<AssetStatus, AssetQuery *> create_asset_query(
@@ -201,6 +201,7 @@ protected:
         AssetPath path,
         MemoryArena &arena);
 
+protected:
     /*
      * AssetRequestProxy uses this overload to register asset dependencies.
      */

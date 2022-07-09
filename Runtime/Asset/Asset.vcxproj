@@ -71,12 +71,12 @@
     <ClCompile Include="details\AssetPackageManager.cpp" />
     <ClCompile Include="details\AssetAccessProxy.cpp" />
     <ClCompile Include="details\AssetRequestProxy.cpp" />
-    <ClCompile Include="HeapAssetManager.cpp" />
     <ClCompile Include="Package\AssetPackageFilesystem.cpp" />
     <ClCompile Include="RbAssetMemoryView.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Asset.hpp" />
+    <ClInclude Include="ComponentAssetSource.hpp" />
     <ClInclude Include="details\AssetBuilder.hpp" />
     <ClInclude Include="details\AbRawMemoryView.hpp" />
     <ClInclude Include="details\AssetBuildTask.hpp" />
@@ -93,7 +93,6 @@
     <ClInclude Include="details\AssetRecord.hpp" />
     <ClInclude Include="details\AssetAccessProxy.hpp" />
     <ClInclude Include="details\AssetRequestProxy.hpp" />
-    <ClInclude Include="HeapAssetManager.hpp" />
     <ClInclude Include="Package\AssetPackageFilesystem.hpp" />
     <ClInclude Include="RbAssetMemoryView.hpp" />
     <ClInclude Include="ServiceAssetManager.hpp" />
