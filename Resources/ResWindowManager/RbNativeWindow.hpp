@@ -1,31 +1,33 @@
 ﻿#pragma once
 
-#include <Usagi/Library/Utilities/ArgumentStorage.hpp>
-#include <Usagi/Modules/IO/Windowing/NativeWindow.hpp>
+#include <Usagi/Modules/Common/Math/Matrix.hpp>
+#include <Usagi/Modules/IO/Windowing/NativeWindowState.hpp>
 #include <Usagi/Modules/Runtime/HeapManager/ResourceBuilder.hpp>
-#include <Usagi/Modules/Runtime/HeapManager/TransparentArg.hpp>
-
-#include "HeapWindowManager.hpp"
 
 namespace usagi
 {
+class NativeWindow;
+
 class RbNativeWindow
-    : ArgumentStorage<
-        std::uint64_t,                      // identifier
+{
+public:
+    using ProductT = std::shared_ptr<NativeWindow>;
+    using BuildArguments = std::tuple<
+        std::string_view,                   // identifier
         TransparentArg<std::string_view>,   // default title
         TransparentArg<Vector2f>,           // default position
         TransparentArg<Vector2f>,           // default size
         TransparentArg<float>,              // default dpi scaling
         TransparentArg<NativeWindowState>   // default state
-    >
-{
-public:
-    using ArgumentStorage::ArgumentStorage;
-
-    using TargetHeapT = HeapWindowManager;
-    using ProductT = NativeWindow;
+    >;
 
     ResourceState construct(
-        ResourceConstructDelegate<RbNativeWindow> &delegate);
+        ResourceConstructDelegate<ProductT> &delegate,
+        std::string_view identifier,
+        std::string_view default_title,
+        const Vector2f &default_position,
+        const Vector2f &default_size,
+        float default_dpi_scaling,
+        NativeWindowState default_state) const;
 };
 }

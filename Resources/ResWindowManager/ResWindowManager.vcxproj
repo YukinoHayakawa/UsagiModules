@@ -66,11 +66,9 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="HeapWindowManager.hpp" />
     <ClInclude Include="RbNativeWindow.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="HeapWindowManager.cpp" />
     <ClCompile Include="RbNativeWindow.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
