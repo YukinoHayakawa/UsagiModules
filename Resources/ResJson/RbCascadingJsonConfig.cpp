@@ -1,5 +1,7 @@
 ﻿#include "RbCascadingJsonConfig.hpp"
 
+#include <nlohmann/json.hpp>
+
 #include <Usagi/Modules/Runtime/HeapManager/HeapManager.hpp>
 #include <Usagi/Modules/Runtime/Asset/RbAssetMemoryView.hpp>
 
@@ -8,13 +10,12 @@
 namespace usagi
 {
 ResourceState RbCascadingJsonConfig::construct(
-    ResourceConstructDelegate<RbCascadingJsonConfig> &delegate)
+    ResourceConstructDelegate<ProductT> &delegate,
+    const AssetPath &asset_path) 
 {
     // Fetch the content of the requested config file
-    const auto doc = delegate.resource<RbJsonDocument>(
-        arg<AssetPath>()
-    ).await();
-    const auto &cur = doc->root;
+    const auto doc = delegate.resource<RbJsonDocument>(asset_path).await();
+    const auto &cur = *doc;
 
     // Extract the base config asset path
     const auto it = cur.find("inherit");
@@ -22,7 +23,8 @@ ResourceState RbCascadingJsonConfig::construct(
     // The config doesn't overrides another. We are done here.
     if(it == cur.end())
     {
-        delegate.allocate(cur);
+        // copy it
+        delegate.emplace(cur);
         return ResourceState::READY;
     }
 
@@ -31,14 +33,14 @@ ResourceState RbCascadingJsonConfig::construct(
     std::string base_path = *it;
 
     // Recursively request the parent config tree and make a copy of it.
-    auto parent_doc = delegate.resource<RbCascadingJsonConfig>(
+    auto parent_doc = *delegate.resource<RbCascadingJsonConfig>(
         base_path
-    ).await()->root;
+    ).await();
 
     parent_doc.merge_patch(cur);
     parent_doc.erase("inherit");
 
-    delegate.allocate(std::move(parent_doc));
+    delegate.emplace(std::move(parent_doc));
 
     return ResourceState::READY;
 }

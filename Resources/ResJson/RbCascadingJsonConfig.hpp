@@ -1,23 +1,19 @@
 ﻿#pragma once
 
-#include <Usagi/Library/Utilities/ArgumentStorage.hpp>
+#include <nlohmann/json_fwd.hpp>
+
 #include <Usagi/Modules/Runtime/Asset/AssetPath.hpp>
 #include <Usagi/Modules/Runtime/HeapManager/ResourceBuilder.hpp>
-#include <Usagi/Modules/Runtime/HeapManager/HeapFreeObjectManager.hpp>
-
-#include "JsonDocument.hpp"
 
 namespace usagi
 {
-class RbCascadingJsonConfig : ArgumentStorage<AssetPath>
+class RbCascadingJsonConfig : public ResourceBuilderDecl<
+    nlohmann::json,
+    const AssetPath &>
 {
 public:
-    using ArgumentStorage::ArgumentStorage;
-
-    using TargetHeapT = HeapFreeObjectManager;
-    using ProductT = JsonDocument;
-
     ResourceState construct(
-        ResourceConstructDelegate<RbCascadingJsonConfig> &delegate);
+        ResourceConstructDelegate<ProductT> &delegate,
+        const AssetPath &asset_path) override;
 };
 }
