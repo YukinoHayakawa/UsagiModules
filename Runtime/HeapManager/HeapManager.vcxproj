@@ -73,7 +73,6 @@
     <ClInclude Include="details\ResourceEntry.hpp" />
     <ClInclude Include="details\ResourceRequestBuilder.hpp" />
     <ClInclude Include="details\ResourceRequestContext.hpp" />
-    <ClInclude Include="HeapFreeObjectManager.hpp" />
     <ClInclude Include="HeapManager.hpp" />
     <ClInclude Include="details\ResourceAccessor.hpp" />
     <ClInclude Include="HeapManagerStatic.hpp" />

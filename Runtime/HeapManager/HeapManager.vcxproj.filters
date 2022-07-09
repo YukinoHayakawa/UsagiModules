@@ -63,9 +63,6 @@
     <ClInclude Include="details\ResourceRequestBuilderImpl.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="HeapFreeObjectManager.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="details\ResourceBuildOptions.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>

@@ -30,4 +30,18 @@ public:
     virtual ResourceConstructResult<ProductT> construct(
         ResourceConstructDelegate<Builder> &delegate) = 0;
 };*/
+
+template <typename Product, typename... BuildArgs>
+class ResourceBuilderDecl
+{
+public:
+    using ProductT = Product;
+    using BuildArguments = std::tuple<std::remove_reference_t<BuildArgs>...>;
+
+    virtual ~ResourceBuilderDecl() = default;
+
+    virtual ResourceState construct(
+        ResourceConstructDelegate<ProductT> &delegate,
+        BuildArgs... args) = 0;
+};
 }

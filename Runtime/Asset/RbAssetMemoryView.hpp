@@ -7,15 +7,13 @@
 
 namespace usagi
 {
-// bug this is temp impl
-class RbAssetMemoryView
+class RbAssetMemoryView : public ResourceBuilderDecl<
+    ReadonlyMemoryView,
+    const AssetPath &>
 {
 public:
-    using ProductT = ReadonlyMemoryView;
-    using BuildArguments = std::tuple<AssetPath>;
-
-    static ResourceState construct(
+    ResourceState construct(
         ResourceConstructDelegate<ProductT> &delegate,
-        const AssetPath &asset_path);
+        const AssetPath &asset_path) override;
 };
 }
