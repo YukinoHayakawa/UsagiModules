@@ -24,6 +24,9 @@ struct ResourceBuilderParameterValidationHelper : private Builder
         Tuple &&t,
         std::index_sequence<I...>)
     {
+        // if you reaches here, check that the build arguments accepted by
+        // the resource builder's construct function match with what it
+        // declares in BuildArguments.
         return this->construct(delegate, std::get<I>(t)...);
     }
 

@@ -3,45 +3,50 @@
 // Include this header when implementing resource builders that don't request
 // resources from the HeapManager.
 
-#include <Usagi/Runtime/ReturnValue.hpp>
-
 #include "details/ResourceConstructDelegate.hpp"
 #include "details/ResourceConstructDelegateImpl.hpp"
 #include "TransparentArg.hpp"
 
 namespace usagi
 {
-/*template <typename ProductT>
-using ResourceConstructResult = ReturnValue<
-    ResourceState,
-    ProductT
->;
-
-template <typename Builder, typename Product>
-class ResourceBuilderBase
+namespace details::heap_manager
 {
-public:
-    using ProductT = Product;
+template <typename T>
+struct BuildArgTrait
+{
+    using HashT = std::remove_cvref_t<T>;
+    using ArgumentT = T;
+};
 
-    virtual ~ResourceBuilderBase() = default;
-
-    // force the derived class to implement the method. not actually supposed
-    // to be virtual.
-    virtual ResourceConstructResult<ProductT> construct(
-        ResourceConstructDelegate<Builder> &delegate) = 0;
-};*/
+template <typename T>
+struct BuildArgTrait<TransparentArg<T>>
+{
+    using HashT = TransparentArg<std::remove_cvref_t<T>>;
+    using ArgumentT = T;
+};
+}
 
 template <typename Product, typename... BuildArgs>
 class ResourceBuilderDecl
 {
+    template <typename T>
+    using ArgHashT = 
+        typename details::heap_manager::BuildArgTrait<T>::HashT;
+
+    template <typename T>
+    using ArgInvokeT = 
+        typename details::heap_manager::BuildArgTrait<T>::ArgumentT;
+
 public:
     using ProductT = Product;
-    using BuildArguments = std::tuple<std::remove_reference_t<BuildArgs>...>;
+    using BuildArguments = std::tuple<ArgHashT<BuildArgs>...>;
 
     virtual ~ResourceBuilderDecl() = default;
-
+    
+    // force the derived class to implement the method. not actually supposed
+    // to be virtual.
     virtual ResourceState construct(
         ResourceConstructDelegate<ProductT> &delegate,
-        BuildArgs... args) = 0;
+        ArgInvokeT<BuildArgs>...) = 0;
 };
 }
