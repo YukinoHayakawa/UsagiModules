@@ -3,7 +3,6 @@
 #include <atomic>
 #include <future>
 
-// #include <Usagi/Library/Utilities/TransparentlyComparable.hpp>
 #include <Usagi/Runtime/Memory/RefCount.hpp>
 
 #include "HeapResourceDescriptor.hpp"
@@ -17,7 +16,7 @@ namespace usagi
  * resource and provide the deleter, which will be called when the resource
  * is being evicted. 
  */
-struct ResourceEntryBase
+struct ResourceEntryBase : Noncopyable, Nonmovable
     // : TransparentlyComparable<ResourceEntryBase, HeapResourceDescriptor>
 {
     const HeapResourceDescriptor descriptor;
@@ -39,7 +38,10 @@ struct ResourceEntryBase
     {
     }
 
-    virtual ~ResourceEntryBase() = default;
+    virtual ~ResourceEntryBase()
+    {
+        if(deleter) deleter();
+    }
 
     /*
     const HeapResourceDescriptor & key() const
@@ -53,10 +55,15 @@ struct ResourceEntryBase
  * \tparam Resource Resource type.
  */
 template <typename Resource> // , typename Deleter>
-struct ResourceEntry : ResourceEntryBase
+struct ResourceEntry final : ResourceEntryBase
 {
     std::optional<Resource> payload;
 
     using ResourceEntryBase::ResourceEntryBase;
+
+    ~ResourceEntry() override
+    {
+        if(deleter) assert(payload.has_value());
+    }
 };
 }
