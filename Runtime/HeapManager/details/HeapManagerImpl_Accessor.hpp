@@ -5,67 +5,39 @@
 
 namespace usagi
 {
-template <ResourceBuilder Builder>
+template <typename Product>
 auto HeapManager::make_accessor_nolock(
     const HeapResourceDescriptor descriptor,
-    // typename Builder::TargetHeapT *heap,
     const bool is_fallback)
--> ResourceAccessor<Builder>
+-> ResourceAccessor<Product>
 {
     assert(static_cast<bool>(descriptor));
 
-    using ProductT = typename Builder::ProductT;
+    using ProductT = Product;
     using EntryT = ResourceEntry<ProductT>;
 
-    ResourceEntryIt it = mResourceEntries.find(descriptor);
+    // find existing record
+    ResourceEntryIt it = mResourceEntries.lower_bound(descriptor);
 
     // do not create record when requesting fallback resource
-    if(it == mResourceEntries.end() && !is_fallback)
+    if(const bool found = it != mResourceEntries.end() && 
+        it->get()->descriptor == descriptor; !found && !is_fallback)
     {
+        // todo use memory pool to manage resource entries
         auto entry = std::make_unique<EntryT>(descriptor);
 
-        bool inserted = false;
-        std::tie(it, inserted) = mResourceEntries.emplace(std::move(entry));
-        if(inserted)
-        {
-            LOG(trace,
-                "[Heap] New resource added: {} (builder={}, resource={})",
-                descriptor,
-                typeid(Builder).name(),
-                typeid(typename Builder::ProductT).name()
-            );
+        it = mResourceEntries.emplace_hint(
+            it,
+            std::move(entry)
+        );
 
-        }
+        LOG(trace,
+            "[Heap] Resource added: {} (type={})",
+            descriptor,
+            typeid(ProductT).name()
+        );
     }
-
-    /*
-    // todo allocate type dependent resource entry oh fuck me
-    if(!is_fallback)
-    {
-        bool inserted = false;
-        std::tie(it, inserted) = mResourceEntries.emplace(descriptor);
-        if(inserted)
-        {
-            LOG(trace,
-                "[Heap] New resource added: {} (builder={}, resource={})",
-                descriptor,
-                typeid(Builder).name(),
-                typeid(typename Builder::ProductT).name()
-            );
-
-        }
-    }
-    else
-    {
-        it = mResourceEntries.find(descriptor);
-    }*/
-
-    // LOG(trace,
-    //     "[Heap] Creating resource accessor (fallback={}): {}",
-    //     is_fallback,
-    //     descriptor
-    // );
-
+    
     // A fallback should always exist.
     USAGI_ASSERT_THROW(
         it != mResourceEntries.end(),
@@ -84,9 +56,8 @@ auto HeapManager::make_accessor_nolock(
     // The accessor will increase the refcnt of the resource.
     // Therefore, as long as the accessor is alive, the resource should
     // always be in ready state.
-    return ResourceAccessor<Builder>(
+    return ResourceAccessor<ProductT>(
         static_cast<EntryT *>(it->get()),
-        /*heap,*/
         is_fallback
     );
 }

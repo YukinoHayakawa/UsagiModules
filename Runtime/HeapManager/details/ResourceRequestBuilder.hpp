@@ -15,9 +15,8 @@ class HeapManager;
 template <typename Builder, typename LazyBuildArgFunc>
 class ResourceRequestBuilder
 {
-    // friend class HeapManager;
-
     using ContextT = UniqueResourceRequestContext<Builder, LazyBuildArgFunc>;
+    using ProductT = typename Builder::ProductT;
 
     ContextT mContext;
 
@@ -66,7 +65,7 @@ public:
         return *this;
     }
 
-    ResourceAccessor<Builder> make_request();
+    ResourceAccessor<ProductT> make_request();
 };
 
 template <typename Builder, typename BuildArgFuncT>

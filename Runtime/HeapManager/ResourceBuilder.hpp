@@ -7,6 +7,7 @@
 
 #include "details/ResourceConstructDelegate.hpp"
 #include "details/ResourceConstructDelegateImpl.hpp"
+#include "TransparentArg.hpp"
 
 namespace usagi
 {

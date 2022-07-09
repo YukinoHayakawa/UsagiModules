@@ -29,7 +29,7 @@ public:
         ResourceBuilder Builder,
         typename... BuildArgs
     >
-    ResourceAccessor<Builder> resource_transient(BuildArgs &&... args)
+    auto resource_transient(BuildArgs &&... args)
     // Adds a constraint that checks whether the required heap is added.
     requires (is_type_complete_v<Builder> && IsTargetHeapRegistered<Builder>)
     {

@@ -3,7 +3,7 @@
 namespace usagi
 {
 template <typename ResourceBuilderT, typename LazyBuildArgFunc>
-ResourceAccessor<ResourceBuilderT>
+ResourceAccessor<typename ResourceBuilderT::ProductT>
 ResourceRequestBuilder<ResourceBuilderT, LazyBuildArgFunc>::make_request()
 {
     HeapManager *manager = mContext->manager;

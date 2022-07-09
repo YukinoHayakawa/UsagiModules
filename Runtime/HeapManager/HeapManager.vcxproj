@@ -73,21 +73,18 @@
     <ClInclude Include="details\ResourceEntry.hpp" />
     <ClInclude Include="details\ResourceRequestBuilder.hpp" />
     <ClInclude Include="details\ResourceRequestContext.hpp" />
-    <ClInclude Include="Heap.hpp" />
     <ClInclude Include="HeapFreeObjectManager.hpp" />
     <ClInclude Include="HeapManager.hpp" />
     <ClInclude Include="details\ResourceAccessor.hpp" />
     <ClInclude Include="HeapManagerStatic.hpp" />
-    <ClInclude Include="Resource.hpp" />
     <ClInclude Include="details\ResourceBuilder.hpp" />
     <ClInclude Include="details\ResourceState.hpp" />
     <ClInclude Include="ResourceBuilder.hpp" />
+    <ClInclude Include="ResourceExceptions.hpp" />
     <ClInclude Include="TransparentArg.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="details\ResourceRequestBuilderImpl.hpp" />
-    <ClCompile Include="Heap.cpp" />
-    <ClCompile Include="HeapFreeObjectManager.cpp" />
     <ClCompile Include="HeapManager.cpp" />
     <ClCompile Include="details\ResourceState.cpp" />
   </ItemGroup>

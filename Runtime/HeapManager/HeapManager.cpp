@@ -3,9 +3,6 @@
 #include <Usagi/Runtime/Task/TaskExecutor.hpp>
 #include <Usagi/Modules/Runtime/Executive/TaskExecutorSynchronized.hpp>
 
-// Included to allow the dtor of HeapManager can deconstruct the heap objects.
-#include "Heap.hpp"
-
 namespace usagi::details::heap_manager
 {
 void submit_build_task(
@@ -52,11 +49,6 @@ bool HeapManager::ResourceEntryComparator::operator()(
     const HeapResourceDescriptor &rhs) const
 {
     return lhs->descriptor < rhs;
-}
-
-HeapManager::~HeapManager()
-{
-    // Heap objects destructed here.
 }
 
 HeapResourceDescriptor HeapManager::make_unique_descriptor()

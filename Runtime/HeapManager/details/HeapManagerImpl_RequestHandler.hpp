@@ -7,8 +7,7 @@ namespace usagi
 template <typename Builder, typename LazyBuildArgFunc>
 struct ResourceRequestHandler
 {
-    // using TargetHeapT = typename Builder::TargetHeapT;
-    using ResourceT = typename Builder::ProductT;
+    using ProductT = typename Builder::ProductT;
     using ContextT = UniqueResourceRequestContext<Builder, LazyBuildArgFunc>;
 
     ContextT context;
@@ -31,8 +30,9 @@ struct ResourceRequestHandler
     // todo constructor too many var inits adds overhead
 
     std::optional<decltype(std::declval<LazyBuildArgFunc>()())> param_tuple;
+    // todo better concurrency?
     std::unique_lock<std::mutex> entry_map_lock;
-    ResourceAccessor<Builder> accessor;
+    ResourceAccessor<ProductT> accessor;
 
     void ensure_build_args()
     {
@@ -74,21 +74,11 @@ struct ResourceRequestHandler
     // Return an accessor to the specified resource or a proper fallback.
     auto make_accessor(HeapResourceDescriptor desc, bool is_fallback)
     {
-        return context->manager->template make_accessor_nolock<Builder>(
+        return context->manager->template make_accessor_nolock<ProductT>(
             desc,
-            // context->heap,
             is_fallback
         );
     }
-
-    /*
-    void get_heap()
-    {
-        // Try to get the heap. The heap must exist before the resource
-        // could be fetched or built. If this fails, exception will be thrown.
-        context->heap = context->manager->template locate_heap<TargetHeapT>();
-    }
-    */
 
     void init_accessor()
     {

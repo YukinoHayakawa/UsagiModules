@@ -5,12 +5,11 @@
 
 #include "details/HeapResourceDescriptor.hpp"
 
-#include "Heap.hpp"
 #include "Resource.hpp"
 
 namespace usagi
 {
-class HeapFreeObjectManager : public Heap
+class HeapFreeObjectManager
 {
     std::map<std::uint64_t, std::unique_ptr<Resource>> mObjects;
 

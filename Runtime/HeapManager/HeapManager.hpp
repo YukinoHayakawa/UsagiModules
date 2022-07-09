@@ -18,7 +18,6 @@
 
 namespace usagi
 {
-class Heap;
 class Task;
 class TaskExecutor;
 class ResourceBuildTaskBase;
@@ -45,6 +44,7 @@ HeapResourceDescriptor make_resource_descriptor_from_tuple(Tuple &&tuple);
  * record that dependency relationship. It is assumed that the building process
  * of a resource is stable so it always refers to the same set of other
  * resources.
+ * todo: doc below is outdated
  * Unlike AssetManager, HeapManager doesn't have explicit definitions of
  * AssetPackage or Asset and such. Objects are arranged around Heaps. Each heap
  * is a memory allocator that can contain certain types of objects. The
@@ -129,16 +129,16 @@ private:
     > mResourceEntries;
     using ResourceEntryIt = decltype(mResourceEntries)::iterator;
 
-    template <ResourceBuilder Builder>
+    template <typename Product>
     auto make_accessor_nolock(
         HeapResourceDescriptor descriptor,
-        // typename Builder::TargetHeapT *heap,
         bool is_fallback)
-    -> ResourceAccessor<Builder>;
+    -> ResourceAccessor<Product>;
 
     template <typename Builder, typename LazyBuildArgFunc>
     friend struct ResourceRequestHandler;
 
+    // dummy id counter for transient resources
     constexpr static HeapResourceIdT DummyBuilderId = -1;
     std::atomic<HeapResourceIdT> mUniqueResourceIdCounter = 0;
 
@@ -158,13 +158,13 @@ private:
 
     template <ResourceBuilder Builder, typename LazyBuildArgFunc>
     UniqueResourceRequestContext<Builder, LazyBuildArgFunc>
-    allocate_request_context();
+        allocate_request_context();
     void deallocate_request_context(const ResourceBuildContextCommon &context); 
 
     friend struct details::heap_manager::RequestContextDeleter;
 
 public:
-    virtual ~HeapManager();
+    virtual ~HeapManager() = default;
 
     // ********************************************************************* //    
     //                          Async Resource Request                       //
@@ -192,8 +192,7 @@ public:
         TaskExecutor *executor,
         LazyBuildArgFunc &&arg_func)
     requires
-        ConstructibleFromTuple<Builder, decltype(arg_func())>
-        && NoRvalueRefInTuple<decltype(arg_func())>;
+        NoRvalueRefInTuple<decltype(arg_func())>;
 
     // ********************************************************************* //    
     //                       Transient Resource Request                      //
@@ -215,8 +214,8 @@ public:
      * use `resource()` and pass in a synchronized task executor.
      */
     template <ResourceBuilder Builder, typename... BuildArgs>
-    ResourceAccessor<Builder> resource_transient(BuildArgs &&... args);
-    // requires std::constructible_from<Builder, BuildArgs...>;
+    ResourceAccessor<typename Builder::ProductT>
+        resource_transient(BuildArgs &&... args);
 
     template <typename Builder, typename LazyBuildArgFunc>
     friend class ResourceRequestBuilder;
@@ -226,7 +225,7 @@ private:
     friend class ResourceConstructDelegate;
 
     template <ResourceBuilder Builder, typename LazyBuildArgFunc>
-    ResourceAccessor<Builder> request_resource(
+    ResourceAccessor<typename Builder::ProductT> request_resource(
         UniqueResourceRequestContext<Builder, LazyBuildArgFunc> context);
 };
 }

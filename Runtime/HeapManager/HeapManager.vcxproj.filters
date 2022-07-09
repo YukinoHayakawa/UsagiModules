@@ -21,9 +21,6 @@
     <ClInclude Include="details\HeapResourceDescriptor.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Heap.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="details\ResourceAccessor.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -66,9 +63,6 @@
     <ClInclude Include="details\ResourceRequestBuilderImpl.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="Resource.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="HeapFreeObjectManager.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -93,18 +87,15 @@
     <ClInclude Include="details\HeapManagerImpl_RequestHandler.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ResourceExceptions.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="HeapManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Heap.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="details\ResourceState.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="HeapFreeObjectManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

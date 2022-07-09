@@ -1,7 +1,6 @@
 ﻿#pragma once
 
-#include <future>
-#include <optional>
+#include <memory>
 
 #include "ResourceBuildOptions.hpp"
 
@@ -25,19 +24,13 @@ struct ResourceBuildContextCommon
 
     // May be used when a resource builder requests another resource.
     TaskExecutor *executor = nullptr;
-
-    // const ResourceEntryBase *entry = nullptr;
 };
 
 template <typename Product>
 struct ResourceBuildContext : ResourceBuildContextCommon
 {
-    // using HeapT = typename ResourceBuilderT::TargetHeapT;
-    //
-    // HeapT *heap = nullptr;
     using ProductT = Product;
 
-    // todo type specific resource entry
     ResourceEntry<ProductT> *entry = nullptr;
 };
 
@@ -56,26 +49,35 @@ struct ResourceRequestContext
     const BuildArgFuncT *arg_func = nullptr;
 };
 
+namespace details::heap_manager
+{
+/**
+ * \brief Used to evaluate the size of ResourceRequestContext
+ */
 struct DummyResourceBuilder
 {
-    // using TargetHeapT = int;
     using ProductT = void;
 };
 
-union ResourceRequestContextBlock
-{
-    ResourceRequestContext<DummyResourceBuilder, int> context;
-    char bytes[sizeof(decltype(context))] { };
-};
-
-namespace details::heap_manager
-{
 // Implemented in HeapManager.cpp
 struct RequestContextDeleter
 {
     void operator()(const ResourceBuildContextCommon *context) const;
 };
 }
+
+/**
+ * \brief Type-erased memory block used to store resource request context.
+ * Every instantiations of ResourceRequestContext have the same size.
+ */
+union ResourceRequestContextBlock
+{
+    ResourceRequestContext<
+        details::heap_manager::DummyResourceBuilder,
+        int
+    > context;
+    char bytes[sizeof(decltype(context))] { };
+};
 
 template <typename Builder, typename LazyBuildArgFunc>
 using UniqueResourceRequestContext = std::unique_ptr<

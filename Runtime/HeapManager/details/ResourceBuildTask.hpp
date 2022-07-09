@@ -18,17 +18,17 @@ public:
 
 // todo maybe the build arguments should be stored in build task instead of forcing each resource builder to impl its own
 template <typename ResourceBuilderT>
-class ResourceBuildTask : public ResourceBuildTaskBase
+class ResourceBuildTask final : public ResourceBuildTaskBase
 {
-    using AccessorT = ResourceAccessor<ResourceBuilderT>;
     using ProductT = typename ResourceBuilderT::ProductT;
+    using AccessorT = ResourceAccessor<ProductT>;
     using BuildArguments = typename ResourceBuilderT::BuildArguments;
-    using ContextT = std::unique_ptr<
+    using UniqueContextT = std::unique_ptr<
         ResourceBuildContext<ProductT>,
         details::heap_manager::RequestContextDeleter
     >;
 
-    ContextT mContext;
+    UniqueContextT mContext;
     // Notified by ResourceBuildTask after constructing the resource, whether
     // the resource building was successful or failed.
     std::promise<void> mPromise;
@@ -53,7 +53,8 @@ class ResourceBuildTask : public ResourceBuildTaskBase
 public:
     template <typename... Args>
     ResourceBuildTask(
-        ContextT context,
+        // acquired from ResourceRequestHandler
+        UniqueContextT context,
         std::promise<void> promise,
         Args &&...args)
         : mContext(std::move(context))
