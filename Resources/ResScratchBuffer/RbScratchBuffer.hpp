@@ -1,8 +1,6 @@
 ﻿#pragma once
 
 #include <Usagi/Modules/Runtime/HeapManager/ResourceBuilder.hpp>
-#include <Usagi/Library/Utilities/ArgumentStorage.hpp>
-#include <Usagi/Modules/Runtime/HeapManager/TransparentArg.hpp>
 
 #include "HeapCircularBuffer.hpp"
 
@@ -14,22 +12,24 @@ namespace usagi
  * \tparam Elem Type of elements.
  */
 template <typename Elem>
-class RbScratchBuffer : ArgumentStorage<
-    HeapResourceDescriptor,         // temp id, needed to keep each allocation
-                                    // unique.
-    TransparentArg<std::size_t>     // num elems
->
+class RbScratchBuffer
 {
 public:
-    using ArgumentStorage::ArgumentStorage;
-
-    using TargetHeapT = HeapCircularBuffer;
+    using BuildArguments = std::tuple<
+        // unique id used to identify each allocation
+        HeapResourceDescriptor,
+        // number of elements
+        TransparentArg<std::size_t>
+    >;
     using ProductT = std::shared_ptr<Elem[]>;
 
     ResourceState construct(
-        ResourceConstructDelegate<RbScratchBuffer> &delegate)
+        ResourceConstructDelegate<ProductT> &delegate,
+        HeapResourceDescriptor /* unused */,
+        std::size_t num_elems) const
     {
-        delegate.allocate(sizeof(Elem) * arg<1>());
+        auto heap = delegate.template heap<HeapCircularBuffer>();
+        delegate.emplace(heap->template allocate<Elem>(num_elems));
 
         return ResourceState::READY;
     }
