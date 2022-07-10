@@ -41,7 +41,7 @@ public:
     auto operator<=>(const HeapResourceDescriptor &rhs) const = default;
 };
 
-inline std::string_view to_string_view(const HeapResourceDescriptor descriptor)
+inline std::string_view to_byte_view(const HeapResourceDescriptor &descriptor)
 {
     return {
         reinterpret_cast<const char *>(&descriptor),
