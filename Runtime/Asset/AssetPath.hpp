@@ -1,36 +1,22 @@
 ﻿#pragma once
 
-#include <optional>
-#include <string>
 #include <ranges>
+
+#include <Usagi/Library/Utilities/MaybeOwnedString.hpp>
 
 namespace usagi
 {
-class AssetPath
+class AssetPath : MaybeOwnedString
 {
-    std::string_view mPath;
-    mutable std::optional<std::string> mReconstructedCache;
+    mutable std::optional<std::string> mReconstructed;
 
 public:
-    AssetPath(const char *path)
-        : mPath(path)
-    {
-    }
-
-    AssetPath(std::string_view path)
-        : mPath(path)
-	{
-    }
-
-    AssetPath(const std::string &path)
-        : mPath(path)
-    {
-    }
+    using MaybeOwnedString::MaybeOwnedString;
 
     auto normalized_components() const
     {
         constexpr std::string_view delimiter("/");
-        return mPath |
+        return view() |
             // normalize to slashes
 			std::views::transform([](char c) {
                 if(c == '\\') return '/'; return c;
@@ -79,9 +65,9 @@ public:
 
     friend std::string_view to_string_view(const AssetPath &p)
     {
-        if(!p.mReconstructedCache)
-            p.mReconstructedCache = p.reconstructed();
-        return p.mReconstructedCache.value();
+        if(!p.mReconstructed)
+            p.mReconstructed = p.reconstructed();
+        return p.mReconstructed.value();
     }
 };
 }
