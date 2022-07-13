@@ -5,7 +5,6 @@
 #include <nlohmann/json.hpp>
 
 #include <Usagi/Modules/Platforms/Vulkan/VulkanGraphicsPipelineCompiler.hpp>
-#include <Usagi/Modules/Resources/ResGraphicsVulkan/VulkanDeviceAccessDelegate.hpp>
 #include <Usagi/Modules/Resources/ResJson/RbCascadingJsonConfig.hpp>
 #include <Usagi/Modules/Runtime/HeapManager/HeapManager.hpp>
 
@@ -85,20 +84,21 @@ ResourceState RbVulkanGraphicsPipeline::construct(
     {
         const auto &asset_path = obj[nlohmann::json::json_pointer(key)];
         CHECK_TYPE(asset_path, key, string)
-        auto src_path = asset_path.get<std::string>();
-
-        return std::make_pair(
-            delegate.resource<RbVulkanShaderModule>(src_path, stage),
-            std::move(src_path)
+        // auto src_path = asset_path.get<std::string>();
+        auto shader_accessor = delegate.resource<RbVulkanShaderModule>(
+            asset_path.get<std::string>(),
+            stage
         );
+        return shader_accessor;
+        // return std::make_pair(std::move(shader), std::move(src_path));
     };
 
-    auto [future_vert, p_vert] = async_shader_module(
+    auto /*[*/future_vert/*, p_vert]*/ = async_shader_module(
         config,
         "/shaders/vertex/source",
         GpuShaderStage::VERTEX
     );
-    auto [future_frag, p_frag] = async_shader_module(
+    auto /*[*/future_frag/*, p_frag]*/ = async_shader_module(
         config,
         "/shaders/fragment/source",
         GpuShaderStage::FRAGMENT

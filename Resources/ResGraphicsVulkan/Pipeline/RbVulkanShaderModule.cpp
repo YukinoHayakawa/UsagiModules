@@ -13,10 +13,7 @@ ResourceState RbVulkanShaderModule::construct(
     connect(*delegate.heap<VulkanDeviceAccess *>());
 
     // Get shader byte code
-    const auto res = delegate.resource<RbSpirvBytecodes>(
-        path,
-        stage
-    ).await();
+    const auto res = delegate.resource<RbSpirvBytecodes>(path, stage).await();
 
     // Create the object
     vk::ShaderModuleCreateInfo info;
