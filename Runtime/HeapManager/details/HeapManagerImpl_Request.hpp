@@ -1,5 +1,7 @@
 ﻿#pragma once
 
+#include <Usagi/Modules/Runtime/Executive/TaskExecutorSynchronized.hpp>
+
 namespace usagi
 {
 template <ResourceBuilder Builder, typename LazyBuildArgFunc>
@@ -8,11 +10,13 @@ HeapManager::resource(
     HeapResourceDescriptor resource_id,
     TaskExecutor *executor,
     LazyBuildArgFunc &&arg_func)
-requires
-    // The build params shouldn't return rvalue refs like integer literals.
+// requires
+    // The build params shouldn't return rvalue refs like integer literals
+    // inside a lambda.
     // Because at the point of using, they are much likely already out-of-scope.
     // todo: this however won't prevent forwarding refs to local variables.
-    NoRvalueRefInTuple<decltype(arg_func())>
+    // todo: the handling of l/r refs should be revised.
+    // NoRvalueRefInTuple<decltype(arg_func())>
 {
     auto context = allocate_request_context<Builder, LazyBuildArgFunc>();
 
@@ -32,17 +36,17 @@ requires
 template <ResourceBuilder Builder, typename... BuildArgs>
 ResourceAccessor<typename Builder::ProductT>
 HeapManager::resource_transient(BuildArgs &&...args)
-// resource builder do not receive build params during construction anymore.
-// they are passed in when construct is called.
-// requires std::constructible_from<Builder, BuildArgs...>                
 {
-    // todo: this copies values.
+    // safe to forward arguments here because they have storage on the calling
+    // stack.
 	auto params = [&] {
         return std::forward_as_tuple(std::forward<BuildArgs>(args)...);
     };
 
     auto context = allocate_request_context<Builder, decltype(params)>();
 
+    TaskExecutorSynchronized executor;
+    context->executor = &executor;
     context->arg_func = &params;
 
     ResourceRequestHandler handler { std::move(context) };

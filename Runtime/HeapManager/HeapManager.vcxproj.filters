@@ -87,6 +87,9 @@
     <ClInclude Include="ResourceExceptions.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="details\ResourceBuilderTraits.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="HeapManager.cpp">

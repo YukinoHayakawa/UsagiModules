@@ -5,10 +5,11 @@
 #include <Usagi/Runtime/ReturnValue.hpp>
 
 #include "ResourceConstructDelegate.hpp"
+#include "ResourceBuilderTraits.hpp"
 
 namespace usagi
 {
-namespace details
+namespace details::heap_manager
 {
 // instantiation of this derived class is used to test whether a resource
 // builder accepts the set of parameters it declares.
@@ -50,7 +51,8 @@ concept ResourceConstructibleFromTuple = requires(
     {
         helper.validate_construct_params(
             std::declval<ResourceConstructDelegate<typename T::ProductT> &>(),
-            std::declval<typename T::BuildArguments>()
+            std::declval<typename ResourceBuilderTraits<T>::
+                InvocationArgumentTupleT>()
         )
     } -> std::same_as<ResourceState>;
 };
@@ -68,7 +70,7 @@ concept ResourceBuilder = requires(T t)
 
     // ensure that the construct method can be called with declared argument
     // types
-    requires details::ResourceConstructibleFromTuple<
+    requires details::heap_manager::ResourceConstructibleFromTuple<
         T,
         typename T::BuildArguments
     >;

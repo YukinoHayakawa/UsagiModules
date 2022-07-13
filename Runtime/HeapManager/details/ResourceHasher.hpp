@@ -18,7 +18,7 @@ class ResourceHasher
 
 public:
 	template <typename T>
-    std::size_t append(T &&val)
+    std::size_t append(const T &val)
 	{
 		const auto current = mNumProcessedBytes;
         auto mem_view = to_byte_view(val);

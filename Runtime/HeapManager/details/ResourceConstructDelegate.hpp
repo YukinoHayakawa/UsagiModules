@@ -45,16 +45,20 @@ public:
     //                            Resource Request                           //
     // ********************************************************************* //
 
+    // Note that if a transient resource requests another resource, the
+    // request will also be processed synchronously because a synced scheduler
+    // is always used.
     template <typename AnotherBuilderT, typename... Args>
     [[nodiscard]]
-    auto resource(Args &&...build_params)
+    auto resource(Args &&...build_args)
         -> ResourceAccessor<typename AnotherBuilderT::ProductT>;
 
     template <typename AnotherBuilderT, typename... Args>
     [[nodiscard]]
-    auto resource_transient(Args &&...build_params)
+    auto resource_transient(Args &&...build_args)
         -> ResourceAccessor<typename AnotherBuilderT::ProductT>;
 
+    /*
     template <
         typename AnotherBuilderT,
         bool Transient = false,
@@ -63,6 +67,7 @@ public:
     [[nodiscard]]
     auto resource_apply(ArgTuple &&args_tuple)
         -> ResourceAccessor<typename AnotherBuilderT::ProductT>;
+        */
 
     // request a descriptor that is unique from heap manager. used for
     // requesting transient resources.

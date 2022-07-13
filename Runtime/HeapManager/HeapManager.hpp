@@ -24,13 +24,10 @@ class ResourceBuildTaskBase;
 
 namespace details::heap_manager
 {
-// Avoid header dependency on TaskExecutor.
-void submit_build_task(TaskExecutor *executor, std::unique_ptr<Task> task);
-void run_build_task_synced(std::unique_ptr<ResourceBuildTaskBase> task);
-
-template <ResourceBuilder Builder, typename... Args>
-HeapResourceDescriptor make_resource_descriptor(Args &&...args);
-    // requires std::constructible_from<Builder, Args...>;
+template <ResourceBuilder Builder, typename... Args, std::size_t... I>
+HeapResourceDescriptor make_resource_descriptor(
+    std::index_sequence<I...>,
+    Args &&...args);
 
 template <ResourceBuilder Builder, typename Tuple>
 HeapResourceDescriptor make_resource_descriptor_from_tuple(Tuple &&tuple);
@@ -179,26 +176,36 @@ public:
      * \param resource_id The cache id of the requested resource. If the
      * requester does not know it, leave it empty and the id can be accessed
      * via the returned accessor.
-     * \param executor Task executor.
+     * \param executor The scheduler that will be responsible for executing the
+     * build task.
      * \param arg_func A callable object that returns a tuple of
      * parameters that will be passed to the builder when the requested
      * resource could not be found. The object will not be called if the
-     * resource is found in the cache.
-     * \return An accessor that can be used to access or wait for the resource.
+     * resource is found in the cache. Beware that the returned tuple MUST NOT
+     * contain any reference to local variables going out of scope. In other
+     * words, no ref to local variables inside
+     * the lambda function as this param. Note that there is no way of ensuring
+     * no hanging refs is included in the tuple with the language itself. You
+     * are responsible for ensuring that. In short, use make_tuple to provide
+     * build arguments rather than using forward_as_tuple most of time.
+     * \return A request builder that can be used to configure the request.
+     * When the request is made, an accessor that can be used to access or
+     * wait for the resource is returned.
      */
     template <ResourceBuilder Builder, typename LazyBuildArgFunc>
     ResourceRequestBuilder<Builder, LazyBuildArgFunc> resource(
         HeapResourceDescriptor resource_id,
         TaskExecutor *executor,
-        LazyBuildArgFunc &&arg_func)
-    requires
-        NoRvalueRefInTuple<decltype(arg_func())>;
+        LazyBuildArgFunc &&arg_func);
+    // requires NoRvalueRefInTuple<decltype(arg_func())>;
 
     // ********************************************************************* //    
     //                       Transient Resource Request                      //
     // ********************************************************************* //
 
-    /*
+    /**
+     * \brief Request transient resource.
+     *
      * Transient resource: The resource is temporary and only intended to be
      * used by the current frame. Examples include GPU command buffers/
      * semaphores/etc. It is allocated via the heap manager to benefit from
@@ -206,12 +213,20 @@ public:
      * It is supposed to have a very short lifetime, and is very likely
      * to be recycled within several frames. To optimize for these scenarios,
      * transient resources are built on the calling thread and no fallback
-     * will be used if it is failed to construct.
+     * will be used if it is failed to construct. Each request to transient
+     * resource must be unique and it will not never be returned from the cache.
      *
      * todo: still adds too much overhead compared with direct allocation from GpuDevice, etc. Lots of value copying, etc.
      *
      * Note: If the user only wants to construct the resource synchronously,
      * use `resource()` and pass in a synchronized task executor.
+     * \tparam Builder Resource builder type.
+     * \tparam BuildArgs Type of arguments that will be passed to resource
+     * builder. rvalue refs are fine because the arguments will be forwarded
+     * to the builder to finish the construction of the resource before this
+     * function returns.
+     * \param args Build arguments.
+     * \return Accessor to the requested resource.
      */
     template <ResourceBuilder Builder, typename... BuildArgs>
     ResourceAccessor<typename Builder::ProductT>
@@ -235,7 +250,6 @@ private:
 #include "details/HeapManagerImpl_Context.hpp"
 #include "details/HeapManagerImpl_RequestHandler.hpp"
 #include "details/HeapManagerImpl_Request.hpp"
-#include "details/HeapManagerImpl_Build.hpp"
 #include "details/HeapManagerImpl_Util.hpp"
 #include "details/ResourceRequestBuilderImpl.hpp"
 #include "details/ResourceConstructDelegateImpl.hpp"

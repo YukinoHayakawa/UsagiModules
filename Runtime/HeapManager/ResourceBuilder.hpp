@@ -5,41 +5,32 @@
 
 #include "details/ResourceConstructDelegate.hpp"
 #include "details/ResourceConstructDelegateImpl.hpp"
-#include "TransparentArg.hpp"
+#include "details/ResourceBuilderTraits.hpp"
 
 namespace usagi
 {
-namespace details::heap_manager
-{
-template <typename T>
-struct BuildArgTrait
-{
-    using HashT = std::remove_cvref_t<T>;
-    using ArgumentT = T;
-};
+/*
+ * dev notes:
+ * build task should store copied values
+ * lazy arg func should not return refs pointing to vars inside the lambda
+ * but if the tuple is constructed from invoking params they can be forwarded
+ * transient resource: forward values from caller to builder without copying
+ */
 
-template <typename T>
-struct BuildArgTrait<TransparentArg<T>>
-{
-    using HashT = TransparentArg<std::remove_cvref_t<T>>;
-    using ArgumentT = T;
-};
-}
-
+/**
+ * \brief Helper class used for defining the interface of a resource builder.
+ * \tparam Product The type of resource that will be finally stored in
+ * ResourceEntry and accessed by requester.
+ * \tparam BuildArgs The type of arguments that will be finally passed to
+ * construct function. Wrap the type in TransparentArg if it should not be
+ * used to determine the identity of the resource.
+ */
 template <typename Product, typename... BuildArgs>
-class ResourceBuilderDecl
+class ResourceBuilderDecl  // NOLINT(cppcoreguidelines-special-member-functions)
 {
-    template <typename T>
-    using ArgHashT = 
-        typename details::heap_manager::BuildArgTrait<T>::HashT;
-
-    template <typename T>
-    using ArgInvokeT = 
-        typename details::heap_manager::BuildArgTrait<T>::ArgumentT;
-
 public:
     using ProductT = Product;
-    using BuildArguments = std::tuple<ArgHashT<BuildArgs>...>;
+    using BuildArguments = std::tuple<BuildArgs...>;
 
     virtual ~ResourceBuilderDecl() = default;
     
@@ -47,6 +38,7 @@ public:
     // to be virtual.
     virtual ResourceState construct(
         ResourceConstructDelegate<ProductT> &delegate,
-        ArgInvokeT<BuildArgs>...) = 0;
+        typename details::heap_manager::BuildArgTraits<BuildArgs>::InvokeT...)
+    = 0;
 };
 }

@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include <Usagi/Library/Utilities/Functional.hpp>
+// #include <Usagi/Library/Utilities/Functional.hpp>
 
 namespace usagi
 {
@@ -41,23 +41,45 @@ HeapT * ResourceConstructDelegate<ProductT>::heap()
 template <typename ProductT>
 template <typename AnotherBuilderT, typename... Args>
 auto ResourceConstructDelegate<ProductT>::resource(
-    Args &&...build_params)
+    Args &&... build_args)
 -> ResourceAccessor<typename AnotherBuilderT::ProductT>
 {
-    return resource_apply<AnotherBuilderT>(
-        std::forward_as_tuple(std::forward<Args>(build_params)...)
+    /*return resource_apply<AnotherBuilderT>(
+        // std::forward_as_tuple(std::forward<Args>(build_params)...)
+        // todo: how to handle rvalues properly?
+        std::make_tuple(std::forward<Args>(build_params)...)
+    );*/
+
+    auto requester = mContext->manager->template resource<AnotherBuilderT>(
+        { },
+        mContext->executor,
+        // safe to forward as tuple here because the lambda has no local vars
+        [&] { return std::forward_as_tuple(std::forward<Args>(build_args)...); }
+        // only used once here so forward it
+        // [&] { return std::forward<ArgTuple>(args_tuple); }
     );
+
+    // create the dependency edge
+    requester.requesting_from(mContext->entry->descriptor);
+    // try to rebuild the resource since it is now requested
+    requester.rebuild_if_failed();
+    requester.rebuild_if_evicted();
+
+    return requester.make_request();
 }
 
 template <typename ProductT>
 template <typename AnotherBuilderT, typename... Args>
 auto ResourceConstructDelegate<ProductT>::resource_transient(
-    Args &&...build_params)
+    Args &&... build_args)
 -> ResourceAccessor<typename AnotherBuilderT::ProductT>
 {
-    return resource_apply<AnotherBuilderT, true>(
-        std::forward_as_tuple(std::forward<Args>(build_params)...)
-    );
+    return mContext->manager->template resource_transient<AnotherBuilderT>(
+        std::forward<Args>(build_args)...);
+    // return resource_apply<AnotherBuilderT, true>(
+        // std::forward_as_tuple(std::forward<Args>(build_params)...)
+        // std::make_tuple(std::forward<Args>(build_params)...)
+    // );
 }
 
 template <typename ProductT>
@@ -67,6 +89,7 @@ ResourceConstructDelegate<ProductT>::make_unique_descriptor() const
     return mContext->manager->make_unique_descriptor();
 }
 
+/*
 template <typename ProductT>
 template <typename AnotherBuilderT, bool Transient, typename ArgTuple>
 auto ResourceConstructDelegate<ProductT>::resource_apply(
@@ -88,7 +111,8 @@ auto ResourceConstructDelegate<ProductT>::resource_apply(
         auto requester = mContext->manager->template resource<AnotherBuilderT>(
             { },
             mContext->executor,
-            [&] { return args_tuple; }
+            // only used once here so forward it
+            [&] { return std::forward<ArgTuple>(args_tuple); }
         );
 
         // create the dependency edge
@@ -100,6 +124,7 @@ auto ResourceConstructDelegate<ProductT>::resource_apply(
         return requester.make_request();
     }
 }
+*/
 
 /*
 template <typename ProductT>

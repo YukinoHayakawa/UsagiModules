@@ -2,13 +2,46 @@
 
 #include <Usagi/Modules/Common/Logging/Logging.hpp>
 
+#include "ResourceBuildTask.hpp"
+
 namespace usagi
 {
+namespace details::heap_manager
+{
+template <typename T>
+struct StoredArgTuple;
+
+template <typename... Args>
+struct StoredArgTuple<std::tuple<Args...>>
+{
+    // Tuple type where the arguments can be safely stored.
+    using TupleT = decltype(std::make_tuple(std::declval<Args>()...));
+};
+
+template <typename RequestArgTuple, bool Transient>
+struct BuildArgTuple;
+
+template <typename RequestArgTuple>
+struct BuildArgTuple<RequestArgTuple, false>
+{
+    // non-transient resource: store the arguments safely.
+    using TupleT = typename StoredArgTuple<RequestArgTuple>::TupleT;
+};
+
+template <typename RequestArgTuple>
+struct BuildArgTuple<RequestArgTuple, true>
+{
+    // transient resource: forward the arguments.
+    using TupleT = RequestArgTuple;
+};
+}
 template <typename Builder, typename LazyBuildArgFunc>
 struct ResourceRequestHandler
 {
     using ProductT = typename Builder::ProductT;
     using ContextT = UniqueResourceRequestContext<Builder, LazyBuildArgFunc>;
+    // Type of tuple containing the values/refs returned by the arg func.
+    using RequestArgTupleT = decltype(std::declval<LazyBuildArgFunc>()());
 
     ContextT context;
 
@@ -29,7 +62,12 @@ struct ResourceRequestHandler
 
     // todo constructor too many var inits adds overhead
 
-    std::optional<decltype(std::declval<LazyBuildArgFunc>()())> param_tuple;
+    /**
+     * \brief Hold tuple of values evaluated from the provided build func
+     * returning the arguments used to build the resource. This may contain
+     * rvalue refs.
+     */
+    std::optional<RequestArgTupleT> param_tuple;
     // todo better concurrency?
     std::unique_lock<std::mutex> entry_map_lock;
     ResourceAccessor<ProductT> accessor;
@@ -37,7 +75,12 @@ struct ResourceRequestHandler
     void ensure_build_args()
     {
         if(!param_tuple)
+        {
+            assert(context->arg_func);
             param_tuple.emplace((*context->arg_func)());
+            // reset it to prevent further invocations.
+            context->arg_func = nullptr;
+        }
     }
 
     void ensure_requested_descriptor()
@@ -101,6 +144,10 @@ struct ResourceRequestHandler
     template <bool Transient>
     auto & build_resource()
     {
+        using namespace details::heap_manager;
+
+        assert(context->executor);
+
         // When turned into preparing state, it's guaranteed that no another
         // build task will be created.
         context->entry->state.store(
@@ -145,21 +192,42 @@ struct ResourceRequestHandler
         // Build context ownership is being transferred to build task.
         const auto weak_context = context.get();
 
+        // Determine the type of parameters should be passed to the builder.
+        // If the resource is transient, forward arguments from requester
+        // to the resource builder without copying.
+        using BuildArgTupleT =
+            typename BuildArgTuple<RequestArgTupleT, Transient>::TupleT;
+        using BuildTaskT = ResourceBuildTask<Builder, BuildArgTupleT>;
+
         // Create build task.
-        // todo eval build args into the builder directly
-        std::unique_ptr<ResourceBuildTask<Builder>> task;
-        task = std::apply([&]<typename... Args>(Args &&...args)
+        std::unique_ptr<BuildTaskT> task;
+
+        // todo pool the task objects
+
+        // for transient resource, forward the args in the tuple.
+        if constexpr (Transient)
         {
-            return std::make_unique<ResourceBuildTask<Builder>>(
+            task = std::make_unique<BuildTaskT>(
                 std::move(context),
                 std::move(promise),
-                std::forward<Args>(args)...
+                std::move(param_tuple.value())
             );
-            // todo pool the task objects
-            // todo: fix executor injected in run_build_task_synced
-        }, param_tuple.value());
+        }
+        // otherwise copy from the arg tuple.
+        // todo: prevent unnecessary copying of values
+        else
+        {
+            task = std::apply([&]<typename... Args>(Args &&...args)
+            {
+                return std::make_unique<BuildTaskT>(
+                    std::move(context),
+                    std::move(promise),
+                    std::forward<Args>(args)...
+                );
+            }, param_tuple.value());
+        }
 
-        // context transferred! don't use it anymore.
+        // context transferred! don't use the unique pointer anymore.
         
         weak_context->entry->state.store(
             ResourceState::SCHEDULED,
@@ -169,18 +237,17 @@ struct ResourceRequestHandler
         // If no executor is provided, build the resource on the current thread.
         if constexpr(Transient)
         {
-            details::heap_manager::run_build_task_synced(std::move(task));
+            weak_context->executor->submit(std::move(task));
         }
         else
         {
+            // Record the value here because the context may be destroyed
+            // any time after the task is submitted.
             const auto fallback_when_building = 
                 weak_context->options.fallback_when_building;
 
             // Submit the task to the executor.
-            details::heap_manager::submit_build_task(
-                weak_context->executor,
-                std::move(task)
-            );
+            weak_context->executor->submit(std::move(task));
 
             // If the user wants to use a fallback, return the fallback.
             if(fallback_when_building)
@@ -244,11 +311,8 @@ struct ResourceRequestHandler
 
     auto process_request()
     {
-        assert(context->executor);
-
         ensure_requested_descriptor();
         validate_builder_type();
-        // get_heap();
         init_accessor();
 
         return branch_on_resource_state();
@@ -256,10 +320,7 @@ struct ResourceRequestHandler
 
     auto process_request_transient()
     {
-        assert(!context->executor);
-
         ensure_requested_descriptor();
-        // get_heap();
         init_accessor();
 
         // Manually simplified code path.

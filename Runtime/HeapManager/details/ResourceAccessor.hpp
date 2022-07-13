@@ -10,7 +10,7 @@
 
 namespace usagi
 {
-template <typename ResourceBuilderT>
+template <typename ResourceBuilderT, typename BuildArgTupleFunc>
 class ResourceBuildTask;
 
 /**
@@ -21,7 +21,7 @@ class ResourceBuildTask;
 template <typename Product>
 class ResourceAccessor
 {
-    template <typename BuilderT>
+    template <typename ResourceBuilderT, typename BuildArgTupleFunc>
     friend class ResourceBuildTask;
 
     template <typename BuilderT>

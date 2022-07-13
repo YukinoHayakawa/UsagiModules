@@ -15,15 +15,16 @@ class HeapManager;
 template <typename Builder, typename LazyBuildArgFunc>
 class ResourceRequestBuilder
 {
-    using ContextT = UniqueResourceRequestContext<Builder, LazyBuildArgFunc>;
+    using UniqueContextT = 
+        UniqueResourceRequestContext<Builder, LazyBuildArgFunc>;
     using ProductT = typename Builder::ProductT;
 
-    ContextT mContext;
+    UniqueContextT mContext;
 
     ResourceBuildOptions & options() { return mContext->options; }
 
 public:
-    explicit ResourceRequestBuilder(ContextT context)
+    explicit ResourceRequestBuilder(UniqueContextT context)
         : mContext(std::move(context))
     {
     }

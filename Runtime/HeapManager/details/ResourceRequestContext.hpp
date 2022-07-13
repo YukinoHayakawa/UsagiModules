@@ -44,8 +44,7 @@ struct ResourceRequestContext
     // The function that returns a tuple of arguments passed to ResourceBuilder
     // when invoked. This ref only have to be valid until
     // HeapManager.resource() returns. That's the only opportunity of
-    // evaluating the builder arguments. todo The arguments will be directly
-    // forwarded to the builder constructor. 
+    // evaluating the builder arguments. Only called at most once.
     const BuildArgFuncT *arg_func = nullptr;
 };
 
