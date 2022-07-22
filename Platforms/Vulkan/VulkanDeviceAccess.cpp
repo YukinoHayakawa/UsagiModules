@@ -60,12 +60,14 @@ VulkanUniqueSurface VulkanDeviceAccess::create(NativeWindow *window) const
     return mDevice->create_surface(window);
 }
 
+/*
 VulkanGraphicsPipeline VulkanDeviceAccess::create(
     VulkanGraphicsPipelineCompiler &compiler) const
 {
     assert(mDevice);
     return compiler.compile(VulkanDeviceExternalAccessProvider(mDevice));
 }
+*/
 
 // VulkanUniqueCommandBuffer VulkanDeviceAccess::create(
 //     const std::thread::id thread_id) const

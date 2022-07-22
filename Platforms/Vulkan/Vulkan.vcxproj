@@ -67,6 +67,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Vulkan.hpp" />
+    <ClInclude Include="VulkanBuffer.hpp" />
     <ClInclude Include="VulkanDeviceAccess.hpp" />
     <ClInclude Include="VulkanEnum.hpp" />
     <ClInclude Include="VulkanGraphicsPipeline.hpp" />
@@ -77,6 +78,7 @@
     <ClInclude Include="VulkanGpuDevice.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="VulkanBuffer.cpp" />
     <ClCompile Include="VulkanDeviceAccess.cpp" />
     <ClCompile Include="VulkanGraphicsPipelineCompiler.cpp" />
     <ClCompile Include="VulkanShaderModule.cpp" />

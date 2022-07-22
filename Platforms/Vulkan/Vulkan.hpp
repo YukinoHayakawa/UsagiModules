@@ -33,32 +33,26 @@
 
 namespace usagi
 {
-using VulkanUniqueInstance =
-    vk::UniqueHandle<vk::Instance, vk::DispatchLoaderDynamic>;
-using VulkanUniqueDebugMessenger =
-    vk::UniqueHandle<vk::DebugUtilsMessengerEXT, vk::DispatchLoaderDynamic>;
-using VulkanUniqueDevice =
-    vk::UniqueHandle<vk::Device, vk::DispatchLoaderDynamic>;
-using VulkanUniqueSemaphore =
-    vk::UniqueHandle<vk::Semaphore, vk::DispatchLoaderDynamic>;
-using VulkanUniqueFence =
-    vk::UniqueHandle<vk::Fence, vk::DispatchLoaderDynamic>;
-using VulkanUniqueCommandPool =
-    vk::UniqueHandle<vk::CommandPool, vk::DispatchLoaderDynamic>;
-using VulkanUniqueCommandBuffer =
-    vk::UniqueHandle<vk::CommandBuffer, vk::DispatchLoaderDynamic>;
-using VulkanUniqueSurface =
-    vk::UniqueHandle<vk::SurfaceKHR, vk::DispatchLoaderDynamic>;
-using VulkanUniqueSwapchain =
-    vk::UniqueHandle<vk::SwapchainKHR, vk::DispatchLoaderDynamic>;
-using VulkanUniqueShaderModule =
-    vk::UniqueHandle<vk::ShaderModule, vk::DispatchLoaderDynamic>;
-using VulkanUniquePipeline =
-    vk::UniqueHandle<vk::Pipeline, vk::DispatchLoaderDynamic>;
-using VulkanUniqueRenderPass =
-    vk::UniqueHandle<vk::RenderPass, vk::DispatchLoaderDynamic>;
-using VulkanUniqueDescriptorSetLayout =
-    vk::UniqueHandle<vk::DescriptorSetLayout, vk::DispatchLoaderDynamic>;
-using VulkanUniquePipelineLayout =
-    vk::UniqueHandle<vk::PipelineLayout, vk::DispatchLoaderDynamic>;
+#define USAGI_DEF_VULKAN_HANDLE(type, vk_type) \
+using VulkanUnique##type = \
+    vk::UniqueHandle<vk::vk_type, vk::DispatchLoaderDynamic> \
+/**/
+
+USAGI_DEF_VULKAN_HANDLE(Instance, Instance);
+USAGI_DEF_VULKAN_HANDLE(DebugMessenger, DebugUtilsMessengerEXT);
+USAGI_DEF_VULKAN_HANDLE(Device, Device);
+USAGI_DEF_VULKAN_HANDLE(Semaphore, Semaphore);
+USAGI_DEF_VULKAN_HANDLE(Fence, Fence);
+USAGI_DEF_VULKAN_HANDLE(CommandPool, CommandPool);
+USAGI_DEF_VULKAN_HANDLE(CommandBuffer, CommandBuffer);
+USAGI_DEF_VULKAN_HANDLE(Surface, SurfaceKHR);
+USAGI_DEF_VULKAN_HANDLE(Swapchain, SwapchainKHR);
+USAGI_DEF_VULKAN_HANDLE(ShaderModule, ShaderModule);
+USAGI_DEF_VULKAN_HANDLE(Pipeline, Pipeline);
+USAGI_DEF_VULKAN_HANDLE(RenderPass, RenderPass);
+USAGI_DEF_VULKAN_HANDLE(DescriptorSetLayout, DescriptorSetLayout);
+USAGI_DEF_VULKAN_HANDLE(PipelineLayout, PipelineLayout);
+USAGI_DEF_VULKAN_HANDLE(DeviceMemory, DeviceMemory);
+
+#undef USAGI_DEF_VULKAN_HANDLE
 }

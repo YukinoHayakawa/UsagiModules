@@ -118,4 +118,15 @@ struct EnumMapping<GpuBufferFormat, vk::Format>
     };
 };
 using Vulkan_GpuBufferFormat = EnumAcceptor<GpuBufferFormat, vk::Format>;
+
+template <>
+struct EnumMapping<GpuBufferUsage, vk::BufferUsageFlagBits>
+{
+    constexpr static auto MAPPING = {
+        std::pair { GpuBufferUsage::VERTEX, vk::BufferUsageFlagBits::eVertexBuffer },
+        std::pair { GpuBufferUsage::INDEX, vk::BufferUsageFlagBits::eIndexBuffer },
+        std::pair { GpuBufferUsage::UNIFORM, vk::BufferUsageFlagBits::eUniformBuffer },
+    };
+};
+using Vulkan_GpuBufferUsage = EnumAcceptor<GpuBufferUsage, vk::BufferUsageFlags>;
 }

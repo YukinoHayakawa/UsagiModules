@@ -5,7 +5,6 @@
 #include <Usagi/Library/Memory/Noncopyable.hpp>
 
 #include "Vulkan.hpp"
-#include "VulkanGraphicsPipeline.hpp"
 
 namespace usagi
 {
@@ -34,8 +33,8 @@ protected:
     VulkanUniqueSwapchain create(
         const vk::SwapchainCreateInfoKHR &create_info) const;
     VulkanUniqueSurface create(NativeWindow *window) const;
-    VulkanGraphicsPipeline create(
-        VulkanGraphicsPipelineCompiler &compiler) const;
+    // VulkanGraphicsPipeline create(
+        // VulkanGraphicsPipelineCompiler &compiler) const;
     // VulkanUniqueCommandBuffer create(std::thread::id thread_id) const;
 
     const vk::DispatchLoaderDynamic & dispatch() const;
@@ -49,13 +48,15 @@ public:
     void connect(const VulkanDeviceAccess *another);
 };
 
+/*
 class VulkanDeviceExternalAccessProvider : VulkanDeviceAccess
 {
     // Only allow VulkanDeviceAccess to instantiate this class.
     friend class VulkanDeviceAccess;
+    friend class VulkanGpuDevice;
     using VulkanDeviceAccess::VulkanDeviceAccess;
 
 public:
     using VulkanDeviceAccess::create;
-};
+};*/
 }

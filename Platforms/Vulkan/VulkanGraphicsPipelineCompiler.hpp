@@ -16,7 +16,7 @@ class VulkanGpuDevice;
  * elements of the pipeline info are supposed to be set by the client through
  * the reference.
  */
-class VulkanGraphicsPipelineCompiler
+class VulkanGraphicsPipelineCompiler : public VulkanDeviceAccess
 {
     vk::GraphicsPipelineCreateInfo mPipelineInfo;
     std::vector<vk::PipelineShaderStageCreateInfo> mShaderStages;
@@ -98,6 +98,6 @@ public:
         Vulkan_GpuBufferFormat format,
         std::uint32_t offset);
 
-    VulkanGraphicsPipeline compile(const VulkanDeviceExternalAccessProvider &device);
+    VulkanGraphicsPipeline compile();
 };
 }

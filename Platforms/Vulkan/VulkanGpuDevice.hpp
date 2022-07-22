@@ -24,7 +24,7 @@ class NativeWindow;
  * - Frame resources go back into GpuDevices.
  * - No need to do RefCnt.
  */
-class VulkanGpuDevice : VulkanDeviceAccess
+class VulkanGpuDevice : public VulkanDeviceAccess
 {
     friend class VulkanDeviceAccess;
 

@@ -269,8 +269,7 @@ void VulkanGraphicsPipelineCompiler::add_vertex_input_attribute(
     add_vertex_input_attribute(it->second, buffer_index, format, offset);
 }
 
-VulkanGraphicsPipeline VulkanGraphicsPipelineCompiler::compile(
-    const VulkanDeviceExternalAccessProvider &device)
+VulkanGraphicsPipeline VulkanGraphicsPipelineCompiler::compile()
 {
     mPipelineInfo.setFlags(vk::PipelineCreateFlagBits::eAllowDerivatives);
 
@@ -362,7 +361,7 @@ VulkanGraphicsPipeline VulkanGraphicsPipelineCompiler::compile(
         set_layout_info.setBindings(bindings);
         descriptor_set_layouts.emplace_back(
             // todo these should be stored in pipeline
-            device.create(set_layout_info)
+            create(set_layout_info)
         );
         descriptor_set_layout_refs.emplace_back(
             descriptor_set_layouts.back().get()
@@ -372,8 +371,7 @@ VulkanGraphicsPipeline VulkanGraphicsPipelineCompiler::compile(
     vk::PipelineLayoutCreateInfo pipeline_layout_info;
     pipeline_layout_info.setPushConstantRanges(mPushConstantsRanges);
     pipeline_layout_info.setSetLayouts(descriptor_set_layout_refs);
-    auto compatible_pipeline_layout =
-        device.create(pipeline_layout_info);
+    auto compatible_pipeline_layout = create(pipeline_layout_info);
     mPipelineInfo.setLayout(compatible_pipeline_layout.get());
 
     // ============================ Render Pass ============================= //
@@ -426,12 +424,12 @@ VulkanGraphicsPipeline VulkanGraphicsPipelineCompiler::compile(
 
     render_pass_info.setSubpasses(subpasses);
 
-    auto compatible_render_pass = device.create(render_pass_info);
+    auto compatible_render_pass = create(render_pass_info);
 
     mPipelineInfo.setRenderPass(compatible_render_pass.get());
 
     // todo check result
-    auto [pipeline, result] = device.create(mPipelineInfo);
+    auto [pipeline, result] = create(mPipelineInfo);
 
     return {
         std::move(descriptor_set_layouts),
