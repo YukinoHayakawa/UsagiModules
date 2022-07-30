@@ -11,6 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="JsonSchemaHelper.hpp" />
     <ClInclude Include="RbCascadingJsonConfig.hpp" />
     <ClInclude Include="RbJsonDocument.hpp" />
   </ItemGroup>
