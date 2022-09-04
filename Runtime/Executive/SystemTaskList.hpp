@@ -13,7 +13,7 @@ struct SystemTaskList
 {
     std::tuple<Sys...> systems;
 
-    template <System S>
+    template <System S, std::size_t I>
     void update_system(auto &&rt, auto &&db, auto &&observer)
     {
         // If the System declares WriteAccess = AllComponents, pass
@@ -27,7 +27,7 @@ struct SystemTaskList
             ComponentAccessSystemAttribute<S>
         >;
         auto access = db.template create_access<AccessT>();
-        auto &sys = std::get<S>(systems);
+        auto &sys = std::get<I>(systems);
         if constexpr(std::is_same_v<void, decltype(sys.update(rt, access))>)
         {
             sys.update(rt, access);
@@ -40,13 +40,32 @@ struct SystemTaskList
         }
     }
 
-    void update(auto &&rt, auto &&db, auto &&observer)
+    template <std::size_t... I>
+    void update_with_index(
+        auto &&rt,
+        auto &&db,
+        auto &&observer,
+        std::index_sequence<I...>)
     {
-        (..., update_system<Sys>(
+        (..., update_system<Sys, I>(
             std::forward<decltype(rt)>(rt),
             std::forward<decltype(db)>(db),
             std::forward<decltype(observer)>(observer)
         ));
+    }
+
+    template <std::size_t... I>
+    void update(
+        auto &&rt,
+        auto &&db,
+        auto &&observer) // todo remove
+    {
+        update_with_index(
+               std::forward<decltype(rt)>(rt),
+            std::forward<decltype(db)>(db),
+            std::forward<decltype(observer)>(observer),
+            std::index_sequence_for<Sys...>()
+        );
     }
 
     using EnabledComponents = SystemComponentUsage<Sys...>;
