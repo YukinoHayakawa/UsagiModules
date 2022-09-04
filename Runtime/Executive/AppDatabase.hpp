@@ -12,18 +12,29 @@ template <typename Database>
 class AppDatabase : public Database
 {
     using DatabaseT = Database;
-    using StorageT = typename DatabaseT::EntityPageStorageT;
+    // PagedStorageFileBacked?
+    using EntityPageStorageT = typename DatabaseT::EntityPageStorageT;
 
     // entity database
-    constexpr static std::uint16_t MAGIC_CHECK = 0xDB01;
-    bool mHeaderInitialized = false;
+    constexpr static std::uint16_t MAGIC_CHECK = 0xABBE'5BCEFAFF'DB01;
 
+    std::uint64_t mHeaderOffset = -1;
+
+    using HeaderT = typename Database::Meta;
+
+    HeaderT & header() override
+    {
+        return *EntityPageStorageT::template header<HeaderT>(mHeaderOffset);
+    }
+
+    // todo: make this more neat?
     void init_entity_page_storage(const std::filesystem::path &base_folder)
     {
         const auto path_page = base_folder / "pages.dat";
-        const bool exists = DatabaseT::entity_pages().init(path_page);
-        StorageT::template push_header<MAGIC_CHECK>(DatabaseT::mMeta, exists);
-        mHeaderInitialized = true;
+        DatabaseT::entity_pages().init(path_page);
+        std::tie(mHeaderOffset, std::ignore) =
+            EntityPageStorageT::template init_or_restore_header<
+                MAGIC_CHECK, HeaderT>();
     }
 
     template <Component C>
@@ -49,14 +60,6 @@ class AppDatabase : public Database
     }
 
 public:
-    ~AppDatabase()
-    {
-        if(mHeaderInitialized)
-        {
-            StorageT::template pop_header<MAGIC_CHECK>(DatabaseT::mMeta, true);
-        }
-    }
-
     void init_storage(const std::filesystem::path &base_folder)
     {
         init_entity_page_storage(base_folder);
