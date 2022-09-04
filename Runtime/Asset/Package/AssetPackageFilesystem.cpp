@@ -179,7 +179,7 @@ void AssetPackageFilesystemFsEventHandler::handle_changed_file(
                 );
 
                 LOG(info, "[AssetPkgFs] Asset {} was unloaded and overwritten.",
-                    asset_path);
+                    fmt::streamed(asset_path));
             }
         }
     }

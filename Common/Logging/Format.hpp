@@ -7,6 +7,7 @@
 // enables outputting custom types
 #include <fmt/ostream.h>
 
+// todo: remove?
 #define USAGI_FMT_USE_STREAM_OP(type) \
 template <typename Char> \
 struct fmt::formatter<type, Char> : \

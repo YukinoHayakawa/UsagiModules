@@ -1,5 +1,7 @@
 ﻿#include "AssetManager2.hpp"
 
+#include <format>
+
 #include <Usagi/Modules/Common/Logging/Logging.hpp>
 #include <Usagi/Runtime/Task/TaskExecutor.hpp>
 
@@ -88,7 +90,7 @@ void AssetManager2::unload_single_asset_nolock(const AssetHashId asset)
     USAGI_ASSERT_THROW(
         record.ref_tracker.use_count() == 1,
         std::logic_error(std::format(
-            "The asset ({:#0x}) to be unloaded is still being used: {}", asset
+            "The asset ({:#0x}) to be unloaded is still being used", asset
         ))
     );
 

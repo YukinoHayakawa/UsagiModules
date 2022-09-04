@@ -1,5 +1,7 @@
 ﻿#pragma once
 
+#include <format>
+
 // Macros for translating the enums
 
 // ReSharper disable CppClangTidyCppcoreguidelinesMacroUsage

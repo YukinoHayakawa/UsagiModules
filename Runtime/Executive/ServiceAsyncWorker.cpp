@@ -25,7 +25,7 @@ std::uint64_t StdTaskExecutor::submit(
             // using namespace std::chrono_literals;
             // std::this_thread::sleep_for(5ms);
 
-            LOG(trace, "[Executor] Preparing to execute task {} (worker thread={})", tid, std::this_thread::get_id());
+            LOG(trace, "[Executor] Preparing to execute task {} (worker thread={})", tid, fmt::streamed(std::this_thread::get_id()));
 
             if(wait.has_value())
             {
@@ -40,7 +40,7 @@ std::uint64_t StdTaskExecutor::submit(
                 }
             }
 
-            LOG(trace, "[Executor] Executing task {} (worker thread={})", tid, std::this_thread::get_id());
+            LOG(trace, "[Executor] Executing task {} (worker thread={})", tid, fmt::streamed(std::this_thread::get_id()));
             run_task(*t);
             LOG(trace, "[Executor] Task {} consumed {} seconds.", tid, clk.realtime_elapsed());
         }

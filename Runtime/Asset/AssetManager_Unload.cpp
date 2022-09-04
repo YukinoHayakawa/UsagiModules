@@ -1,5 +1,7 @@
 ﻿#include "AssetManager2.hpp"
 
+#include <format>
+
 #include <Usagi/Modules/Common/Logging/Logging.hpp>
 
 #include "details/AbRawMemoryView.hpp"

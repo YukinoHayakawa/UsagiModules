@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include <cassert>
+#include <format>
 
 #include <Usagi/Modules/Common/Logging/Logging.hpp>
 #include <Usagi/Runtime/ErrorHandling.hpp>
