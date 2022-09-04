@@ -84,6 +84,7 @@ public:
     }
     catch(const std::runtime_error &e)
     {
+        // todo: clear resource entry payload when build failed
         LOG(error, "[Heap] Resource {} failed to build: {}",
             mContext->entry->descriptor, e.what());
         set_state(ResourceState::FAILED);

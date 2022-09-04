@@ -6,6 +6,8 @@
 
 namespace usagi
 {
+// When hashing AssetPath, make sure to use reconstructed() to obtain the
+// canonical path to avoid duplicated assets.
 class AssetPath : MaybeOwnedString
 {
     mutable std::optional<std::string> mReconstructed;
