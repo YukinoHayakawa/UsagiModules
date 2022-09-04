@@ -21,6 +21,8 @@ template <
 >
 class AppHost
     : AppDirectory
+    // the database config will be overriden to use a file-backed storage
+    // todo don't force it
     , public DatabaseTraits<
         typename Systems::EnabledComponents,
         AdditionalComponents,
@@ -35,9 +37,12 @@ public:
     >;
 
 protected:
-    AppDatabase<typename DatabaseTraits::WorldDatabaseT> mDatabaseWorld;
     Services mServices;
     Systems mSystems;
+    // Declare the database at the end so it always get saved before destroying
+    // services, etc.
+    // todo: database should never be left in an inconsistent state - e.g. program crash
+    AppDatabase<typename DatabaseTraits::WorldDatabaseT> mDatabaseWorld;
 
 public:
     AppHost() = default;
@@ -69,9 +74,32 @@ public:
         return mServices;
     }
 
+    template <typename T>
+    auto & service()
+    {
+        return static_cast<T &>(mServices).get_service();
+    }
+
     auto & database_world()
     {
         return mDatabaseWorld;
+    }
+
+    // todo refactor
+    auto create_heap(const std::string_view name) const
+    {
+        const auto heap_folder = mBaseFolder / SUBFOLDER_NAMED_HEAPS;
+        auto path = heap_folder / name;
+        USAGI_ASSERT_THROW(
+            path.lexically_relative(heap_folder) == name,
+            std::runtime_error("Escaping data folder.")
+        );
+        path.replace_extension(".dat");
+
+        VmAllocatorFileBacked allocator;
+        allocator.set_backing_file(std::move(path));
+
+        return allocator;
     }
 };
 }
