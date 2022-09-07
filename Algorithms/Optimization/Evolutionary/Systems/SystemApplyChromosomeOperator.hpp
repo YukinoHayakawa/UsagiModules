@@ -12,14 +12,19 @@ namespace usagi
 /**
  * \brief Apply chromosome operator to individuals that satisfy the specified
  * filters.
- * \tparam Chromosome Component type of the chromosome to be modified.
+ * \tparam Chromosome Component type of the chromosome to be modified. The type
+ * must be convertible to a range.
  * \tparam Operator Operation that will be applied to the chromosome.
+ * \tparam ChunkSize When not 0, the chromosome will be chunked into subviews
+ * according to the specified size and the operator will be applied to each
+ * subrange independently.
  * \tparam IncludeFilter Extra include filter.
  * \tparam ExcludeFilter Extra exclude filter.
  */
 template <
     Component Chromosome,
     typename Operator,
+    std::size_t ChunkSize = 0,
     IsComponentFilter IncludeFilter = C<>,
     IsComponentFilter ExcludeFilter = C<>
 >
@@ -36,9 +41,20 @@ struct SystemApplyChromosomeOperator
             FilterConcatenatedT<IncludeFilter, C<Chromosome>>(), 
             ExcludeFilter()))
         {
-            // todo: apply to chunked views?
             auto &chromosome = USAGI_COMPONENT(e, Chromosome);
-            Operator()(chromosome, rt.rng());
+
+            if constexpr(ChunkSize == 0)
+            {
+                Operator()(chromosome, rt.rng());
+            }
+            else
+            {
+                for(auto &&chunked : 
+                    chromosome | ranges::views::chunk(ChunkSize))
+                {
+                    Operator()(chunked, rt.rng());
+                }
+            }
         }
     }
 };
