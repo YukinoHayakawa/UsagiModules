@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>16.0</VCProjectVersion>
+    <ProjectGuid>{f695c6ae-ebf6-4034-8bfb-99036696c974}</ProjectGuid>
+    <RootNamespace>Scheduling</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <IncludePath>$(Dir_IncludePath);$(IncludePath)</IncludePath>
+    <LibraryPath>$(Dir_LibraryPath);$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="Aspects\Execution\ScheduleNodeExecutionBarrier.hpp" />
+    <ClInclude Include="Aspects\Precedence\ScheduleMixinTaskBarrierIndices.hpp" />
+    <ClInclude Include="Aspects\Precedence\ScheduleModifierInsertPrecedenceConstraints.hpp" />
+    <ClInclude Include="Aspects\Processors\ScheduleMixinNodeVisitorAvailableProcessors.hpp" />
+    <ClInclude Include="Aspects\Processors\ScheduleModifierCreateProcessors.hpp" />
+    <ClInclude Include="Aspects\Root\ScheduleModifierInsertRoot.hpp" />
+    <ClInclude Include="Aspects\TaskGraph\ScheduleMixinTaskGraph.hpp" />
+    <ClInclude Include="Aspects\Subtasks\ScheduleModifierInsertSubtasks.hpp" />
+    <ClInclude Include="Aspects\Subtasks\SubtaskEnabledSchedule.hpp" />
+    <ClInclude Include="Aspects\Root\ScheduleNodeRoot.hpp" />
+    <ClInclude Include="Aspects\Processors\ScheduleNodeProcessorReady.hpp" />
+    <ClInclude Include="Aspects\Execution\ScheduleNodeExecuteTask.hpp" />
+    <ClInclude Include="Aspects\TaskQueue\ScheduleMixinTaskQueue.hpp" />
+    <ClInclude Include="Aspects\TaskQueue\ScheduleModifierListScheduler.hpp" />
+    <ClInclude Include="Aspects\TaskQueue\ScheduleModifierStartScheduling.hpp" />
+    <ClInclude Include="Aspects\Time\ScheduleNodeTimePointFinish.hpp" />
+    <ClInclude Include="Aspects\Time\ScheduleNodeTimePointReady.hpp" />
+    <ClInclude Include="Aspects\Time\ScheduleNodeTimeSpan.hpp" />
+    <ClInclude Include="Constraints\ScheduleConstraintGraphSimple.hpp" />
+    <ClInclude Include="Aspects\Root\ScheduleMixinRootNodeIndex.hpp" />
+    <ClInclude Include="Facades\ScheduleHomogeneousSplittable.hpp" />
+    <ClInclude Include="ListScheduler.hpp" />
+    <ClInclude Include="ListScheduler2.hpp" />
+    <ClInclude Include="ListScheduler_.hpp" />
+    <ClInclude Include="ScheduleConstraintGraph.hpp" />
+    <ClInclude Include="MakeSchedule1.hpp" />
+    <ClInclude Include="ProcessorAllocation\ProcessorAllocationEarliestAvailable.hpp" />
+    <ClInclude Include="Aspects\Precedence\ScheduleEventHandlerPrecedenceConstraints.hpp" />
+    <ClInclude Include="SystemEvalMakespanListScheduler.hpp" />
+    <ClInclude Include="Tasks\SchedulableTask_.hpp" />
+    <ClInclude Include="Scheduler.hpp" />
+    <ClInclude Include="Tasks\SchedulableTask.hpp" />
+    <ClInclude Include="Timeline\TimelineManager.hpp" />
+    <ClInclude Include="Traits\TaskGraphTaskTraits.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="CreateLib.cpp" />
+    <ClCompile Include="Facades\ScheduleHomogeneousSplittable.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Resources\ResTaskGraphs\ResTaskGraphs.vcxproj">
+      <Project>{0f771c8b-246e-45fb-8678-5d8035d2478a}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
