@@ -117,6 +117,9 @@
     <ClInclude Include="Aspects\TaskQueue\ScheduleModifierStartScheduling.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Aspects\Events\ScheduleEventHandlerFallbackNoop.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CreateLib.cpp">

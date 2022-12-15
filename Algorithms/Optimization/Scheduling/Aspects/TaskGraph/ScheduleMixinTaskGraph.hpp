@@ -19,5 +19,11 @@ struct ScheduleMixinTaskGraph
     {
         return task_graph.adjacent_vertices(task);
     }
+
+    // todo might not be 0?
+    TaskIndexT source_task_id() const
+    {
+        return 0;
+    }
 };
 }

@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include <Usagi/Modules/Algorithms/Optimization/Scheduling/ScheduleConstraintGraph.hpp>
+#include <Usagi/Modules/Algorithms/Optimization/Scheduling/Aspects/Events/ScheduleEventHandlerFallbackNoop.hpp>
 #include <Usagi/Modules/Algorithms/Optimization/Scheduling/Aspects/Execution/ScheduleNodeExecuteTask.hpp>
 #include <Usagi/Modules/Algorithms/Optimization/Scheduling/Aspects/Execution/ScheduleNodeExecutionBarrier.hpp>
 #include <Usagi/Modules/Algorithms/Optimization/Scheduling/Aspects/Precedence/ScheduleEventHandlerPrecedenceConstraints.hpp>
@@ -36,6 +37,9 @@ struct ScheduleHomogeneousSplittable
         ScheduleVertexT,
         ScheduleMixinTaskGraph::TaskIndexT
     >
+    , ScheduleEventHandlerFallbackNoop<
+        ScheduleVertexT
+    >
     , ScheduleConstraintGraph<
         ScheduleVertexT,
         ScheduleHomogeneousSplittable,
@@ -45,13 +49,12 @@ struct ScheduleHomogeneousSplittable
         ScheduleNodeExecutionBarrier<ScheduleMixinTaskGraph::TaskIndexT>
     >
 {
+    using ScheduleEventHandlerFallbackNoop::on_edge_added;
+    using ScheduleEventHandlerFallbackNoop::on_vertex_added;
     using ScheduleEventHandlerPrecedenceConstraints::on_edge_added;
-    using ScheduleConstraintGraph::on_edge_added;
-    using ScheduleConstraintGraph::on_vertex_added;
 
     using VertexIndexT = ScheduleVertexT;
 
-    TaskIndexT source_task_id() const { return 0; }
     TaskIndexT num_subtasks(TaskIndexT task_index) const;
     TaskIndexT composed_task_id(
         TaskIndexT task_idx,

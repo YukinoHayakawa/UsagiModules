@@ -4,6 +4,7 @@
 
 namespace usagi
 {
+// todo technically these indices can be calculated thus it's not necessary to store them
 template <
     typename TaskIndexT,
     typename VertexIndexT

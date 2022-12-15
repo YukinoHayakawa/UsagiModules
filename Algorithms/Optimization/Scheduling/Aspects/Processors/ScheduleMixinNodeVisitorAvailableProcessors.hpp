@@ -1,10 +1,5 @@
 ﻿#pragma once
 
-#include <variant>
-
-#include <range/v3/range.hpp>
-#include <range/v3/view.hpp>
-
 #include <Usagi/Library/Utilities/Variant.hpp>
 
 #include "ScheduleNodeProcessorReady.hpp"
@@ -22,6 +17,7 @@ struct ScheduleMixinNodeVisitorAvailableProcessors
         // todo: optimize time complexity
         const auto filter = [](auto &&idx_v_pair) {
             return std::visit(Overloaded {
+                // ReSharper disable once CppParameterMayBeConstPtrOrRef
                 [](ScheduleNodeProcessorReady &n) {
                     return n.occupied == false;
                 },
@@ -30,7 +26,9 @@ struct ScheduleMixinNodeVisitorAvailableProcessors
         };
 
         return graph()->filtered_vertices(filter) |
-            graph()->template get_vertices_as<ScheduleNodeProcessorReady>();
+            graph()->template func_get_vertices_as<
+                ScheduleNodeProcessorReady
+            >();
     }
 };
 }

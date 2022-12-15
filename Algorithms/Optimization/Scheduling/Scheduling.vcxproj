@@ -58,6 +58,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Aspects\Events\ScheduleEventHandlerFallbackNoop.hpp" />
     <ClInclude Include="Aspects\Execution\ScheduleNodeExecutionBarrier.hpp" />
     <ClInclude Include="Aspects\Precedence\ScheduleMixinTaskBarrierIndices.hpp" />
     <ClInclude Include="Aspects\Precedence\ScheduleModifierInsertPrecedenceConstraints.hpp" />

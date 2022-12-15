@@ -7,6 +7,7 @@
 
 #include <range/v3/range.hpp>
 #include <range/v3/view.hpp>
+#include <Usagi/Runtime/ErrorHandling.hpp>
 
 namespace usagi
 {
@@ -36,22 +37,31 @@ struct ScheduleConstraintGraph
     {
         assert(index < vertices.size());
         auto &ref = vertices[index];
+        // will throw if vertex type doesn't match
         return std::get<Vertex>(ref);
     }
 
     template <typename Vertex, typename... Args>
     std::pair<VertexIndexT, Vertex &> add_vertex(Args &&...args)
     {
-        const auto index = vertices.size();
+        USAGI_ASSERT_THROW(
+            vertices.size() < static_cast<std::size_t>(
+                std::numeric_limits<VertexIndexT>::max()),
+            std::overflow_error("vertex index exceeds the maximum value"
+                " of the designated index type."));
+
+        const auto index = static_cast<VertexIndexT>(vertices.size());
         vertices.emplace_back(Vertex { std::forward<Args>(args)... });
         auto &ref = vertex<Vertex>(index);
-        static_cast<EventHandler*>(this)->on_vertex_added(ref);
+        static_cast<EventHandler*>(this)->on_vertex_added(index, ref);
+
         return { index, ref };
     }
 
     template <typename VertexFrom, typename VertexTo>
     void add_edge(const VertexIndexT from, const VertexIndexT to)
     {
+        // validate the existence of vertices and their types
         auto &vf = vertex<VertexFrom>(from);
         auto &vt = vertex<VertexTo>(to);
         edges.emplace(from, to);
@@ -65,7 +75,7 @@ struct ScheduleConstraintGraph
         auto &from_v = vertex<FromVertex>(from_idx);
         for(auto it = begin; it != end; ++it)
         {
-            const auto forwarder = [&]<typename Vertex>(Vertex &&to_v)
+            const auto invoke_with_idx = [&]<typename Vertex>(Vertex &&to_v)
             {
                 static_assert(std::is_lvalue_reference_v<Vertex &&>);
                 // also pass the index of the dest vertex to the visitor
@@ -77,7 +87,7 @@ struct ScheduleConstraintGraph
                 );
             };
             auto &to_v = vertices[it->second];
-            std::visit(forwarder, to_v);
+            std::visit(invoke_with_idx, to_v);
         }
     }
 
@@ -90,13 +100,15 @@ struct ScheduleConstraintGraph
             );
     }
 
-    auto filtered_vertices(auto &&filter)
+    template <typename FilterFunc>
+    auto filtered_vertices(FilterFunc &&filter)
     {
-        return indexed_vertices() | ranges::views::filter(filter);
+        return indexed_vertices() | 
+            ranges::views::filter(std::forward<FilterFunc>(filter));
     }
 
     template <typename Vertex>
-    auto get_vertices_as() const
+    static auto func_get_vertices_as()
     {
         return ranges::views::transform(
             [](auto &&idx_v_pair) {
@@ -106,20 +118,6 @@ struct ScheduleConstraintGraph
                 };
             }
         );
-    }
-
-    void on_vertex_added(auto &v_ref)
-    {
-        // no-op
-    }
-
-    void on_edge_added(
-        VertexIndexT from_idx,
-        auto &&from_v,
-        VertexIndexT to_idx,
-        auto &&to_v)
-    {
-        // ignore other edges
     }
 };
 }

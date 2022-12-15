@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include <type_traits>
+
 #include <Usagi/Modules/Algorithms/Optimization/Scheduling/Aspects/Execution/ScheduleNodeExecutionBarrier.hpp>
 
 #include "ScheduleMixinTaskBarrierIndices.hpp"
@@ -20,7 +21,7 @@ struct ScheduleModifierInsertPrecedenceConstraints
             std::decay_t<Graph>
         >
     {
-        using VertexIndexT = typename std::decay_t<Graph>::VertexIndexT;
+        // using VertexIndexT = typename std::decay_t<Graph>::VertexIndexT;
         using TaskIndexT = typename std::decay_t<Graph>::TaskIndexT;
 
         using Barrier = ScheduleNodeExecutionBarrier<TaskIndexT>;

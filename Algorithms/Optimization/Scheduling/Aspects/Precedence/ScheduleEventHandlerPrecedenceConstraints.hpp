@@ -12,8 +12,8 @@ namespace usagi
 {
 template <
     typename Graph,
-    typename VertexIndexT = typename Graph::VertexIndexT,
-    typename TaskIndexT = typename Graph::TaskIndexT
+    typename VertexIndexT,
+    typename TaskIndexT
 >
 struct ScheduleEventHandlerPrecedenceConstraints
 {
@@ -148,7 +148,7 @@ struct ScheduleEventHandlerPrecedenceConstraints
         >(to_idx, propagate_update_barriers_func());
     }
 
-    void on_edge_added(
+    static void on_edge_added(
         const VertexIndexT from_idx,
         ScheduleNodeExecuteTask<TaskIndexT> &from_exec,
         const VertexIndexT to_idx,
@@ -157,7 +157,7 @@ struct ScheduleEventHandlerPrecedenceConstraints
         ++to_barrier.num_waiting_inputs;
     }
 
-    void on_edge_added(
+    static void on_edge_added(
         const VertexIndexT from_idx,
         ScheduleNodeExecutionBarrier<TaskIndexT> &from_barrier,
         const VertexIndexT to_idx,
