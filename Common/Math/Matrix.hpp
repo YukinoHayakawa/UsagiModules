@@ -19,16 +19,23 @@ using Vector2i = Eigen::Vector2i;
 using Vector2u32 = Vector<std::uint32_t, 2>;
 using Vector2i32 = Vector<std::int32_t, 2>;
 using Vector3f = Eigen::Vector3f;
+using Vector3d = Eigen::Vector3d;
 using Vector4f = Eigen::Vector4f;
+using Vector4d = Eigen::Vector4d;
 
 // Transformation
 
 using Quaternionf = Eigen::Quaternionf;
+using Quaterniond = Eigen::Quaterniond;
 
 using Matrix3f = Eigen::Matrix3f;
+using Matrix3d = Eigen::Matrix3d;
 using Matrix4f = Eigen::Matrix4f;
+using Matrix4d = Eigen::Matrix4d;
 using Affine3f = Eigen::Affine3f;
+using Affine3d = Eigen::Affine3d;
 using Projective3f = Eigen::Projective3f;
+using Projective3d = Eigen::Projective3d;
 
 // don't know why but MSVC forces me to spell out all arguments even those with
 // default parameters, maybe a bug.
