@@ -30,10 +30,10 @@
   <PropertyGroup Label="UserMacros">
   </PropertyGroup>
   <ItemGroup>
-    <ClInclude Include="Logger.hpp" />
+    <ClInclude Include="RuntimeLogger.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Logger.cpp">
+    <ClCompile Include="RuntimeLogger.cpp">
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <SuppressStartupBanner>false</SuppressStartupBanner>
       <LanguageStandard>stdcpplatest</LanguageStandard>
