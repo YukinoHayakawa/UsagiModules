@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>18.0</VCProjectVersion>
+    <ProjectGuid>{d47cd228-b9f8-4458-b600-c5d0bf473f54}</ProjectGuid>
+    <RootNamespace>Networking</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <PropertyGroup>
+    <ConfigurationType>S</ConfigurationType>
+    <IncludePath>$(Usagi_IncludePaths);$(ProjectDir);$(IncludePath)</IncludePath>
+    <LibraryPath>$(Usagi_LibraryPaths);$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros">
+  </PropertyGroup>
+  <ItemGroup>
+    <ClCompile Include="WebSocket\WebSocketClient.cpp" />
+    <ClCompile Include="WebSocket\WebSocketServer.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="WebSocket\WebSocketClient.hpp" />
+    <ClInclude Include="WebSocket\WebSocketEndpoint.hpp" />
+    <ClInclude Include="WebSocket\WebSocketServer.hpp" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
