@@ -7,3 +7,6 @@
 [submodule "Runtime/HeapManager/External/xxhash"]
 	path = Runtime/HeapManager/External/xxhash
 	url = git@github.com:stbrumme/xxhash.git
+[submodule "Runtime/QuirrelScripting/quirrel"]
+	path = Runtime/QuirrelScripting/quirrel
+	url = git@github.com:GaijinEntertainment/quirrel.git
