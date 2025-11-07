@@ -32,8 +32,19 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros">
   </PropertyGroup>
+  <ItemDefinitionGroup>
+    <Link>
+      <AdditionalDependencies>QuirrelLibrary.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
   <ItemGroup>
-     <ClCompile Include="quirrel\sq\sq.cpp" />
+    <ClCompile Include="..\quirrel\sq\sq.cpp"/>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\QuirrelLibrary\QuirrelLibrary.vcxproj">
+      <Project>{454558aa-5fb8-42e1-b7c5-11a833891c7a}</Project>
+      <Name>QuirrelLibrary</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets"/>
   <ImportGroup Label="ExtensionTargets">

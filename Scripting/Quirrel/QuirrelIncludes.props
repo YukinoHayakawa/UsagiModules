@@ -1,0 +1,19 @@
+<Project>
+  <PropertyGroup Label="Quirrel">
+    <!-- The include orders here are important. -->
+    <_quirrelRoot>$(MSBuildThisFileDirectory)/quirrel/</_quirrelRoot>
+    <_quirrelIncludes>$(_quirrelRoot)/sqrat/include;$(_quirrelIncludes)</_quirrelIncludes>
+    <_quirrelIncludes>$(_quirrelRoot)/sqmodules;$(_quirrelIncludes)</_quirrelIncludes>
+    <_quirrelIncludes>$(_quirrelRoot)/squirrel/compiler;$(_quirrelIncludes)</_quirrelIncludes>
+    <_quirrelIncludes>$(_quirrelRoot)/squirrel;$(_quirrelIncludes)</_quirrelIncludes>
+    <_quirrelIncludes>$(_quirrelRoot)/helpers;$(_quirrelIncludes)</_quirrelIncludes>
+    <_quirrelIncludes>$(_quirrelRoot)/internal;$(_quirrelIncludes)</_quirrelIncludes>
+    <_quirrelIncludes>$(_quirrelRoot)/include;$(_quirrelIncludes)</_quirrelIncludes>
+    <_quirrelIncludes>$(_quirrelRoot);$(_quirrelIncludes)</_quirrelIncludes>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(_quirrelIncludes);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
+</Project>

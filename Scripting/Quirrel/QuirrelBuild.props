@@ -9,22 +9,20 @@
     <_quirrelCompatibilityFlags>-Wno-missing-braces $(_quirrelCompatibilityFlags)</_quirrelCompatibilityFlags>
     <_quirrelCompatibilityFlags>-Wno-unused-function $(_quirrelCompatibilityFlags)</_quirrelCompatibilityFlags>
     <_quirrelCompatibilityFlags>-Wno-tautological-constant-out-of-range-compare $(_quirrelCompatibilityFlags)</_quirrelCompatibilityFlags>
-    <!-- The include orders here are important. -->
-    <_quirrelRoot>$(MSBuildThisFileDirectory)/quirrel/</_quirrelRoot>
-    <_quirrelIncludes>$(_quirrelRoot)/sqrat/include;$(_quirrelIncludes)</_quirrelIncludes>
-    <_quirrelIncludes>$(_quirrelRoot)/sqmodules;$(_quirrelIncludes)</_quirrelIncludes>
-    <_quirrelIncludes>$(_quirrelRoot)/squirrel/compiler;$(_quirrelIncludes)</_quirrelIncludes>
-    <_quirrelIncludes>$(_quirrelRoot)/squirrel;$(_quirrelIncludes)</_quirrelIncludes>
-    <_quirrelIncludes>$(_quirrelRoot)/helpers;$(_quirrelIncludes)</_quirrelIncludes>
-    <_quirrelIncludes>$(_quirrelRoot)/internal;$(_quirrelIncludes)</_quirrelIncludes>
-    <_quirrelIncludes>$(_quirrelRoot)/include;$(_quirrelIncludes)</_quirrelIncludes>
-    <_quirrelIncludes>$(_quirrelRoot);$(_quirrelIncludes)</_quirrelIncludes>
+    <!-- flags from CMakeList.txt -->
+    <!-- -fno-rtti -fno-exceptions -->
+    <!--<_quirrelCompatibilityFlags>/GR- /EH $(_quirrelCompatibilityFlags)</_quirrelCompatibilityFlags>-->
+    <_quirrelCompatibilityFlags>-fno-strict-aliasing $(_quirrelCompatibilityFlags)</_quirrelCompatibilityFlags>
+    <!--<_quirrelCompatibilityFlags>-Wcast-qual $(_quirrelCompatibilityFlags)</_quirrelCompatibilityFlags>-->
+    <!-- disable type conversion warnings -->
+    <!--<_quirrelCompatibilityFlags>/wd4244 /wd4018 /wd4267 $(_quirrelCompatibilityFlags)</_quirrelCompatibilityFlags>-->
+    <!-- ARENA_USE_SYSTEM_ALLOC=0 is required for Quirrel to NOT include `<Windows.h>` which pollutes... everything. -->
+    <_quirrelCompatibilityFlags>/DARENA_USE_SYSTEM_ALLOC=0 $(_quirrelCompatibilityFlags)</_quirrelCompatibilityFlags>
   </PropertyGroup>
-  <ItemDefinitionGroup>
+  <ItemDefinitionGroup Label="Quirrel">
     <ClCompile>
       <AdditionalOptions>$(_quirrelCompatibilityFlags) %(AdditionalOptions)</AdditionalOptions>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(_quirrelIncludes);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_SQ64;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
 </Project>
