@@ -25,6 +25,18 @@ public:
 
     std::uint64_t initial_stack_size() const { return mInitialStackSize; }
 
+    auto & module_manager(this auto &&self)
+    {
+        return self.mModuleManager;
+    }
+
+    auto & coroutine_manager(this auto &&self)
+    {
+        return self.mCoroutineManager;
+    }
+
+    virtual void init();
+
     /**
      * @brief Loads the main entry-point script and creates coroutines.
      */
@@ -55,7 +67,6 @@ protected:
     CoroutineManager         mCoroutineManager;
 
     static SQVM * CreateNewQuirrelVm(std::uint64_t initial_stack_size);
-    virtual void init();
 
     void logLastError();
     static void printFunc(HSQUIRRELVM v, const SQChar * s, ...);

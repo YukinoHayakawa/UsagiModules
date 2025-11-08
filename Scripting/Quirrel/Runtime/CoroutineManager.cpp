@@ -2,6 +2,7 @@
 
 #include <iostream>
 
+#include <spdlog/spdlog.h>
 #include <sqrat/sqratArray.h>
 #include <sqrat/sqratFunction.h>
 #include <sqrat/sqratObject.h>
@@ -115,7 +116,7 @@ void CoroutineManager::_findAndCreateCoroutines(Sqrat::Object & exports)
     {
         Sqrat::Object funcObj = coroFuncs.GetValue<Sqrat::Object>(i);
         std::string   coroId  = "Coroutine_" + std::to_string(i);
-
+        spdlog::info("Registering coroutine: {}", coroId);
         // f. Store both handles for management.
         mActiveCoroutines.emplace_back(
             mVirtualMachine.CreateBindNewObject<Coroutine>(

@@ -30,7 +30,6 @@ VirtualMachine::VirtualMachine(std::uint64_t initial_stack_size)
     , mModuleManager(GetRawHandle(), &mFileAccess)
     , mCoroutineManager(*this)
 {
-    init();
 }
 
 SQVM *
@@ -60,7 +59,6 @@ void VirtualMachine::init()
 
     // aux library
     // sets error handlers
-    // sqstd_seterrorhandlers(_vm);
     {
         sq_setcompilererrorhandler(_vm, &compileErrorHandler);
         // push new closure
@@ -70,6 +68,7 @@ void VirtualMachine::init()
         mModuleManager.compilationOptions.raiseError       = true;
         mModuleManager.compilationOptions.doStaticAnalysis = true;
     }
+    sqstd_seterrorhandlers(_vm);
 
     // 2. Set up the debug hook for rich error reporting
     // Store a pointer to this VirtualMachine instance within the VM itself
