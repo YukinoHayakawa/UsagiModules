@@ -22,20 +22,26 @@ void CoroutineManager::tick_coroutines()
         // 1. Check state *before* resuming
         auto state = coro.get_state();
 
+        /*
         if(state == CoroutineExecutionStates::Idle)
         {
             // Coroutine finished, mark for removal
             toRemove.emplace(coro.thread_context());
             continue;
         }
+        */
 
         if(state == CoroutineExecutionStates::Suspended)
         {
-            // 2. Resume the coroutine. We push a 'null' which will be the
-            // return value of the 'yield' statement in the script.
-            sq_pushnull(v); // Using main VM 'v' to push onto coroutine
-                            // 'coro.vm' is OK
-            if(SQ_FAILED(coro.resume(false)))
+            // 2. Resume the coroutine.
+            // We MUST push the return value for 'suspend()' onto the
+            // COROUTINE'S stack *before* waking it up.
+            // Pushing to coro.thread_context() is correct.
+            sq_pushnull(coro.thread_context());
+
+            // 3. Call the correct resume function.
+            // 'resume(true)' now maps to the new function in Coroutine.cpp
+            if(SQ_FAILED(coro.resume(true)))
             {
                 // Shio: Coroutine failed.
                 spdlog::error(" Coroutine {} failed.", coro.debug_name());
@@ -43,7 +49,7 @@ void CoroutineManager::tick_coroutines()
                 continue;
             }
 
-            // 3. Check state *after* resuming
+            // 4. Check state *after* resuming
             auto newState = coro.try_get_yielded_command();
 
             // CoroutineStates::Suspended
@@ -120,6 +126,14 @@ void CoroutineManager::_findAndCreateCoroutines(Sqrat::Object & exports)
         mActiveCoroutines.emplace_back(
             mVirtualMachine.CreateBindNewObject<Coroutine>(
                 mVirtualMachine.initial_stack_size(), coroId, funcObj));
+        // g. Start the coroutine AND CHECK FOR ERRORS
+        if(SQ_FAILED(mActiveCoroutines.back().start()))
+        {
+            spdlog::error(
+                " Failed to start coroutine: {}. Removing.", coroId);
+            // todo: get and print squirrel error
+            mActiveCoroutines.pop_back();
+        }
     }
     // Shio: Coroutines created.
     spdlog::info(" {} coroutines created.", mActiveCoroutines.size());

@@ -4,7 +4,8 @@
 
 #include <squirrel.h>
 
-#include <Usagi/Library/Memory/Noncopyable.hpp>
+#include <sqrat/sqratTypes.h>
+
 #include <Usagi/Modules/Scripting/Quirrel/Config/Defines.hpp>
 #include <Usagi/Runtime/ErrorHandling/MaybeError.hpp>
 #include <Usagi/Runtime/RAII/RawHandleResource.hpp>
@@ -54,7 +55,40 @@ public:
     Coroutine & operator=(Coroutine && other) noexcept = default;
 
     CoroutineExecutionStates get_state() const;
-    SQRESULT resume(bool ret_value, bool invoke_err_handler = true);
+    /**
+     * \brief Starts the coroutine.
+     * Call this ONCE to run the coroutine until its first 'suspend()'.
+     */
+    SQRESULT start();
+
+    /**
+     * \brief Resumes a suspended coroutine.
+     * This will push 'null' as the return value for 'suspend()'.
+     * \param invoke_err_handler True to invoke the VM's error handler on
+     * failure.
+     * \return SQRESULT
+     */
+    SQRESULT resume(bool invoke_err_handler);
+
+    /**
+     * \brief Resumes a suspended coroutine, passing a value back.
+     * The value will be the return value of 'suspend()' in script.
+     * \tparam T Type of the value to push (must be pushable by Sqrat::PushVar)
+     * \param value The value to pass to the script.
+     * \param invoke_err_handler True to invoke the VM's error handler on
+     * failure.
+     * \return SQRESULT
+     */
+    template <typename T>
+    SQRESULT resume(T && value, bool invoke_err_handler)
+    {
+        // Push the provided value (e.g., delta-time)
+        Sqrat::PushVar(thread_context(), std::forward<T>(value));
+        // resumedret=true: Use the value we just pushed.
+        return sq_wakeupvm(
+            thread_context(), true, false, invoke_err_handler, false);
+    }
+
     runtime::MaybeError<std::string, CoroutineExecutionStates>
         try_get_yielded_command();
 
