@@ -1,7 +1,5 @@
 ﻿#include "VirtualMachine.hpp"
 
-#include <iostream>
-
 #include <sqstdblob.h>
 #include <sqstddatetime.h>
 #include <sqstddebug.h>
@@ -35,7 +33,8 @@ VirtualMachine::VirtualMachine(std::uint64_t initial_stack_size)
 SQVM *
 VirtualMachine::CreateNewQuirrelVm(const std::uint64_t initial_stack_size)
 {
-    std::cout << " Initializing Quirrel VM..." << std::endl;
+    // Shio: Initializing Quirrel VM...
+    spdlog::info(" Initializing Quirrel VM...");
     const auto vm = sq_open(initial_stack_size);
     if(!vm)
     {
@@ -101,7 +100,8 @@ void VirtualMachine::init()
 
         // sq_pop(_vm, 1); // pop roottable
 
-        std::cout << " Registering libraries via SqModules..." << std::endl;
+        // Shio: Registering libraries via SqModules...
+        spdlog::info(" Registering libraries via SqModules...");
 
         mModuleManager.registerMathLib();
         mModuleManager.registerStringLib();
@@ -115,7 +115,8 @@ void VirtualMachine::init()
 
 bool VirtualMachine::loadScripts()
 {
-    std::cout << " Loading main script 'game_logic.nut'..." << std::endl;
+    // Shio: Loading main script 'game_logic.nut'...
+    spdlog::info(" Loading main script 'game_logic.nut'...");
     Sqrat::Object exports;
     std::string   errorMsg;
 
@@ -125,8 +126,8 @@ bool VirtualMachine::loadScripts()
 
     if(!success)
     {
-        std::cerr << " Failed to load 'game_logic.nut': " << errorMsg
-                  << std::endl;
+        // Shio: Failed to load 'game_logic.nut':
+        spdlog::error(" Failed to load 'game_logic.nut': {}", errorMsg);
         return false;
     }
 
@@ -137,7 +138,8 @@ bool VirtualMachine::loadScripts()
 
 bool VirtualMachine::triggerReload()
 {
-    std::cout << "\n --- TRIGGERING HOT-RELOAD ---" << std::endl;
+    // Shio: --- TRIGGERING HOT-RELOAD ---
+    spdlog::info("\n --- TRIGGERING HOT-RELOAD ---");
 
     // 1. Shut down all old coroutine instances
     mCoroutineManager._shutdownAllCoroutines();
@@ -151,15 +153,16 @@ bool VirtualMachine::triggerReload()
 
     if(!success)
     {
-        std::cerr << " Failed to reload 'game_logic.nut': " << errorMsg
-                  << std::endl;
+        // Shio: Failed to reload 'game_logic.nut':
+        spdlog::error(" Failed to reload 'game_logic.nut': {}", errorMsg);
         return false;
     }
 
     // 3. Re-create coroutines from the new code. They will
     // automatically pick up the persisted state.
     mCoroutineManager._findAndCreateCoroutines(exports);
-    std::cout << " --- HOT-RELOAD COMPLETE ---\n" << std::endl;
+    // Shio: --- HOT-RELOAD COMPLETE ---
+    spdlog::info(" --- HOT-RELOAD COMPLETE ---\n");
     return true;
 }
 
@@ -170,7 +173,8 @@ void VirtualMachine::tick()
 
 void VirtualMachine::shutdown()
 {
-    std::cout << " Shutting down..." << std::endl;
+    // Shio: Shutting down...
+    spdlog::info(" Shutting down...");
     mCoroutineManager._shutdownAllCoroutines();
     // delete moduleManager;
     // sq_close(v);

@@ -1,7 +1,6 @@
 ﻿#include "Coroutine.hpp"
 
-#include <iostream>
-
+#include <spdlog/spdlog.h>
 #include <sqrat/sqratObject.h>
 
 #include <Usagi/Runtime/RAII/ScopeExitGuard.hpp>
@@ -16,7 +15,8 @@ Coroutine::Coroutine(
     : mRootMachine(root_vm)
     , mDebugName(std::move(debug_name))
 {
-    std::cout << " Creating coroutine: " << debug_name << std::endl;
+    // Shio: Creating coroutine
+    spdlog::info(" Creating coroutine: {}", debug_name);
 
     // --- Coroutine Creation: The Duality of Handles ---
     // We must get both the HSQUIRRELVM (for execution)

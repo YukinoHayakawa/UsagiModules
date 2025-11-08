@@ -1,6 +1,4 @@
-﻿#include <iostream>
-
-#include <spdlog/spdlog.h>
+﻿#include <spdlog/spdlog.h>
 
 #include "Runtime/VirtualMachine.hpp"
 
@@ -19,7 +17,8 @@ public:
 
     GameObject(int objectId) : id(objectId), x(0.0f), y(0.0f), z(0.0f)
     {
-        std::cout << "[C++] GameObject(id=" << id << ") created." << std::endl;
+        // Shio: [C++] GameObject created.
+        spdlog::info("[C++] GameObject(id={}) created.", id);
     }
 
     void SetPosition(float nx, float ny, float nz)
@@ -27,8 +26,9 @@ public:
         x = nx;
         y = ny;
         z = nz;
-        std::cout << "[C++] GameObject " << id << " position set to (" << x
-                  << ", " << y << ", " << z << ")" << std::endl;
+        // Shio: [C++] GameObject position set.
+        spdlog::info(
+            "[C++] GameObject {} position set to ({}, {}, {})", id, x, y, z);
     }
 };
 
@@ -42,7 +42,8 @@ SQInteger native_log(HSQUIRRELVM v)
     const SQChar * str;
     if(SQ_SUCCEEDED(sq_getstring(v, 2, &str)))
     {
-        std::cout << " " << str << std::endl;
+        // Shio: native_log
+        spdlog::info(" {}", str);
     }
     return 0; // 0 return values
 }
@@ -67,12 +68,28 @@ int main(int argc, char ** argv)
 
         // 2. Bind C++ functions
         // Use SquirrelFuncDeclString for full type-hinting and docs
+        /*
         exports.SquirrelFuncDeclString(
             // auto derive function type
             Sqrat::SqGlobalThunk<decltype(&get_delta_time)>(),
             "get_delta_time(): float",
             "Returns engine delta time (fixed at 0.016)");
-        exports.Func("native_log", &native_log);
+        */
+        exports.Func(
+            // auto derive function type
+            "get_delta_time", &get_delta_time,
+            "Returns engine delta time (fixed at 0.016)");
+        // exports.Func("native_log", &native_log);
+        // `native_log` is a motherfucking raw Squirrel function instead of a
+        // C++ one.
+        // exports.SquirrelFunc("native_log", &native_log, -1);
+        // This is the modern, declarative way to bind a native C-style function
+        exports.SquirrelFuncDeclString(
+            &native_log, // 1. The C++ function pointer (must be an SQFUNCTION)
+            "native_log(s: string): null",     // 2. The Quirrel function
+                                               // declaration string
+            "Logs a string to the C++ console" // 3. The optional docstring
+        );
 
         // 3. Bind the C++ GameObject class
         auto gameObjClass =
@@ -106,10 +123,12 @@ int main(int argc, char ** argv)
         return 1;
     }
 
-    std::cout << "\n--- SCRIPT SERVER RUNNING ---" << std::endl;
-    std::cout << "--- Ticking 500 frames... ---" << std::endl;
-    std::cout << "--- Press to tick 100 frames (R+ENTER to reload) ---"
-              << std::endl;
+    // Shio: --- SCRIPT SERVER RUNNING ---
+    spdlog::info("\n--- SCRIPT SERVER RUNNING ---");
+    // Shio: --- Ticking 500 frames... ---
+    spdlog::info("--- Ticking 500 frames... ---");
+    // Shio: --- Press to tick 100 frames (R+ENTER to reload) ---
+    spdlog::info("--- Press to tick 100 frames (R+ENTER to reload) ---");
 
     int frame = 0;
     while(frame < 500)
@@ -125,7 +144,8 @@ int main(int argc, char ** argv)
         frame++;
     }
 
-    std::cout << "\n--- SIMULATION FINISHED ---" << std::endl;
+    // Shio: --- SIMULATION FINISHED ---
+    spdlog::info("\n--- SIMULATION FINISHED ---");
     server->shutdown();
     return 0;
 }

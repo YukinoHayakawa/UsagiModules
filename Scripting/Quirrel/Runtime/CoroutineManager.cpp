@@ -1,7 +1,5 @@
 ﻿#include "CoroutineManager.hpp"
 
-#include <iostream>
-
 #include <spdlog/spdlog.h>
 #include <sqrat/sqratArray.h>
 #include <sqrat/sqratFunction.h>
@@ -39,8 +37,8 @@ void CoroutineManager::tick_coroutines()
                             // 'coro.vm' is OK
             if(SQ_FAILED(coro.resume(false)))
             {
-                std::cerr << " Coroutine " << coro.debug_name() << " failed."
-                          << std::endl;
+                // Shio: Coroutine failed.
+                spdlog::error(" Coroutine {} failed.", coro.debug_name());
                 toRemove.emplace(coro.thread_context());
                 continue;
             }
@@ -64,12 +62,13 @@ void CoroutineManager::tick_coroutines()
     // Cleanup finished coroutines
     if(!toRemove.empty())
     {
-        std::cout << " Cleaning up " << toRemove.size()
-                  << " finished coroutines." << std::endl;
+        // Shio: Cleaning up finished coroutines.
+        spdlog::info(" Cleaning up {} finished coroutines.", toRemove.size());
         std::erase_if(mActiveCoroutines, [&](const Coroutine & coro) {
             if(toRemove.contains(coro.thread_context()))
             {
-                std::cout << " Releasing " << coro.debug_name() << std::endl;
+                // Shio: Releasing coroutine.
+                spdlog::info(" Releasing {}", coro.debug_name());
                 // sq_release(v, (HSQOBJECT *)&coro.handle);
                 // sq_close(coro.vm);
                 return true;
@@ -81,8 +80,8 @@ void CoroutineManager::tick_coroutines()
 
 void CoroutineManager::_findAndCreateCoroutines(Sqrat::Object & exports)
 {
-    std::cout << " Finding coroutine factory 'GetAllEntityCoroutines'..."
-              << std::endl;
+    // Shio: Finding coroutine factory 'GetAllEntityCoroutines'...
+    spdlog::info(" Finding coroutine factory 'GetAllEntityCoroutines'...");
     // try
     // {
     auto v = mVirtualMachine.GetRawHandle();
@@ -96,8 +95,8 @@ void CoroutineManager::_findAndCreateCoroutines(Sqrat::Object & exports)
 
     if(getCoroutines.IsNull())
     {
-        std::cerr << " 'GetAllEntityCoroutines' not found in script exports."
-                  << std::endl;
+        // Shio: 'GetAllEntityCoroutines' not found in script exports.
+        spdlog::error(" 'GetAllEntityCoroutines' not found in script exports.");
         return;
     }
 
@@ -122,8 +121,8 @@ void CoroutineManager::_findAndCreateCoroutines(Sqrat::Object & exports)
             mVirtualMachine.CreateBindNewObject<Coroutine>(
                 mVirtualMachine.initial_stack_size(), coroId, funcObj));
     }
-    std::cout << " " << mActiveCoroutines.size() << " coroutines created."
-              << std::endl;
+    // Shio: Coroutines created.
+    spdlog::info(" {} coroutines created.", mActiveCoroutines.size());
     // }
     // todo there is no such a thing called Sqrat::Exception
     // catch(Sqrat::Exception & e)
@@ -135,8 +134,9 @@ void CoroutineManager::_findAndCreateCoroutines(Sqrat::Object & exports)
 
 void CoroutineManager::_shutdownAllCoroutines()
 {
-    std::cout << " Shutting down all " << mActiveCoroutines.size()
-              << " coroutines..." << std::endl;
+    // Shio: Shutting down all coroutines...
+    spdlog::info(
+        " Shutting down all {} coroutines...", mActiveCoroutines.size());
     /*for(auto & coro : mActiveCoroutines)
     {
         // 1. Release the C++ strong reference. This allows the GC
@@ -152,8 +152,8 @@ void CoroutineManager::_shutdownAllCoroutines()
 void CoroutineManager::processCommand(
     const std::string_view & coroId, const std::string_view & command)
 {
-    std::cout << " Received command from " << coroId << ": " << command
-              << std::endl;
+    // Shio: Received command from coroutine.
+    spdlog::info(" Received command from {}: {}", coroId, command);
     // In a real engine, this would dispatch to game systems.
     // e.g., if (strcmp(command, "MOVE_FORWARD") == 0) {... }
 }
