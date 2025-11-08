@@ -74,7 +74,7 @@ void VirtualMachine::init()
     sq_setforeignptr(_vm, this);
     // todo fix
     // sq_setdebughook(_vm, debugHook);
-    sq_setnativedebughook(_vm, &debugHook);
+    // sq_setnativedebughook(_vm, &debugHook);
 
     // 3. Set up the module manager to handle all library registration
     // mFileAccess = std::make_unique<DefSqModulesFileAccess>();
@@ -90,6 +90,8 @@ void VirtualMachine::init()
         // !!!     Quirrel IS ESPECIALLY STRICT ABOUT VARIABLE SCOPES    !!!
         sq_pushroottable(_vm);
 
+        // `SQVM::Init()` always calls this via `sq_base_register()`
+        // sq_registerbaselib(_vm);
         sqstd_register_bloblib(_vm);
         sqstd_register_iolib(_vm);
         sqstd_register_systemlib(_vm);
@@ -98,7 +100,7 @@ void VirtualMachine::init()
         sqstd_register_stringlib(_vm);
         sqstd_register_debuglib(_vm);
 
-        // sq_pop(_vm, 1); // pop roottable
+        sq_pop(_vm, 1); // pop roottable
 
         // Shio: Registering libraries via SqModules...
         spdlog::info(" Registering libraries via SqModules...");

@@ -2,7 +2,11 @@
 // Main entry point for game logic
 
 from "engine_core" import native_log
-local Entity = require("entity.nut") // Use SqModules 'require'
+
+// seems local dosn't work and will trigger assert() failure
+// ... actually it was due to `native_log`
+// local Entity = require("entity.nut") // Use SqModules 'require'
+let { Entity } = require("entity.nut") // Use SqModules 'require'
 
 native_log("game_logic.nut: Top-level execution.")
 
@@ -29,7 +33,7 @@ function GetAllEntityCoroutines() {
     local coroutines = []
     foreach(entity in g_state.entities) {
         // Add the 'UpdateCoroutine' function from each entity instance
-        coroutines.push(entity.UpdateCoroutine.bindenv(entity))
+        coroutines.append(entity.UpdateCoroutine.bindenv(entity))
     }
     return coroutines
 }

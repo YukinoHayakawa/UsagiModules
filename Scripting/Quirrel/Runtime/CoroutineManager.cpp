@@ -22,14 +22,14 @@ void CoroutineManager::tick_coroutines()
         // 1. Check state *before* resuming
         auto state = coro.get_state();
 
-        if(state == CoroutineStates::Idle)
+        if(state == CoroutineExecutionStates::Idle)
         {
             // Coroutine finished, mark for removal
             toRemove.emplace(coro.thread_context());
             continue;
         }
 
-        if(state == CoroutineStates::Suspended)
+        if(state == CoroutineExecutionStates::Suspended)
         {
             // 2. Resume the coroutine. We push a 'null' which will be the
             // return value of the 'yield' statement in the script.
@@ -51,7 +51,7 @@ void CoroutineManager::tick_coroutines()
             {
                 processCommand(coro.debug_name(), newState.value());
             }
-            else if(newState.error() == CoroutineStates::Idle)
+            else if(newState.error() == CoroutineExecutionStates::Idle)
             {
                 // Coroutine finished this tick
                 toRemove.emplace(coro.thread_context());

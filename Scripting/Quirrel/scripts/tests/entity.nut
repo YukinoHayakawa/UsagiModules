@@ -4,20 +4,20 @@
 from "engine_core" import native_log, get_delta_time, GameObject
 
 class Entity {
-    //cpp_obj = null
-    //state = null // This will hold our persistent state
+    cpp_obj = null
+    state = null // This will hold our persistent state
 
     constructor(entity_id, entity_name) {
         native_log($"entity.nut: constructor for {entity_name}")
 
         // Create a C++ GameObject instance
-        this.cpp_obj <- GameObject(entity_id)
+        this.cpp_obj = GameObject(entity_id)
 
         // *** HOT-RELOAD STATE ***
         // Use 'persist' to get/create our state.
         // The state will survive script reloads.
         local state_key = $"entity_state_{entity_id}"
-        this.state <- persist(state_key, @() {
+        this.state = persist(state_key, @() {
             // native_log($"entity.nut: Initializing NEW persistent state for {state_key}")
             // return {
                 name = entity_name,
@@ -57,4 +57,9 @@ class Entity {
             yield null
         }
     }
+}
+
+// !!! YOU MUST EXPORT THE CLASS SO IT CAN BE IMPORTED BY ANOTHER SCRIPT !!!
+return {
+    Entity = Entity
 }
