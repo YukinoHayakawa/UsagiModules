@@ -57,6 +57,10 @@
   <ItemGroup>
     <Compile Include="Config\Target.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="scripts\tests\entity.nut" />
+    <Content Include="scripts\tests\game_logic.nut" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets"/>
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

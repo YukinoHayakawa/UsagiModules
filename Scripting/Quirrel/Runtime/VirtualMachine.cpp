@@ -15,6 +15,11 @@
 
 #include <Usagi/Runtime/Exceptions/Exceptions.hpp>
 
+namespace
+{
+constexpr std::string_view gTestScriptPath { "scripts/tests/game_logic.nut" };
+} // namespace
+
 namespace usagi::scripting::quirrel
 {
 VirtualMachine::VirtualMachine(std::uint64_t initial_stack_size)
@@ -25,11 +30,13 @@ VirtualMachine::VirtualMachine(std::uint64_t initial_stack_size)
     , mModuleManager(GetRawHandle(), &mFileAccess)
     , mCoroutineManager(*this)
 {
+    init();
 }
 
 SQVM *
 VirtualMachine::CreateNewQuirrelVm(const std::uint64_t initial_stack_size)
 {
+    std::cout << " Initializing Quirrel VM..." << std::endl;
     const auto vm = sq_open(initial_stack_size);
     if(!vm)
     {
@@ -39,6 +46,7 @@ VirtualMachine::CreateNewQuirrelVm(const std::uint64_t initial_stack_size)
             "Failed to create Quirrel VM with initial_stack_size={}",
             initial_stack_size);
     }
+    spdlog::info("Root VM handle {}", (void *)vm);
     return vm;
 }
 
@@ -52,13 +60,15 @@ void VirtualMachine::init()
 
     // aux library
     // sets error handlers
-    // sqstd_seterrorhandlers(v);
+    // sqstd_seterrorhandlers(_vm);
     {
         sq_setcompilererrorhandler(_vm, &compileErrorHandler);
         // push new closure
         sq_newclosure(_vm, &errorHandler, 0);
         // set it as the new error handler
         sq_seterrorhandler(_vm);
+        mModuleManager.compilationOptions.raiseError       = true;
+        mModuleManager.compilationOptions.doStaticAnalysis = true;
     }
 
     // 2. Set up the debug hook for rich error reporting
@@ -90,6 +100,10 @@ void VirtualMachine::init()
         sqstd_register_stringlib(_vm);
         sqstd_register_debuglib(_vm);
 
+        // sq_pop(_vm, 1); // pop roottable
+
+        std::cout << " Registering libraries via SqModules..." << std::endl;
+
         mModuleManager.registerMathLib();
         mModuleManager.registerStringLib();
         mModuleManager.registerSystemLib();
@@ -108,7 +122,7 @@ bool VirtualMachine::loadScripts()
 
     // Use requireModule to load, compile, run, and cache the script
     bool success = mModuleManager.requireModule(
-        "scripts/tests/game_logic.nut", true, nullptr, exports, errorMsg);
+        gTestScriptPath.data(), true, nullptr, exports, errorMsg);
 
     if(!success)
     {
@@ -134,7 +148,7 @@ bool VirtualMachine::triggerReload()
     Sqrat::Object exports;
     std::string   errorMsg;
     bool          success = mModuleManager.reloadModule(
-        "game_logic.nut", true, nullptr, exports, errorMsg);
+        gTestScriptPath.data(), true, nullptr, exports, errorMsg);
 
     if(!success)
     {
