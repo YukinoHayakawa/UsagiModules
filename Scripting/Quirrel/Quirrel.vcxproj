@@ -18,8 +18,7 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props"/>
   <PropertyGroup>
-    <ConfigurationType>StaticLibrary</ConfigurationType>
-    <TargetName>sq</TargetName>
+    <ConfigurationType>Application</ConfigurationType>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props"/>
   <PropertyGroup>
@@ -38,12 +37,25 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Runtime\Coroutine.hpp"/>
+    <ClInclude Include="Runtime\CoroutineManager.hpp" />
+    <ClInclude Include="Config\Defines.hpp" />
+    <ClInclude Include="Runtime\VirtualMachine.hpp"/>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="QuirrelLibrary\QuirrelLibrary.vcxproj">
       <Project>{454558aa-5fb8-42e1-b7c5-11a833891c7a}</Project>
       <Name>QuirrelLibrary</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="Runtime\Coroutine.cpp" />
+    <ClCompile Include="Runtime\CoroutineManager.cpp" />
+    <ClCompile Include="Runtime\VirtualMachine.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Config\Target.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets"/>
   <ImportGroup Label="ExtensionTargets">
