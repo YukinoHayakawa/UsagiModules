@@ -58,12 +58,74 @@ local value = my_table?.property ?? "default";
 *   Use `base` to call methods from the parent class in an overridden method.
 *   Use `static` for class-level variables and methods.
 
-### Modules
+### Modules and Exports
 
-*   Use `import` and `from` to manage dependencies between script files.
-*   `import "module"` imports the entire module as a table.
-*   `from "module" import member` imports specific members into the current scope.
-*   `require("module")` is also available and returns the module's exports.
+*   To export functionality, end your script file with a `return` statement. The idiomatic approach is to return a table containing the functions, classes, or values you want to make public.
+*   Use `require("path/to/module.nut")` to import a module.
+*   Use destructuring assignment with `require` to cleanly import specific members into the local scope. This is the preferred method.
+
+```quirrel
+// --- file: math_lib.nut ---
+const PI = 3.14159;
+function circle_area(r) { return PI * r * r; }
+
+// Export public members
+return {
+    PI = PI,
+    circle_area = circle_area
+}
+
+// --- file: main.nut ---
+// Preferred way to import:
+let { circle_area } = require("math_lib.nut");
+
+let area = circle_area(10);
+```
+
+### State Management with `persist` for Hot-Reloading
+
+*   To ensure script state survives live reloads during development, all state must be managed with `persist(key, initializer)`.
+*   The `initializer` lambda is only run the very first time the state is created. On subsequent reloads, the existing value is returned.
+
+```quirrel
+// Use persist to hold a list of entities that survives reloads.
+let g_state = persist("global_entity_list", @() {
+    native_log("--- Initializing NEW global state ---");
+    return {
+        entities = [
+            Entity(1, "Player"),
+            Entity(2, "Enemy_1")
+        ]
+    }
+});
+```
+
+### Concurrency: Generators vs. Coroutines
+
+*   **Generators:** Use a generator function (one that `yield`s) when you need to create a custom iterator or a lazy sequence of values. They run on the caller's stack and their status becomes `"dead"` when finished.
+
+*   **Coroutines (Threads):** Use a coroutine (`newthread(func)`) for concurrent, pausable tasks. Coroutines have their own stack, making them perfect for entity update loops that are managed by the game engine.
+    *   **Lifecycle:** A coroutine's status (`my_thread.getstatus()`) transitions from `"idle"` -> `"suspended"` as it runs and pauses. When it finishes, it returns to the `"idle"` state.
+    *   **Pausing:** Use a simple `suspend()` or `yield` to pause execution until the next frame.
+    *   **Bidirectional Communication:** `suspend(...)` is a powerful tool for two-way communication with the C++ host.
+        *   To send data to the host, pass it as arguments: `suspend("SPAWN_PARTICLE", "fire.pfx", position)`.
+        *   To receive data from the host, use its return value: `let player_name = suspend("GET_PLAYER_NAME")`.
+
+```quirrel
+// An entity's main update loop, run as a coroutine by the engine.
+function UpdateCoroutine() {
+    // On the 100th tick, ask the engine for the object's name and print it.
+    if (this.state.tick_count == 100) {
+        let my_name = suspend("GET_MY_NAME", this.cpp_obj.GetId());
+        native_log($"The engine told me my name is {my_name}");
+    }
+
+    // Pause execution until the next frame.
+    // The engine will 'wakeup' this coroutine on the next game tick.
+    suspend();
+}
+```
+
 
 ### String Interpolation
 

@@ -47,7 +47,7 @@ statement = block | if_statement | while_statement | do_while_statement | switch
             return_statement | yield_statement | local_variable_declaration |
             let_binding_declaration | function_declaration | class_declaration |
             try_catch_statement | throw_statement | const_declaration | enum_declaration |
-            expression_statement ;
+            import_statement | expression_statement ;
 
 block = "{" , statement_list , "}" ;
 
@@ -98,6 +98,9 @@ const_declaration = [ "global" ] , "const" , identifier , "=" , expression ;
 enum_declaration = [ "global" ] , "enum" , identifier , "{" , [ enum_member , { ("," | " ") , enum_member } ] , "}" ;
 
 enum_member = identifier , [ "=" , ( integer_literal | float_literal | string_literal ) ] ;
+
+import_statement = "from" , string_literal , "import" , identifier , { "," , identifier } |
+                   "import" , string_literal ;
 
 expression_statement = expression ;
 

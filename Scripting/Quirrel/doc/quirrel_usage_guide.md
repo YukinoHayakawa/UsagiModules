@@ -276,23 +276,104 @@ Classes can define metamethods (like `_add`, `_get`, `_set`) to customize their 
 
 ## 7. Advanced Features
 
-### 7.1. Generators and Coroutines
+### 7.1. Concurrency: Generators and Coroutines
 
-Generators are functions that can be suspended and resumed. Coroutines (threads) are similar but have their own execution stack.
+Quirrel provides two powerful mechanisms for managing control flow: generators for iteration and coroutines for concurrent tasks. While they both use `yield`, they serve different purposes.
+
+#### 7.1.1. Generators
+
+A generator is a function that can be suspended and resumed, producing a sequence of values on demand. They are essentially resumable functions that run on the **caller's stack**. Generators are excellent for creating custom, lazy iterators.
+
+When a generator function finishes, its state becomes `"dead"`.
 
 ```quirrel
+// This function is a generator
 function count_to(n) {
     for (local i = 1; i <= n; i++) {
-        yield i;
+        yield i; // Pauses and returns the value of i
     }
 }
 
-let counter = count_to(3);
+let counter_gen = count_to(3);
+println(counter_gen.getstatus()); // "suspended"
+
 local value;
-while(value = resume counter) {
+while(value = resume counter_gen) {
     println(value);
 }
+// Output:
+// 1
+// 2
+// 3
+
+println(counter_gen.getstatus()); // "dead"
 ```
+
+#### 7.1.2. Coroutines (Threads)
+
+A coroutine, called a `thread` in Quirrel, is a function that has its **own execution stack**. This allows it to be suspended and resumed independently of the main program flow, making it ideal for cooperative multitasking, such as managing an entity's logic over multiple game frames.
+
+##### Coroutine Lifecycle and Status
+
+A coroutine transitions through several states, which can be queried using the `getstatus()` method:
+
+1.  **`"idle"`**: The initial state of a new coroutine, or the state after it has finished executing its function. A C++ host can check for this state to know a coroutine has completed its work.
+2.  **`"running"`**: The coroutine is currently executing code.
+3.  **`"suspended"`**: The coroutine is paused, having called `yield` or `suspend`. It is waiting to be resumed by a call to `wakeup()`.
+
+```quirrel
+let co = newthread(function(val) {
+    println($"Coroutine started with: {val}");
+    suspend(); // Pause and wait to be woken up
+    println("Coroutine resumed.");
+});
+
+println(co.getstatus()); // "idle"
+
+co.call("Hello"); // Start the coroutine
+println(co.getstatus()); // "suspended"
+
+co.wakeup(); // Resume the coroutine
+println(co.getstatus()); // "idle" (it has now finished)
+```
+
+##### Bidirectional Communication with `suspend`
+
+The global `suspend(...)` function is the primary mechanism for a coroutine to communicate with the C++ host. It is a variadic function that can both send multiple values to the host and receive a value back.
+
+-   **Sending Data to Host**: Any arguments passed to `suspend` are pushed to the stack for the C++ host to read.
+-   **Receiving Data from Host**: The value returned by `suspend` is the value the C++ host provides when it wakes the coroutine up.
+
+```quirrel
+// --- In Script ---
+function RequestDataCoroutine(id) {
+    // Send a command and an ID to the C++ host, and wait for a result.
+    let result = suspend("GET_ENTITY_NAME", id);
+
+    // When resumed, 'result' will hold the value from C++.
+    println($"Received entity name: {result}");
+    return result;
+}
+
+// --- In C++ (Conceptual) ---
+// After sq_resume(v, ...) returns SQ_SUSPEND, the host can:
+// 1. Check the stack for arguments passed to suspend().
+//    e.g., read the string "GET_ENTITY_NAME" and the integer id.
+// 2. Find the requested data (e.g., from a database).
+// 3. Push the result (e.g., the entity's name string) onto the stack.
+// 4. Call sq_wakeup(v, ...) to resume the coroutine. The pushed
+//    value will become the return value of 'suspend' in the script.
+```
+
+##### Coroutine Object Methods
+
+Thread objects have several built-in methods for managing them:
+
+-   `my_thread.call(...)`: Starts the coroutine, passing arguments to its main function.
+-   `my_thread.wakeup(value = null)`: Resumes a suspended coroutine. The optional `value` is passed as the return value of `yield` or `suspend`.
+-   `my_thread.getstatus()`: Returns a string representing the current state: `"idle"`, `"running"`, or `"suspended"`.
+-   `my_thread.getstackinfos(level)`: A powerful debugging tool that returns a table of information (function name, source, line number, locals) for a specific level of the coroutine's call stack.
+
 
 ### 7.2. Destructuring Assignment
 
@@ -303,22 +384,114 @@ let [a, b] = [1, 2];
 let {x, y} = { x = 10, y = 20 };
 ```
 
-### 7.3. Modules
+### 7.3. Modules and Hot-Reloading
 
-Quirrel supports modules for code organization.
+Quirrel has a powerful module system for code organization, dependency management, and supporting live-script reloading (hot-reloading) without losing state.
+
+#### 7.3.1. Exporting from a Module
+
+A script file acts as a module. To export values, classes, or functions, a script should end with a `return` statement. The returned value is what importers will receive. It's idiomatic to return a table containing the public members of the module.
 
 ```quirrel
-// file: my_module.nut
-let PI = 3.14159;
-function circle_area(radius) {
-    return PI * radius * radius;
+// file: vector.nut
+class Vec2 {
+  constructor(x, y) { this.x = x; this.y = y; }
+  function length() { return Math.sqrt(x*x + y*y); }
 }
 
-// file: main.nut
-from "my_module.nut" import PI, circle_area;
+function new_vec(x, y) {
+  return Vec2(x, y);
+}
 
-println(circle_area(10));
+// Export the class and the factory function
+return {
+  Vec2 = Vec2,
+  new_vec = new_vec
+}
 ```
+
+#### 7.3.2. Importing with `require`
+
+The `require(path)` function executes a script and returns the value from its `return` statement. This is the most common way to import a module. You can assign the entire module table to a variable or use destructuring to unpack specific members.
+
+```quirrel
+// Import the whole module table
+local VectorModule = require("vector.nut");
+let v1 = VectorModule.new_vec(3, 4);
+
+// Use destructuring to import specific members
+let { Vec2, new_vec } = require("vector.nut");
+let v2 = Vec2(5, 12);
+println(v2.length());
+```
+
+#### 7.3.3. Importing with `from ... import`
+
+As an alternative to `require`, you can use the `from ... import` syntax, which may be more familiar to Python developers. It imports the specified members directly into the current scope.
+
+```quirrel
+// file: main.nut
+from "vector.nut" import Vec2, new_vec;
+
+let v = new_vec(1, 1);
+```
+
+#### 7.3.4. Module Hot-Reloading with `persist`
+
+A key feature for game development is the ability to change script logic while the game is running. Quirrel facilitates this via the `persist(key, initializer)` global function. It allows state to survive script reloads.
+
+-   `key`: A unique string to identify the persistent state.
+-   `initializer`: A lambda function that is **only executed if the key is not found** in the persistent storage. It must return the initial value for the state.
+
+On subsequent reloads, `persist` will return the already-existing value associated with the `key`, and the `initializer` lambda will be ignored.
+
+**Example: Global State**
+
+This preserves a global list of entities across reloads.
+
+```quirrel
+// game_logic.nut
+let Entity = require("entity.nut");
+
+// The 'g_state' table will survive reloads.
+// The initializer runs only on the first load.
+let g_state = persist("global_entity_list", @() {
+    print("--- Initializing NEW global state ---");
+    return {
+        entities = [ Entity(1, "Player"), Entity(2, "Enemy") ]
+    }
+});
+```
+
+**Example: Instance State**
+
+This pattern can be used within a class constructor to attach persistent state to an entity instance.
+
+```quirrel
+// entity.nut
+class Entity {
+    state = null // This will hold our persistent state
+
+    constructor(entity_id) {
+        // Use a unique key for this entity's state
+        local state_key = $"entity_state_{entity_id}";
+
+        // Get or create the persistent state for this instance
+        this.state = persist(state_key, @() {
+            print($"--- Initializing NEW state for {state_key} ---");
+            return { tick_count = 0, position = 0.0 }
+        })
+
+        // This log will show the old tick_count on reload
+        print($"Entity {entity_id} loaded with tick_count={this.state.tick_count}");
+    }
+
+    function update() {
+        this.state.tick_count++;
+    }
+}
+```
+
 
 ### 7.4. Compiler Directives
 
