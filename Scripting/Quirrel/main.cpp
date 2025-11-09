@@ -1,6 +1,6 @@
 ﻿#include <spdlog/spdlog.h>
 
-#include "Runtime/VirtualMachine.hpp"
+#include "Execution/VirtualMachine.hpp"
 
 using namespace usagi::scripting::quirrel;
 
