@@ -58,6 +58,9 @@
     <Compile Include="Config\Target.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="doc\quirrel.ebnf" />
+    <Content Include="doc\quirrel_gemini_prompt.md" />
+    <Content Include="doc\quirrel_usage_guide.md" />
     <Content Include="scripts\tests\entity.nut" />
     <Content Include="scripts\tests\game_logic.nut" />
   </ItemGroup>

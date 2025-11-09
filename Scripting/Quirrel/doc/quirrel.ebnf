@@ -1,0 +1,182 @@
+(* Quirrel Language EBNF Grammar *)
+
+(* Shio: This EBNF is an attempt to formalize the Quirrel scripting language syntax.
+   It is based on the official documentation, language specification, and analysis of the
+   provided test suite files. It aims to be comprehensive but may have minor inaccuracies.
+*)
+
+(* ----------------------------------------------------------------- *)
+(* Lexical Structure                                                 *)
+(* ----------------------------------------------------------------- *)
+
+letter = "a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i" | "j" | "k" | "l" | "m" | "n" | "o" | "p" | "q" | "r" | "s" | "t" | "u" | "v" | "w" | "x" | "y" | "z" |
+         "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I" | "J" | "K" | "L" | "M" | "N" | "O" | "P" | "Q" | "R" | "S" | "T" | "U" | "V" | "W" | "X" | "Y" | "Z" ;
+digit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
+hex_digit = digit | "a" | "b" | "c" | "d" | "e" | "f" | "A" | "B" | "C" | "D" | "E" | "F" ;
+
+identifier = ( letter | "_" ) , { letter | digit | "_" } ;
+
+(* Literals *)
+integer_literal = ("0x" | "0X") , hex_digit, { ["_"], hex_digit } |
+                  "'" , ? any character ? , "'" |
+                  digit, { ["_"], digit } ;
+
+float_literal = digit, { digit }, "." , digit, { digit }, [ ("e" | "E"), ["+" | "-"], digit, { digit } ] |
+                digit, { digit }, ("e" | "E"), ["+" | "-"], digit, { digit } ;
+
+string_literal = '"' , { ? any character except '"' or '\\' ? | escape_sequence } , '"' |
+                 "'" , { ? any character except ''' or '\\' ? | escape_sequence } , "'" |
+                 "@" , '"' , { ? any character except '"' ? | """" } , '"' |
+                 "@" , "'" , { ? any character except ''' ? | "''" } , "'" ;
+
+interpolated_string = "$" , string_literal ; (* Simplified, see expression for full form *)
+
+escape_sequence = "\\" , ( "t" | "a" | "b" | "n" | "r" | "v" | "f" | "\" | '"' | "'" | "0" |
+                           "x" , hex_digit, hex_digit |
+                           "u" , hex_digit, hex_digit, hex_digit, hex_digit |
+                           "U" , hex_digit, hex_digit, hex_digit, hex_digit, hex_digit, hex_digit, hex_digit, hex_digit) ;
+
+(* ----------------------------------------------------------------- *)
+(* Statements                                                        *)
+(* ----------------------------------------------------------------- *)
+
+statement_list = { statement, [";" | "\n"] } ;
+
+statement = block | if_statement | while_statement | do_while_statement | switch_statement |
+            for_statement | foreach_statement | break_statement | continue_statement |
+            return_statement | yield_statement | local_variable_declaration |
+            let_binding_declaration | function_declaration | class_declaration |
+            try_catch_statement | throw_statement | const_declaration | enum_declaration |
+            expression_statement ;
+
+block = "{" , statement_list , "}" ;
+
+if_statement = "if" , "(" , expression , ")" , statement , [ "else" , statement ] ;
+
+while_statement = "while" , "(" , expression , ")" , statement ;
+
+do_while_statement = "do" , statement , "while" , "(" , expression , ")" ;
+
+switch_statement = "switch" , "(" , expression , ")" ,
+                   "{" , { "case" , expression , ":" , statement_list } ,
+                   [ "default" , ":" , statement_list ] , "}" ; (* Deprecated *)
+
+for_statement = "for" , "(" , [ expression | local_variable_declaration ] , ";" ,
+                [ expression ] , ";" , [ expression ] , ")" , statement ;
+
+foreach_statement = "foreach" , "(" , [ identifier , "," ] , identifier , "in" , expression , ")" , statement ;
+
+break_statement = "break" ;
+
+continue_statement = "continue" ;
+
+return_statement = "return" , [ expression ] ;
+
+yield_statement = "yield" , [ expression ] ;
+
+local_variable_declaration = "local" , identifier , { "," , identifier } , [ "=" , expression , { "," , expression } ] ;
+
+let_binding_declaration = "let" , identifier , "=" , expression , { "," , identifier , "=" , expression } ;
+
+function_declaration = "function" , identifier , "(" , [ parameter_list ] , ")" , block ;
+
+parameter_list = identifier , { "," , identifier } , [ "," , "..." ] | "..." ;
+
+class_declaration = "class" , expression , [ "(" , expression , ")" ] , "{" , { class_member } , "}" ;
+
+class_member = identifier , "=" , expression , [";"] | 
+               "[" , expression , "]" , "=" , expression , [";"] |
+               function_declaration |
+               "constructor" , "(" , [ parameter_list ] , ")" , block ;
+
+try_catch_statement = "try" , statement , "catch" , "(" , identifier , ")" , statement ;
+
+throw_statement = "throw" , expression ;
+
+const_declaration = [ "global" ] , "const" , identifier , "=" , expression ;
+
+enum_declaration = [ "global" ] , "enum" , identifier , "{" , [ enum_member , { ("," | " ") , enum_member } ] , "}" ;
+
+enum_member = identifier , [ "=" , ( integer_literal | float_literal | string_literal ) ] ;
+
+expression_statement = expression ;
+
+(* ----------------------------------------------------------------- *)
+(* Expressions                                                       *)
+(* ----------------------------------------------------------------- *)
+
+expression = assignment_expression ;
+
+assignment_expression = logical_or_expression , [ ( "=" | "+=" | "-=" | "*=" | "/=" | "%=" | "<-" ) , assignment_expression ] ;
+
+logical_or_expression = logical_and_expression , { "||" , logical_and_expression } ;
+
+logical_and_expression = bitwise_or_expression , { "&&" , bitwise_or_expression } ;
+
+bitwise_or_expression = bitwise_xor_expression , { "|" , bitwise_xor_expression } ;
+
+bitwise_xor_expression = bitwise_and_expression , { "^" , bitwise_and_expression } ;
+
+bitwise_and_expression = equality_expression , { "&" , equality_expression } ;
+
+equality_expression = relational_expression , { ( "==" | "!=" | "<=>" ) , relational_expression } ;
+
+relational_expression = shift_expression , { ( "<" | "<=" | ">" | ">=" | "in" | "instanceof" | "not in" ) , shift_expression } ;
+
+shift_expression = additive_expression , { ( "<<" | ">>" | ">>>" ) , additive_expression } ;
+
+additive_expression = multiplicative_expression , { ( "+" | "-" ) , multiplicative_expression } ;
+
+multiplicative_expression = unary_expression , { ( "*" | "/" | "%" ) , unary_expression } ;
+
+unary_expression = ( "!" | "~" | "-" | "typeof" | "++" | "--" | "clone" | "delete" | "static" ) , unary_expression |
+                   postfix_expression ;
+
+postfix_expression = primary_expression , { postfix_operator } ;
+
+postfix_operator = member_access | index_access | function_call | "++" | "--" ;
+
+member_access = ( "." | "?." | ".$ " | "?.$ " ) , identifier ;
+
+index_access = ( "[" | "?[" ) , expression , "]" ;
+
+function_call = "(" , [ expression , { "," , expression } ] , ")" ;
+
+primary_expression = identifier |
+                     integer_literal |
+                     float_literal |
+                     string_literal |
+                     "null" |
+                     "true" |
+                     "false" |
+                     "this" |
+                     "::" , identifier | (* Root table access *)
+                     "base" |
+                     "(" , expression , ")" |
+                     table_constructor |
+                     array_constructor |
+                     function_expression |
+                     lambda_expression |
+                     class_expression |
+                     destructuring_assignment |
+                     "const" , expression |
+                     "resume" , expression ;
+
+table_constructor = "{" , [ table_slot , { ("," | " ") , table_slot } ] , "}" ;
+
+table_slot = identifier |
+             identifier , "=" , expression |
+             "[" , expression , "]" , "=" , expression ;
+
+array_constructor = "[" , [ expression , { ("," | " ") , expression } ] , "]" ;
+
+function_expression = "function" , [ identifier ] , "(" , [ parameter_list ] , ")" , block ;
+
+lambda_expression = "@" , [ "[" , "pure" , "]" ] , [ identifier ] , "(" , [ parameter_list ] , ")" , expression ;
+
+class_expression = "class" , [ "(" , expression , ")" ] , "{" , { class_member } , "}" ;
+
+destructuring_assignment = ( "{" , [ destructuring_field , { "," , destructuring_field } ] , "}" |
+                           "[" , [ destructuring_field , { "," , destructuring_field } ] , "]" ) , "=" , expression ;
+
+destructuring_field = identifier , [ "=" , expression ] ;
