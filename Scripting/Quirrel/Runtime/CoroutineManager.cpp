@@ -22,14 +22,12 @@ void CoroutineManager::tick_coroutines()
         // 1. Check state *before* resuming
         auto state = coro.get_state();
 
-        /*
         if(state == CoroutineExecutionStates::Idle)
         {
             // Coroutine finished, mark for removal
             toRemove.emplace(coro.thread_context());
             continue;
         }
-        */
 
         if(state == CoroutineExecutionStates::Suspended)
         {
@@ -44,7 +42,8 @@ void CoroutineManager::tick_coroutines()
             if(SQ_FAILED(coro.resume(true)))
             {
                 // Shio: Coroutine failed.
-                spdlog::error(" Coroutine {} failed.", coro.debug_name());
+                spdlog::error(
+                    " Resuming coroutine {} failed.", coro.debug_name());
                 toRemove.emplace(coro.thread_context());
                 continue;
             }
@@ -129,8 +128,7 @@ void CoroutineManager::_findAndCreateCoroutines(Sqrat::Object & exports)
         // g. Start the coroutine AND CHECK FOR ERRORS
         if(SQ_FAILED(mActiveCoroutines.back().start()))
         {
-            spdlog::error(
-                " Failed to start coroutine: {}. Removing.", coroId);
+            spdlog::error(" Failed to start coroutine: {}. Removing.", coroId);
             // todo: get and print squirrel error
             mActiveCoroutines.pop_back();
         }

@@ -27,14 +27,26 @@ let g_state = persist("global_entity_list", @() {
 
 native_log($"game_logic.nut: {g_state.entities.len()} entities loaded from persistent state.")
 
+function test()
+{
+    while(true)
+    {
+        suspend("get_delta_time()", 1, true)
+    }
+    //suspend("test")
+    //return 1
+}
+
 // This is the factory function C++ will call
 function GetAllEntityCoroutines() {
     native_log($"game_logic.nut: C++ requested 'GetAllEntityCoroutines'")
     local coroutines = []
     foreach(entity in g_state.entities) {
-        // Add the 'UpdateCoroutine' function from each entity instance
+       // Add the 'UpdateCoroutine' function from each entity instance
         coroutines.append(entity.UpdateCoroutine.bindenv(entity))
     }
+    coroutines.append(function() { while(true) { suspend("test") } })
+    coroutines.append(test)
     return coroutines
 }
 

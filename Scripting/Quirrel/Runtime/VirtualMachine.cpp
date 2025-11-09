@@ -74,7 +74,7 @@ void VirtualMachine::init()
     sq_setforeignptr(_vm, this);
     // todo fix
     // sq_setdebughook(_vm, debugHook);
-    // sq_setnativedebughook(_vm, &debugHook);
+    sq_setnativedebughook(_vm, &debugHook);
 
     // 3. Set up the module manager to handle all library registration
     // mFileAccess = std::make_unique<DefSqModulesFileAccess>();
@@ -279,7 +279,7 @@ void VirtualMachine::debugHook(
             break;
     }
 
-    errorHandler(v);
+    // errorHandler(v);
 }
 
 SQInteger VirtualMachine::errorHandler(HSQUIRRELVM v)

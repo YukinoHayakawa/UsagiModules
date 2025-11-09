@@ -32,7 +32,8 @@ class Entity {
 
     // This is the coroutine function
     function UpdateCoroutine() {
-        native_log($"{this.state.name} UpdateCoroutine started.")
+        print($"{this.state.name} UpdateCoroutine started.")
+        suspend("xxx")
 
         // This is the main game loop for this entity
         while (true) {
@@ -48,13 +49,13 @@ class Entity {
             if (this.state.tick_count % 100 == 0) {
                 local cmd = $"CHECKPOINT_{this.state.tick_count}"
                 native_log($"{this.state.name} yielding command: {cmd}")
-                yield cmd // Pauses and sends string to C++
+                suspend(cmd) // Pauses and sends string to C++
             }
 
             // --- 3. Wait for next frame ---
             // 'yield null' (or just 'yield') pauses execution
             // until C++ resumes us on the next tick.
-            yield null
+            suspend(null)
         }
     }
 }

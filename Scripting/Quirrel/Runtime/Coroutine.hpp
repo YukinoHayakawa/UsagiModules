@@ -82,11 +82,15 @@ public:
     template <typename T>
     SQRESULT resume(T && value, bool invoke_err_handler)
     {
+        // This is the "tick" call.
+        // The VM MUST be in a 'SUSPENDED' state.
+
         // Push the provided value (e.g., delta-time)
         Sqrat::PushVar(thread_context(), std::forward<T>(value));
+
         // resumedret=true: Use the value we just pushed.
         return sq_wakeupvm(
-            thread_context(), true, false, invoke_err_handler, false);
+            thread_context(), SQTrue, SQFalse, invoke_err_handler, SQFalse);
     }
 
     runtime::MaybeError<std::string, CoroutineExecutionStates>

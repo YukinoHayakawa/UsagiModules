@@ -34,6 +34,7 @@ public:
 
 float get_delta_time()
 {
+    spdlog::info(" hit");
     return 0.016f; // Stub: always return 16ms
 }
 
