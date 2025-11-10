@@ -48,6 +48,7 @@
     <ClInclude Include="Execution\ThreadExecutionStates.hpp" />
     <ClInclude Include="Execution\VirtualMachine.hpp" />
     <ClInclude Include="Language\ObjectTypes.hpp" />
+    <ClInclude Include="Language\Tables.hpp" />
     <ClInclude Include="Language\Types.hpp" />
   </ItemGroup>
   <ItemGroup>
