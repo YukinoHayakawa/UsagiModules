@@ -7,6 +7,9 @@
 #include <sqclosure.h>
 // clang-format on
 
+#include <sqarray.h>
+#include <sqtable.h>
+
 #include <sqrat/sqratObject.h>
 
 #include <Usagi/Library/Meta/Reflection/Enums.hpp>
@@ -111,7 +114,8 @@ CoroutineStates Coroutine::CreateCoroutine(
         throw InvalidVirtualMachine("sq_newthread failed!");
     }
 
-    Ret.debug_name = std::move(debug_name);
+    Ret.coroutine_func = coroutine_func;
+    Ret.debug_name     = std::move(debug_name);
 
     // b. Get an HSQOBJECT handle to the thread object (at stack top: -1).
     // This handle is for the GC.
@@ -165,6 +169,9 @@ CoroutineStates Coroutine::CreateCoroutine(
     sq_pushobject(Ret.execution_context, coroutine_func.GetObject());
     // sq_pushobject(root_vm, coroutine_func.GetObject()); incorrect. crash.
 
+    // f. Save the context object for later use.
+    sq_getstackobj(Ret.execution_context, 1, &Ret.context_instance);
+
     // Now the stack is [roottable][closure] and is ready to be called
 
     return Ret;
@@ -201,6 +208,25 @@ SQRESULT Coroutine::start()
     }
 
     /*
+     * If you coroutine contains local or intermediate variables, it is
+     * important to note that `sq_call()` will **NOT** clean the local or
+     * temporary variables on the stack. The arguments of your `suspend(...)`
+     * call will be mixed with them. A workaround is to **ALWAYS** put a
+     * `suspend(...)` call at the first line of the coroutine function and cause
+     * the function to yield immediately. This way, though the local and
+     * temporary variables will still be on the stack, they will all be `NULL`,
+     * so if you scan from `sq_get...()` from `idx=4` upwards, you will only get
+     * the arguments passed from `suspend(...)`. **DO NOT** reset the stack
+     * during the first call to the coroutine as doing so will corrupt the
+     * stack, preventing local and intermediate variables from being initialized
+     * later. During exactly the next frame, push the whole stack of
+     * `[roottable][closure][this][args...]` and call `sq_wakeupvm()` and this
+     * time the vm will finish what left to do during the first call, and it's
+     * now safe to reset the stack to `[roottable][closure]` again.
+     */
+    mExecutionFrame = 0;
+
+    /*
      * Ok, let's now have a look at `thread_call()` and `SQVM::StartCall()` to
      * see how to start our thread. First, you gotta make sure our object is
      * indeed a thread, this should be an invariant for our class.
@@ -229,6 +255,11 @@ SQRESULT Coroutine::start()
     // After calling `sq_call()`, this value will be popped.
     // This makes [roottable][closure][this] on the stack.
     // sq_pushobject(thread_context(), ...);
+
+    // SQClosure::Create(
+    //     thread_context()->_sharedstate,
+    //     _closure(coroutine_handle())->_function
+    // );
     _internal_push_instance();
 
     // The coroutine VM's stack is now: [base=1][function_to_run][this_obj]
@@ -246,10 +277,18 @@ SQRESULT Coroutine::start()
         "pre-call: {}", Debugger::format_stack_frame(thread_context())
     );
 
+    // const SQInteger stackbase = sq_gettop(thread_context());
+
     const auto ExitGuard = MakeScopeExitGuard([&] {
         root_vm()->logger().trace(
             "during-call: {}", Debugger::format_stack_frame(thread_context())
         );
+
+        // f. Save the context object for later use.
+        // sq_getstackobj(
+        //     thread_context(), 3, &GetRawHandleMutable().context_instance
+        // );
+
         // Note that at this stage the stack may contain arguments for other
         // functions calls not yet cleaned up, and local variables on the stack.
         root_vm()->logger().trace(
@@ -257,19 +296,32 @@ SQRESULT Coroutine::start()
         );
         // Calling a coroutine should either cause it to suspend or finish.
         root_vm()->logger().trace(
-            "exec-state: {}", meta::enum_to_string(get_execution_state())
+            "post-call-state: {}", meta::enum_to_string(get_execution_state())
         );
         // Clean up the stack to finish the call.
         // clean up     [roottable][closure][this][args...]
-        // Leaving only [roottable][closure] on the stack
-        sq_pop(thread_context(), sq_gettop(thread_context()) - 2);
+        // Leaving only [roottable] on the stack
+        // sq_pop(thread_context(), sq_gettop(thread_context()) - 1);
+        // restore stackframe
+
+        // It's actually fine just clean things up here... It won't disrupt
+        // the execution flow. Obviously the VM holds some internal states
+        // for the intermediate values.
+        // sq_settop(thread_context(), 1);
         root_vm()->logger().trace(
             "post-call: {}", Debugger::format_stack_frame(thread_context())
         );
+        ++mExecutionFrame;
     });
 
     // Seems `sq_call` is also variadic so we just keep `[roottable][closure]`
+    // ... according to `calls.rst`, if the execution of the function is
+    // `suspend(...)`ed, the closure, arguments, and seems like local variables
+    // **will not** be automatically popped. So probably we will have to use
+    // `sq_getlocal()` to clean up local variables.
     if(SQ_SUCCEEDED(sq_call(thread_context(), 1, SQFalse, SQTrue)))
+    // if(SQ_SUCCEEDED(sq_call(thread_context(), sq_gettop(thread_context()) -
+    // 1, SQTrue, SQTrue)))
     {
         // sq_settop(thread_context(), 1);
         // clean up [roottable][closure][this]
@@ -277,8 +329,8 @@ SQRESULT Coroutine::start()
         // sq_pop(thread_context(), 1);
         return 1;
     }
-    // On error, clean up the stack. Leaving only the root table.
-    sq_pop(thread_context(), 1);
+    // On error, also clean up the stack. Leaving only the root table.
+    // sq_pop(thread_context(), 1);
     // sq_settop(thread_context(), 1);
     return 0;
     // `sq_resume` only works for generators, not for coroutines which are
@@ -297,13 +349,16 @@ SQRESULT Coroutine::resume(const bool invoke_err_handler)
 
 void Coroutine::_internal_push_instance()
 {
-    SQObject o;
-    sq_getstackobj(thread_context(), 1, &o);
-    sq_pushobject(thread_context(), o);
+    // SQObject o;
+    // sq_getstackobj(thread_context(), 1, &o);
+    // sq_pushobject(thread_context(), coroutine_handle());
     // if the coroutine is bound to certain object, we must push the
     // corresponding OT_INSTANCE onto the stack, otherwise the function
     // cannot be called.
     // sq_pushnull(thread_context());
+    // sq_pushobject(thread_context(), coroutine_func().GetObject());
+    // This provides the `this` pointer for the coroutine function.
+    sq_pushobject(thread_context(), context_instance());
 }
 
 /*
@@ -319,37 +374,43 @@ SQRESULT Coroutine::_internal_resume(
         "pre-resume: {}", Debugger::format_stack_frame(thread_context())
     );
 
+    // if(mExecutionFrame == 1) sq_pushroottable(thread_context());
+
     if(push_this)
     {
-        _internal_push_instance();
+        // sq_pushroottable(thread_context());
+        // _internal_push_instance();
     }
 
     // This is the "tick" call.
     // The VM MUST be in a 'SUSPENDED' state.
-    const auto state         = get_execution_state();
-    SQInteger  stackTop      = 0;
-    SQInteger  varsToPop     = 0;
-    bool       pop_roottable = false;
-    const auto exit          = MakeScopeExitGuard([&] {
-        if(pop_roottable) sq_pop(thread_context(), varsToPop);
+    const auto            state       = get_execution_state();
+    // SQInteger  stackTop      = 0;
+    // SQInteger  varsToPop     = 0;
+    [[maybe_unused]] bool pop_closure = false;
+    const auto            exit        = MakeScopeExitGuard([&] {
+        // if(mExecutionFrame == 1)
+        // sq_settop(thread_context(), 1);
+        // if(pop_closure) sq_pop(thread_context(), 1);
         root_vm()->logger().trace(
             "post-resume: {}", Debugger::format_stack_frame(thread_context())
         );
+        ++mExecutionFrame;
         // sq_settop(thread_context(), 1);
     });
 
     if(state == ThreadExecutionStates::Idle)
     {
         // Leave [roottable] on the stack
-        pop_roottable = true;
-        varsToPop     = sq_gettop(thread_context()) - 1;
+        pop_closure = true;
+        // varsToPop     = sq_gettop(thread_context()) - 1;
         return sq_throwerror(thread_context(), "cannot wakeup a idle thread");
     }
     if(state == ThreadExecutionStates::Running)
     {
-        // Leave [roottable][closure] on the stack
-        pop_roottable = true;
-        varsToPop     = sq_gettop(thread_context()) - 2;
+        // Leave [roottable] on the stack
+        pop_closure = false;
+        // varsToPop     = sq_gettop(thread_context()) - 1;
         return sq_throwerror(
             thread_context(), "cannot wakeup a running thread"
         );
@@ -385,15 +446,17 @@ SQRESULT Coroutine::_internal_resume(
             "frame-values: {}", Debugger::format_stack_values(thread_context())
         );
 
-        stackTop  = sq_gettop(thread_context());
-        varsToPop = stackTop - 2; // Leave [roottable][closure] on the stack
+        pop_closure = false;
+        // stackTop    = sq_gettop(thread_context());
+        // varsToPop   = stackTop - 1; // Leave [roottable][closure] on the
+        // stack
 
         // coroutine finished execution. pop the closure.
         if(get_execution_state() == ThreadExecutionStates::Idle)
         {
             // Leave [roottable] on the stack
-            pop_roottable = true;
-            varsToPop     = stackTop - 1;
+            pop_closure = true;
+            // varsToPop   = stackTop - 1;
             // sq_settop(thread_context(), 1);
         }
         return 1;
@@ -404,8 +467,8 @@ SQRESULT Coroutine::_internal_resume(
     );
 
     // Operation failed. Leave only [roottable] on the stack
-    pop_roottable = true;
-    varsToPop     = sq_gettop(thread_context()) - 1;
+    pop_closure = true;
+    // varsToPop   = sq_gettop(thread_context()) - 1;
     // sq_settop(thread_context(), 1);
     return SQ_ERROR;
 }
@@ -471,11 +534,12 @@ runtime::MaybeError<std::string, ThreadExecutionStates>
     // of passed arguments. We can refer to `print(...)` for how to handle
     // variadic functions.
     root_vm()->logger().trace("pre-yield: {}", Debugger::format_stack_frame(v));
-    // Leaving only [roottable][closure] on the stack
+    // Leaving only [roottable] on the stack
     if(stackTop > 3)
     {
         // todo: handle command dispatching here
-        sq_pop(v, stackTop - 2);
+        // sq_pop(v, stackTop - 1);
+        // sq_settop(v, 3);
     }
     root_vm()->logger().trace(
         "post-yield: {}", Debugger::format_stack_frame(v)

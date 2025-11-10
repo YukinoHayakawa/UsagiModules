@@ -8,6 +8,8 @@ using namespace usagi::scripting::quirrel;
 
 namespace
 {
+std::shared_ptr<VirtualMachine> gGameServer;
+
 /**
  * @brief Represents a C++ object that can be manipulated by Quirrel.
  */
@@ -20,7 +22,7 @@ public:
     GameObject(int objectId) : id(objectId), x(0.0f), y(0.0f), z(0.0f)
     {
         // Shio: [C++] GameObject created.
-        spdlog::info("[C++] GameObject(id={}) created.", id);
+        gGameServer->logger().info("[C++] GameObject(id={}) created.", id);
     }
 
     void SetPosition(float nx, float ny, float nz)
@@ -29,7 +31,7 @@ public:
         y = ny;
         z = nz;
         // Shio: [C++] GameObject position set.
-        spdlog::info(
+        gGameServer->logger().info(
             "[C++] GameObject {} position set to ({}, {}, {})", id, x, y, z
         );
     }
@@ -37,17 +39,19 @@ public:
 
 float get_delta_time()
 {
-    spdlog::info(" hit");
+    gGameServer->logger().info("get_delta_time() hit");
     return 0.016f; // Stub: always return 16ms
 }
 
 SQInteger native_log(HSQUIRRELVM v)
 {
     const SQChar * str;
-    if(SQ_SUCCEEDED(sq_getstring(v, 2, &str)))
+    SQInteger      size;
+    if(SQ_SUCCEEDED(sq_getstringandsize(v, 2, &str, &size)))
     {
         // Shio: native_log
-        spdlog::info(" {}", str);
+        gGameServer->logger().info(" {}", std::string_view(str, size));
+        // sq_pop(v, 2);
     }
     return 0; // 0 return values
 }
@@ -61,7 +65,7 @@ int main(int argc, char ** argv)
     // Create the dummy script files on disk
     // CreateDummyScripts();
 
-    auto server = std::make_shared<VirtualMachine>(
+    auto & server = gGameServer = std::make_shared<VirtualMachine>(
         std::make_shared<usagi::runtime::RuntimeLogger>("QuirrelLogger")
     );
     server->logger().add_console_sink();
@@ -133,11 +137,13 @@ int main(int argc, char ** argv)
     }
 
     // Shio: --- SCRIPT SERVER RUNNING ---
-    spdlog::info("\n--- SCRIPT SERVER RUNNING ---");
+    server->logger().info("\n--- SCRIPT SERVER RUNNING ---");
     // Shio: --- Ticking 500 frames... ---
-    spdlog::info("--- Ticking 500 frames... ---");
+    server->logger().info("--- Ticking 500 frames... ---");
     // Shio: --- Press to tick 100 frames (R+ENTER to reload) ---
-    spdlog::info("--- Press to tick 100 frames (R+ENTER to reload) ---");
+    server->logger().info(
+        "--- Press to tick 100 frames (R+ENTER to reload) ---"
+    );
 
     int frame = 0;
     while(frame < 100)
@@ -145,7 +151,7 @@ int main(int argc, char ** argv)
         if(frame == 50)
         {
             // Trigger a hot-reload mid-flight
-            spdlog::info("TRIGGERING HOT-RELOAD");
+            server->logger().info("TRIGGERING HOT-RELOAD");
             server->triggerReload();
         }
 
@@ -154,7 +160,7 @@ int main(int argc, char ** argv)
     }
 
     // Shio: --- SIMULATION FINISHED ---
-    spdlog::info("\n--- SIMULATION FINISHED ---");
+    server->logger().info("\n--- SIMULATION FINISHED ---");
     server->shutdown();
     return 0;
 }

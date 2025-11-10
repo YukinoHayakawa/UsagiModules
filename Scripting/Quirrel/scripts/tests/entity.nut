@@ -1,7 +1,7 @@
 ﻿// entity.nut
 // Represents a single entity's logic
 
-from "engine_core" import native_log, get_delta_time, GameObject
+from "engine_core" import/*  native_log, */ get_delta_time, GameObject
 
 class Entity {
     cpp_obj = null
@@ -33,7 +33,7 @@ class Entity {
     // This is the coroutine function
     function UpdateCoroutine() {
         print($"{this.state.name} UpdateCoroutine started.")
-        suspend("xxx")
+        suspend("<", "xxx", ">")
 
         // This is the main game loop for this entity
         while (true) {
@@ -46,10 +46,11 @@ class Entity {
 
             // --- 2. Yield a Command ---
             // On tick 100, 200, etc., yield a command to C++
-            if (this.state.tick_count % 5 == 0) {
-                local cmd = $"CHECKPOINT_{this.state.tick_count}"
-                native_log($"{this.state.name} yielding command: {cmd}")
-                suspend(cmd) // Pauses and sends string to C++
+            if (this.state.tick_count != 0) {
+                let cmd = $"CHECKPOINT_{this.state.tick_count}"
+                suspend("<",cmd,">") // Pauses and sends string to C++
+                //suspend("CHECKPOINT") // Pauses and sends string to C++
+                //native_log($"{this.state.name} yielding command: {cmd}")
             }
 
             // --- 3. Wait for next frame ---

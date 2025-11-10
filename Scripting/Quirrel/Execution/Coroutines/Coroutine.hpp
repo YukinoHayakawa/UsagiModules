@@ -5,6 +5,7 @@
 
 #include <squirrel.h>
 
+#include <sqrat/sqratObject.h>
 #include <sqrat/sqratTypes.h>
 
 #include <Usagi/Modules/Scripting/Quirrel/Execution/ThreadExecutionStates.hpp>
@@ -33,6 +34,9 @@ struct CoroutineStates
     CoroutineContext                execution_context;
     // Strong reference to the coroutine object
     CoroutineHandle                 coroutine_handle;
+    Sqrat::Object                   coroutine_func;
+    // Object bound with the coroutine function
+    SQObject                        context_instance;
     std::string                     debug_name;
 };
 
@@ -75,6 +79,16 @@ public:
         return GetRawHandle().coroutine_handle;
     }
 
+    const Sqrat::Object & coroutine_func() const
+    {
+        return GetRawHandle().coroutine_func;
+    }
+
+    SQObject context_instance() const
+    {
+        return GetRawHandle().context_instance;
+    }
+
     ThreadExecutionStates get_execution_state() const;
 
     /**
@@ -105,7 +119,7 @@ public:
     SQRESULT resume(T && value, bool invoke_err_handler = true)
     {
         // The roottable is always at the bottom of the stack.
-        // sq_pushroottable(thread_context());
+        // if(mExecutionFrame == 1) sq_pushroottable(thread_context());
 
         // This is the "tick" call.
         // The VM MUST be in a 'SUSPENDED' state.
@@ -135,6 +149,8 @@ protected:
     SQRESULT _internal_resume(
         bool push_this, bool resumed_ret, bool invoke_err_handler
     );
+
+    std::uint64_t mExecutionFrame = 0;
 };
 
 static_assert(std::is_move_constructible_v<Coroutine>);
