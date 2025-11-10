@@ -8,7 +8,7 @@ class Entity {
     state = null // This will hold our persistent state
 
     constructor(entity_id, entity_name) {
-        native_log($"entity.nut: constructor for {entity_name}")
+        print($"entity.nut: constructor for {entity_name}")
 
         // Create a C++ GameObject instance
         this.cpp_obj = GameObject(entity_id)
@@ -27,7 +27,7 @@ class Entity {
         })
 
         // On reload, this log will show the old tick_count
-        native_log($"entity.nut: {this.state.name} loaded with tick_count = {this.state.tick_count}")
+        print($"entity.nut: {this.state.name} loaded with tick_count = {this.state.tick_count}")
     }
 
     // This is the coroutine function
@@ -46,7 +46,7 @@ class Entity {
 
             // --- 2. Yield a Command ---
             // On tick 100, 200, etc., yield a command to C++
-            if (this.state.tick_count % 100 == 0) {
+            if (this.state.tick_count % 5 == 0) {
                 local cmd = $"CHECKPOINT_{this.state.tick_count}"
                 native_log($"{this.state.name} yielding command: {cmd}")
                 suspend(cmd) // Pauses and sends string to C++

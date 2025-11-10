@@ -5,7 +5,7 @@
 #include <sqconfig.h>
 #include <squirrel.h>
 
-namespace usagi::scripting::quirrel::types
+namespace usagi::scripting::quirrel
 {
 static_assert(_SQ64, "Why on earth would you compile a 32-bit program?");
 
@@ -39,4 +39,4 @@ static_assert(std::is_same_v<SQRESULT, SQInteger>);
 
 using ExecutionContext = HSQUIRRELVM;
 using Handle           = HSQOBJECT;
-} // namespace usagi::scripting::quirrel::types
+} // namespace usagi::scripting::quirrel

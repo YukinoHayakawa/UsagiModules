@@ -1,5 +1,7 @@
 ﻿#include <spdlog/spdlog.h>
 
+#include <Usagi/Modules/Runtime/Logging/RuntimeLogger.hpp>
+
 #include "Execution/VirtualMachine.hpp"
 
 using namespace usagi::scripting::quirrel;
@@ -28,7 +30,8 @@ public:
         z = nz;
         // Shio: [C++] GameObject position set.
         spdlog::info(
-            "[C++] GameObject {} position set to ({}, {}, {})", id, x, y, z);
+            "[C++] GameObject {} position set to ({}, {}, {})", id, x, y, z
+        );
     }
 };
 
@@ -58,7 +61,10 @@ int main(int argc, char ** argv)
     // Create the dummy script files on disk
     // CreateDummyScripts();
 
-    auto server = std::make_shared<VirtualMachine>();
+    auto server = std::make_shared<VirtualMachine>(
+        std::make_shared<usagi::runtime::RuntimeLogger>("QuirrelLogger")
+    );
+    server->logger().add_console_sink();
 
     server->init();
     server->RegisterCommandLineArgs(argc, argv);
@@ -79,7 +85,8 @@ int main(int argc, char ** argv)
         exports.Func(
             // auto derive function type
             "get_delta_time", &get_delta_time,
-            "Returns engine delta time (fixed at 0.016)");
+            "Returns engine delta time (fixed at 0.016)"
+        );
         // exports.Func("native_log", &native_log);
         // `native_log` is a motherfucking raw Squirrel function instead of a
         // C++ one.
@@ -103,7 +110,8 @@ int main(int argc, char ** argv)
             .Var("z", &GameObject::z)
             .Func(
                 "SetPosition",
-                &GameObject::SetPosition); // Bind member function
+                &GameObject::SetPosition
+            ); // Bind member function
 
         // 4. Bind the class itself to the exports table
         exports.Bind("GameObject", gameObjClass);
@@ -132,9 +140,9 @@ int main(int argc, char ** argv)
     spdlog::info("--- Press to tick 100 frames (R+ENTER to reload) ---");
 
     int frame = 0;
-    while(frame < 500)
+    while(frame < 100)
     {
-        if(frame == 150)
+        if(frame == 50)
         {
             // Trigger a hot-reload mid-flight
             spdlog::info("TRIGGERING HOT-RELOAD");

@@ -1,14 +1,20 @@
 ﻿#pragma once
 
+#include <memory>
 #include <string>
 
 #include <squirrel.h>
 
 #include <sqrat/sqratTypes.h>
 
-#include <Usagi/Modules/Scripting/Quirrel/Config/Defines.hpp>
-#include <Usagi/Runtime/ErrorHandling/MaybeError.hpp>
+#include <Usagi/Modules/Scripting/Quirrel/Execution/ThreadExecutionStates.hpp>
+#include <Usagi/Modules/Scripting/Quirrel/Language/Types.hpp>
 #include <Usagi/Runtime/RAII/RawHandleResource.hpp>
+
+namespace usagi::scripting::quirrel
+{
+class VirtualMachine;
+} // namespace usagi::scripting::quirrel
 
 namespace Sqrat
 {
@@ -17,23 +23,17 @@ class Object;
 
 namespace usagi::scripting::quirrel
 {
-enum class CoroutineExecutionStates
-{
-    Idle,
-    Running,
-    Suspended,
-};
-
-using CoroutineContext = types::ExecutionContext;
-using CoroutineHandle  = types::Handle;
+using CoroutineContext = ExecutionContext;
+using CoroutineHandle  = Handle;
 
 struct CoroutineStates
 {
-    HSQUIRRELVM      root_machine;
+    std::shared_ptr<VirtualMachine> root_machine;
     // The coroutine's execution stack
-    CoroutineContext execution_context;
+    CoroutineContext                execution_context;
     // Strong reference to the coroutine object
-    CoroutineHandle  coroutine_handle;
+    CoroutineHandle                 coroutine_handle;
+    std::string                     debug_name;
 };
 
 /**
@@ -44,17 +44,39 @@ struct CoroutineStates
  */
 class Coroutine : public RawHandleResource<CoroutineStates>
 {
+    // We are managing a large object, we don't want to get it copied so often.
+    static_assert(return_handle_by_copy_v == false);
+
 public:
     Coroutine(
-        HSQUIRRELVM           root_vm,
-        std::uint64_t         initial_stack_size,
-        std::string           debug_name,
-        const Sqrat::Object & coroutine_func);
+        std::shared_ptr<VirtualMachine> root_vm,
+        SQInteger                       initial_stack_size_override,
+        std::string                     debug_name,
+        const Sqrat::Object &           coroutine_func
+    );
 
     Coroutine(Coroutine && other) noexcept             = default;
     Coroutine & operator=(Coroutine && other) noexcept = default;
 
-    CoroutineExecutionStates get_state() const;
+    std::shared_ptr<VirtualMachine> root_vm() const
+    {
+        return GetRawHandle().root_machine;
+    }
+
+    std::string debug_name() const { return GetRawHandle().debug_name; }
+
+    CoroutineContext thread_context() const
+    {
+        return GetRawHandle().execution_context;
+    }
+
+    const CoroutineHandle & coroutine_handle() const
+    {
+        return GetRawHandle().coroutine_handle;
+    }
+
+    ThreadExecutionStates get_execution_state() const;
+
     /**
      * \brief Starts the coroutine.
      * Call this ONCE to run the coroutine until its first 'suspend()'.
@@ -68,7 +90,7 @@ public:
      * failure.
      * \return SQRESULT
      */
-    SQRESULT resume(bool invoke_err_handler);
+    SQRESULT resume(bool invoke_err_handler = true);
 
     /**
      * \brief Resumes a suspended coroutine, passing a value back.
@@ -80,41 +102,39 @@ public:
      * \return SQRESULT
      */
     template <typename T>
-    SQRESULT resume(T && value, bool invoke_err_handler)
+    SQRESULT resume(T && value, bool invoke_err_handler = true)
     {
+        // The roottable is always at the bottom of the stack.
+        // sq_pushroottable(thread_context());
+
         // This is the "tick" call.
         // The VM MUST be in a 'SUSPENDED' state.
+        // sq_pushnull(thread_context());
+        _internal_push_instance();
 
         // Push the provided value (e.g., delta-time)
         Sqrat::PushVar(thread_context(), std::forward<T>(value));
 
         // resumedret=true: Use the value we just pushed.
-        return sq_wakeupvm(
-            thread_context(), SQTrue, SQFalse, invoke_err_handler, SQFalse);
+        return _internal_resume(false, true, invoke_err_handler);
     }
 
-    runtime::MaybeError<std::string, CoroutineExecutionStates>
-        try_get_yielded_command();
-
-    std::string debug_name() const { return mDebugName; }
-
-    CoroutineContext thread_context() const
-    {
-        return GetRawHandle().execution_context;
-    }
-
-    const CoroutineHandle & coroutine_handle() const
-    {
-        return TryGetRawHandle().value().get().coroutine_handle;
-    }
+    runtime::MaybeError<std::string, ThreadExecutionStates>
+        try_get_yielded_values();
 
 protected:
     static CoroutineStates CreateCoroutine(
-        HSQUIRRELVM           root_vm,
-        std::uint64_t         initial_stack_size,
-        const Sqrat::Object & coroutine_func);
+        std::shared_ptr<VirtualMachine> root_vm,
+        SQInteger                       initial_stack_size_override,
+        std::string                     debug_name,
+        const Sqrat::Object &           coroutine_func
+    );
 
-    std::string mDebugName; // Debug name
+    void _internal_push_instance();
+
+    SQRESULT _internal_resume(
+        bool push_this, bool resumed_ret, bool invoke_err_handler
+    );
 };
 
 static_assert(std::is_move_constructible_v<Coroutine>);

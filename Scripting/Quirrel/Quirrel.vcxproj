@@ -9,6 +9,10 @@
       <Configuration>Release</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
+    <ProjectConfiguration Include="UnitTest|x64">
+      <Configuration>UnitTest</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>18.0</VCProjectVersion>
@@ -20,10 +24,14 @@
   <PropertyGroup>
     <ConfigurationType>Application</ConfigurationType>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)'=='UnitTest'">
+    <ConfigurationType>Application</ConfigurationType>
+  </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <PropertyGroup>
     <IncludePath>$(Usagi_IncludePaths);$(IncludePath)</IncludePath>
     <LibraryPath>$(Usagi_LibraryPaths);$(LibraryPath)</LibraryPath>
+    <ExternalIncludeDirectories>$(ProjectDir);$(ExternalIncludeDirectories)</ExternalIncludeDirectories>
   </PropertyGroup>
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
@@ -31,192 +39,31 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros">
   </PropertyGroup>
-  <ItemDefinitionGroup>
-    <Link>
-      <AdditionalDependencies>QuirrelLibrary.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
-    </Link>
-  </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Debugger\Debugger.hpp" />
     <ClInclude Include="Execution\Coroutines\Coroutine.hpp" />
-    <ClInclude Include="Config\Defines.hpp" />
     <ClInclude Include="Execution\Coroutines\CoroutineManager.hpp" />
+    <ClInclude Include="Execution\Coroutines\InvocationResults.hpp" />
+    <ClInclude Include="Execution\Exceptions.hpp" />
+    <ClInclude Include="Execution\ThreadExecutionStates.hpp" />
     <ClInclude Include="Execution\VirtualMachine.hpp" />
+    <ClInclude Include="Language\ObjectTypes.hpp" />
+    <ClInclude Include="Language\Types.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\Runtime\Logging\Logging.vcxproj">
+      <Project>{d1b2eab6-a837-45ab-9afd-2e02cb440796}</Project>
+    </ProjectReference>
     <ProjectReference Include="QuirrelLibrary\QuirrelLibrary.vcxproj">
       <Project>{454558aa-5fb8-42e1-b7c5-11a833891c7a}</Project>
       <Name>QuirrelLibrary</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Execution\Coroutines\Coroutine.cpp">
-      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <SuppressStartupBanner>false</SuppressStartupBanner>
-      <LanguageStandard>stdcpplatest</LanguageStandard>
-      <WarningLevel>Level3</WarningLevel>
-      <ConformanceMode>Default</ConformanceMode>
-      <RuntimeTypeInfo>true</RuntimeTypeInfo>
-      <TreatWarningAsError>true</TreatWarningAsError>
-      <DiagnosticsFormat>Caret</DiagnosticsFormat>
-      <StringPooling>true</StringPooling>
-      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
-      <AdditionalOptions>--target=amd64-pc-windows-msvc  /DARENA_USE_SYSTEM_ALLOC=0 -fno-strict-aliasing -Wno-tautological-constant-out-of-range-compare -Wno-unused-function -Wno-missing-braces -Wno-trigraphs -Wno-microsoft-include -Wno-unused-private-field -Wno-unused-variable -Wno-nontrivial-memcall -Wno-reorder-ctor   -Xclang -freflection -Xclang -freflection-latest -Xclang -fparameter-reflection -Xclang -fexpansion-statements -Xclang -std=c++26 -march=skylake -Wno-pragma-pack /source-charset:utf-8 -Xclang -fconstexpr-depth=25565 -Xclang -ftemplate-depth=25565 -Xclang -fconstexpr-backtrace-limit=0  -Wno-unused-local-typedef  -Xclang -nostdinc++ -Xclang -stdlib=libc++</AdditionalOptions>
-      <PreprocessorDefinitions>_UNICODE;UNICODE;_SQ64;SQUSEDOUBLE;_CRT_SECURE_NO_WARNINGS;DEBUG;_HAS_CXX26;_HAS_CXX23;_HAS_CXX20;_HAS_CXX17;_LIBCPP_DISABLE_VISIBILITY_ANNOTATIONS;_CRT_STDIO_ISO_WIDE_SPECIFIERS=1;SPDLOG_USE_STD_FORMAT;FMT_HEADER_ONLY;</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\@Data.Primary\homes.midako.yukino\dev\UsagiBuild\Modules\Usagi\Modules\Scripting\Quirrel\/quirrel/;C:\@Data.Primary\homes.midako.yukino\dev\UsagiBuild\Modules\Usagi\Modules\Scripting\Quirrel\/quirrel//include;C:\@Data.Primary\homes.midako.yukino\dev\UsagiBuild\Modules\Usagi\Modules\Scripting\Quirrel\/quirrel//internal;C:\@Data.Primary\homes.midako.yukino\dev\UsagiBuild\Modules\Usagi\Modules\Scripting\Quirrel\/quirrel//helpers;C:\@Data.Primary\homes.midako.yukino\dev\UsagiBuild\Modules\Usagi\Modules\Scripting\Quirrel\/quirrel//squirrel;C:\@Data.Primary\homes.midako.yukino\dev\UsagiBuild\Modules\Usagi\Modules\Scripting\Quirrel\/quirrel//squirrel/compiler;C:\@Data.Primary\homes.midako.yukino\dev\UsagiBuild\Modules\Usagi\Modules\Scripting\Quirrel\/quirrel//sqmodules;C:\@Data.Primary\homes.midako.yukino\dev\UsagiBuild\Modules\Usagi\Modules\Scripting\Quirrel\/quirrel//sqrat/include;;C:\@Data.Transient\Dev\toolchains\llvm-project\build-libcxx\include\c++\v1;;C:\@Data.Transient\Dev\toolchains\vcpkg\installed\x64-windows-static\include</AdditionalIncludeDirectories>
-      <Optimization>Disabled</Optimization>
-      <BufferSecurityCheck>true</BufferSecurityCheck>
-      <SupportJustMyCode>true</SupportJustMyCode>
-      <AssemblerOutput>NoListing</AssemblerOutput>
-      <AssemblerListingLocation>x64\Debug\</AssemblerListingLocation>
-      <UndefineAllPreprocessorDefinitions>false</UndefineAllPreprocessorDefinitions>
-      <BrowseInformationFile>x64\Debug\</BrowseInformationFile>
-      <CompileAs>Default</CompileAs>
-      <ExceptionHandling>Sync</ExceptionHandling>
-      <EnableASAN>false</EnableASAN>
-      <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
-      <FloatingPointModel>Precise</FloatingPointModel>
-      <InlineFunctionExpansion>Default</InlineFunctionExpansion>
-      <IntrinsicFunctions>false</IntrinsicFunctions>
-      <LanguageStandard_C>Default</LanguageStandard_C>
-      <ModuleDependenciesFile>x64\Debug\</ModuleDependenciesFile>
-      <OmitDefaultLibName>false</OmitDefaultLibName>
-      <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
-      <ObjectFileName>x64\Debug\</ObjectFileName>
-      <CallingConvention>Cdecl</CallingConvention>
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
-      <PrecompiledHeaderOutputFile>x64\Debug\Quirrel.pch</PrecompiledHeaderOutputFile>
-      <PreprocessToFile>false</PreprocessToFile>
-      <PreprocessKeepComments>false</PreprocessKeepComments>
-      <PreprocessSuppressLineNumbers>false</PreprocessSuppressLineNumbers>
-      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
-      <ShowIncludes>false</ShowIncludes>
-      <SourceDependenciesFile>x64\Debug\</SourceDependenciesFile>
-      <SmallerTypeCheck>false</SmallerTypeCheck>
-      <StructMemberAlignment>Default</StructMemberAlignment>
-      <TrackerLogDirectory>x64\Debug\Quirrel.tlog\</TrackerLogDirectory>
-      <MinimalRebuildFromTracking>true</MinimalRebuildFromTracking>
-      <XMLDocumentationFileName>x64\Debug\</XMLDocumentationFileName>
-      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <IntelJCCErratum>false</IntelJCCErratum>
-      <BuildStlModules>false</BuildStlModules>
-      <TreatExternalTemplatesAsInternal>true</TreatExternalTemplatesAsInternal>
-      <LinkCompiled>true</LinkCompiled>
-      <ClangClMode>true</ClangClMode>
-      <MSCVersion>Default</MSCVersion>
-    </ClCompile>
-    <ClCompile Include="Execution\Coroutines\CoroutineManager.cpp">
-      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <SuppressStartupBanner>false</SuppressStartupBanner>
-      <LanguageStandard>stdcpplatest</LanguageStandard>
-      <WarningLevel>Level3</WarningLevel>
-      <ConformanceMode>Default</ConformanceMode>
-      <RuntimeTypeInfo>true</RuntimeTypeInfo>
-      <TreatWarningAsError>true</TreatWarningAsError>
-      <DiagnosticsFormat>Caret</DiagnosticsFormat>
-      <StringPooling>true</StringPooling>
-      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
-      <AdditionalOptions>--target=amd64-pc-windows-msvc  /DARENA_USE_SYSTEM_ALLOC=0 -fno-strict-aliasing -Wno-tautological-constant-out-of-range-compare -Wno-unused-function -Wno-missing-braces -Wno-trigraphs -Wno-microsoft-include -Wno-unused-private-field -Wno-unused-variable -Wno-nontrivial-memcall -Wno-reorder-ctor   -Xclang -freflection -Xclang -freflection-latest -Xclang -fparameter-reflection -Xclang -fexpansion-statements -Xclang -std=c++26 -march=skylake -Wno-pragma-pack /source-charset:utf-8 -Xclang -fconstexpr-depth=25565 -Xclang -ftemplate-depth=25565 -Xclang -fconstexpr-backtrace-limit=0  -Wno-unused-local-typedef  -Xclang -nostdinc++ -Xclang -stdlib=libc++</AdditionalOptions>
-      <PreprocessorDefinitions>_UNICODE;UNICODE;_SQ64;SQUSEDOUBLE;_CRT_SECURE_NO_WARNINGS;DEBUG;_HAS_CXX26;_HAS_CXX23;_HAS_CXX20;_HAS_CXX17;_LIBCPP_DISABLE_VISIBILITY_ANNOTATIONS;_CRT_STDIO_ISO_WIDE_SPECIFIERS=1;SPDLOG_USE_STD_FORMAT;FMT_HEADER_ONLY;</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\@Data.Primary\homes.midako.yukino\dev\UsagiBuild\Modules\Usagi\Modules\Scripting\Quirrel\/quirrel/;C:\@Data.Primary\homes.midako.yukino\dev\UsagiBuild\Modules\Usagi\Modules\Scripting\Quirrel\/quirrel//include;C:\@Data.Primary\homes.midako.yukino\dev\UsagiBuild\Modules\Usagi\Modules\Scripting\Quirrel\/quirrel//internal;C:\@Data.Primary\homes.midako.yukino\dev\UsagiBuild\Modules\Usagi\Modules\Scripting\Quirrel\/quirrel//helpers;C:\@Data.Primary\homes.midako.yukino\dev\UsagiBuild\Modules\Usagi\Modules\Scripting\Quirrel\/quirrel//squirrel;C:\@Data.Primary\homes.midako.yukino\dev\UsagiBuild\Modules\Usagi\Modules\Scripting\Quirrel\/quirrel//squirrel/compiler;C:\@Data.Primary\homes.midako.yukino\dev\UsagiBuild\Modules\Usagi\Modules\Scripting\Quirrel\/quirrel//sqmodules;C:\@Data.Primary\homes.midako.yukino\dev\UsagiBuild\Modules\Usagi\Modules\Scripting\Quirrel\/quirrel//sqrat/include;;C:\@Data.Transient\Dev\toolchains\llvm-project\build-libcxx\include\c++\v1;;C:\@Data.Transient\Dev\toolchains\vcpkg\installed\x64-windows-static\include</AdditionalIncludeDirectories>
-      <Optimization>Disabled</Optimization>
-      <BufferSecurityCheck>true</BufferSecurityCheck>
-      <SupportJustMyCode>true</SupportJustMyCode>
-      <AssemblerOutput>NoListing</AssemblerOutput>
-      <AssemblerListingLocation>x64\Debug\</AssemblerListingLocation>
-      <UndefineAllPreprocessorDefinitions>false</UndefineAllPreprocessorDefinitions>
-      <BrowseInformationFile>x64\Debug\</BrowseInformationFile>
-      <CompileAs>Default</CompileAs>
-      <ExceptionHandling>Sync</ExceptionHandling>
-      <EnableASAN>false</EnableASAN>
-      <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
-      <FloatingPointModel>Precise</FloatingPointModel>
-      <InlineFunctionExpansion>Default</InlineFunctionExpansion>
-      <IntrinsicFunctions>false</IntrinsicFunctions>
-      <LanguageStandard_C>Default</LanguageStandard_C>
-      <ModuleDependenciesFile>x64\Debug\</ModuleDependenciesFile>
-      <OmitDefaultLibName>false</OmitDefaultLibName>
-      <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
-      <ObjectFileName>x64\Debug\</ObjectFileName>
-      <CallingConvention>Cdecl</CallingConvention>
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
-      <PrecompiledHeaderOutputFile>x64\Debug\Quirrel.pch</PrecompiledHeaderOutputFile>
-      <PreprocessToFile>false</PreprocessToFile>
-      <PreprocessKeepComments>false</PreprocessKeepComments>
-      <PreprocessSuppressLineNumbers>false</PreprocessSuppressLineNumbers>
-      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
-      <ShowIncludes>false</ShowIncludes>
-      <SourceDependenciesFile>x64\Debug\</SourceDependenciesFile>
-      <SmallerTypeCheck>false</SmallerTypeCheck>
-      <StructMemberAlignment>Default</StructMemberAlignment>
-      <TrackerLogDirectory>x64\Debug\Quirrel.tlog\</TrackerLogDirectory>
-      <MinimalRebuildFromTracking>true</MinimalRebuildFromTracking>
-      <XMLDocumentationFileName>x64\Debug\</XMLDocumentationFileName>
-      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <IntelJCCErratum>false</IntelJCCErratum>
-      <BuildStlModules>false</BuildStlModules>
-      <TreatExternalTemplatesAsInternal>true</TreatExternalTemplatesAsInternal>
-      <LinkCompiled>true</LinkCompiled>
-      <ClangClMode>true</ClangClMode>
-      <MSCVersion>Default</MSCVersion>
-    </ClCompile>
-    <ClCompile Include="Execution\VirtualMachine.cpp">
-      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <SuppressStartupBanner>false</SuppressStartupBanner>
-      <LanguageStandard>stdcpplatest</LanguageStandard>
-      <WarningLevel>Level3</WarningLevel>
-      <ConformanceMode>Default</ConformanceMode>
-      <RuntimeTypeInfo>true</RuntimeTypeInfo>
-      <TreatWarningAsError>true</TreatWarningAsError>
-      <DiagnosticsFormat>Caret</DiagnosticsFormat>
-      <StringPooling>true</StringPooling>
-      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
-      <AdditionalOptions>--target=amd64-pc-windows-msvc  /DARENA_USE_SYSTEM_ALLOC=0 -fno-strict-aliasing -Wno-tautological-constant-out-of-range-compare -Wno-unused-function -Wno-missing-braces -Wno-trigraphs -Wno-microsoft-include -Wno-unused-private-field -Wno-unused-variable -Wno-nontrivial-memcall -Wno-reorder-ctor   -Xclang -freflection -Xclang -freflection-latest -Xclang -fparameter-reflection -Xclang -fexpansion-statements -Xclang -std=c++26 -march=skylake -Wno-pragma-pack /source-charset:utf-8 -Xclang -fconstexpr-depth=25565 -Xclang -ftemplate-depth=25565 -Xclang -fconstexpr-backtrace-limit=0  -Wno-unused-local-typedef  -Xclang -nostdinc++ -Xclang -stdlib=libc++</AdditionalOptions>
-      <PreprocessorDefinitions>_UNICODE;UNICODE;_SQ64;SQUSEDOUBLE;_CRT_SECURE_NO_WARNINGS;DEBUG;_HAS_CXX26;_HAS_CXX23;_HAS_CXX20;_HAS_CXX17;_LIBCPP_DISABLE_VISIBILITY_ANNOTATIONS;_CRT_STDIO_ISO_WIDE_SPECIFIERS=1;SPDLOG_USE_STD_FORMAT;FMT_HEADER_ONLY;</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\@Data.Primary\homes.midako.yukino\dev\UsagiBuild\Modules\Usagi\Modules\Scripting\Quirrel\/quirrel/;C:\@Data.Primary\homes.midako.yukino\dev\UsagiBuild\Modules\Usagi\Modules\Scripting\Quirrel\/quirrel//include;C:\@Data.Primary\homes.midako.yukino\dev\UsagiBuild\Modules\Usagi\Modules\Scripting\Quirrel\/quirrel//internal;C:\@Data.Primary\homes.midako.yukino\dev\UsagiBuild\Modules\Usagi\Modules\Scripting\Quirrel\/quirrel//helpers;C:\@Data.Primary\homes.midako.yukino\dev\UsagiBuild\Modules\Usagi\Modules\Scripting\Quirrel\/quirrel//squirrel;C:\@Data.Primary\homes.midako.yukino\dev\UsagiBuild\Modules\Usagi\Modules\Scripting\Quirrel\/quirrel//squirrel/compiler;C:\@Data.Primary\homes.midako.yukino\dev\UsagiBuild\Modules\Usagi\Modules\Scripting\Quirrel\/quirrel//sqmodules;C:\@Data.Primary\homes.midako.yukino\dev\UsagiBuild\Modules\Usagi\Modules\Scripting\Quirrel\/quirrel//sqrat/include;;C:\@Data.Transient\Dev\toolchains\llvm-project\build-libcxx\include\c++\v1;;C:\@Data.Transient\Dev\toolchains\vcpkg\installed\x64-windows-static\include</AdditionalIncludeDirectories>
-      <Optimization>Disabled</Optimization>
-      <BufferSecurityCheck>true</BufferSecurityCheck>
-      <SupportJustMyCode>true</SupportJustMyCode>
-      <AssemblerOutput>NoListing</AssemblerOutput>
-      <AssemblerListingLocation>x64\Debug\</AssemblerListingLocation>
-      <UndefineAllPreprocessorDefinitions>false</UndefineAllPreprocessorDefinitions>
-      <BrowseInformationFile>x64\Debug\</BrowseInformationFile>
-      <CompileAs>Default</CompileAs>
-      <ExceptionHandling>Sync</ExceptionHandling>
-      <EnableASAN>false</EnableASAN>
-      <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
-      <FloatingPointModel>Precise</FloatingPointModel>
-      <InlineFunctionExpansion>Default</InlineFunctionExpansion>
-      <IntrinsicFunctions>false</IntrinsicFunctions>
-      <LanguageStandard_C>Default</LanguageStandard_C>
-      <ModuleDependenciesFile>x64\Debug\</ModuleDependenciesFile>
-      <OmitDefaultLibName>false</OmitDefaultLibName>
-      <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
-      <ObjectFileName>x64\Debug\</ObjectFileName>
-      <CallingConvention>Cdecl</CallingConvention>
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
-      <PrecompiledHeaderOutputFile>x64\Debug\Quirrel.pch</PrecompiledHeaderOutputFile>
-      <PreprocessToFile>false</PreprocessToFile>
-      <PreprocessKeepComments>false</PreprocessKeepComments>
-      <PreprocessSuppressLineNumbers>false</PreprocessSuppressLineNumbers>
-      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
-      <ShowIncludes>false</ShowIncludes>
-      <SourceDependenciesFile>x64\Debug\</SourceDependenciesFile>
-      <SmallerTypeCheck>false</SmallerTypeCheck>
-      <StructMemberAlignment>Default</StructMemberAlignment>
-      <TrackerLogDirectory>x64\Debug\Quirrel.tlog\</TrackerLogDirectory>
-      <MinimalRebuildFromTracking>true</MinimalRebuildFromTracking>
-      <XMLDocumentationFileName>x64\Debug\</XMLDocumentationFileName>
-      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <IntelJCCErratum>false</IntelJCCErratum>
-      <BuildStlModules>false</BuildStlModules>
-      <TreatExternalTemplatesAsInternal>true</TreatExternalTemplatesAsInternal>
-      <LinkCompiled>true</LinkCompiled>
-      <ClangClMode>true</ClangClMode>
-      <MSCVersion>Default</MSCVersion>
-    </ClCompile>
+    <ClCompile Include="Debugger\Debugger.cpp" />
+    <ClCompile Include="Execution\Coroutines\Coroutine.cpp" />
+    <ClCompile Include="Execution\Coroutines\CoroutineManager.cpp" />
+    <ClCompile Include="Execution\VirtualMachine.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -237,6 +84,7 @@
     <None Include="scripts\tests\game_logic.nut" />
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="Debugger\" />
     <Folder Include="Runtime\" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
