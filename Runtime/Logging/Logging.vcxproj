@@ -9,6 +9,10 @@
       <Configuration>Release</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
+    <ProjectConfiguration Include="UnitTest|x64">
+      <Configuration>UnitTest</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>18.0</VCProjectVersion>
@@ -16,12 +20,18 @@
     <RootNamespace>Logging</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
-  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
-  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props"/>
   <PropertyGroup>
-    <ConfigurationType>S</ConfigurationType>
-    <IncludePath>$(Usagi_IncludePaths);$(ProjectDir);$(IncludePath)</IncludePath>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)'=='UnitTest'">
+    <ConfigurationType>Application</ConfigurationType>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props"/>
+  <PropertyGroup>
+    <IncludePath>$(Usagi_IncludePaths);$(IncludePath)</IncludePath>
     <LibraryPath>$(Usagi_LibraryPaths);$(LibraryPath)</LibraryPath>
+    <ExternalIncludeDirectories>$(ProjectDir);$(ExternalIncludeDirectories)</ExternalIncludeDirectories>
   </PropertyGroup>
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
@@ -30,67 +40,13 @@
   <PropertyGroup Label="UserMacros">
   </PropertyGroup>
   <ItemGroup>
-    <ClInclude Include="RuntimeLogger.hpp" />
+    <ClInclude Include="RuntimeLogger.hpp"/>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="RuntimeLogger.cpp">
-      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <SuppressStartupBanner>false</SuppressStartupBanner>
-      <LanguageStandard>stdcpplatest</LanguageStandard>
-      <WarningLevel>Level3</WarningLevel>
-      <ConformanceMode>Default</ConformanceMode>
-      <RuntimeTypeInfo>true</RuntimeTypeInfo>
-      <TreatWarningAsError>true</TreatWarningAsError>
-      <DiagnosticsFormat>Caret</DiagnosticsFormat>
-      <AdditionalOptions>--target=amd64-pc-windows-msvc   -Xclang -std=c++26 -march=skylake -Wno-pragma-pack /source-charset:utf-8 -Xclang -fno-builtin-std-forward_like -Xclang -fconstexpr-depth=25565 -Xclang -ftemplate-depth=25565 -Xclang -fconstexpr-backtrace-limit=0 -Xclang -freflection -Xclang -freflection-latest </AdditionalOptions>
-      <PreprocessorDefinitions>_UNICODE;UNICODE;DEBUG;_HAS_CXX26;_HAS_CXX23;_HAS_CXX20;_HAS_CXX17;</PreprocessorDefinitions>
-      <Optimization>Disabled</Optimization>
-      <BufferSecurityCheck>true</BufferSecurityCheck>
-      <SupportJustMyCode>true</SupportJustMyCode>
-      <AssemblerOutput>NoListing</AssemblerOutput>
-      <AssemblerListingLocation>x64\Debug\</AssemblerListingLocation>
-      <UndefineAllPreprocessorDefinitions>false</UndefineAllPreprocessorDefinitions>
-      <BrowseInformationFile>x64\Debug\</BrowseInformationFile>
-      <CompileAs>Default</CompileAs>
-      <ExceptionHandling>Sync</ExceptionHandling>
-      <EnableASAN>false</EnableASAN>
-      <EnableFiberSafeOptimizations>false</EnableFiberSafeOptimizations>
-      <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
-      <FloatingPointModel>Precise</FloatingPointModel>
-      <InlineFunctionExpansion>Default</InlineFunctionExpansion>
-      <IntrinsicFunctions>false</IntrinsicFunctions>
-      <LanguageStandard_C>Default</LanguageStandard_C>
-      <ModuleDependenciesFile>x64\Debug\</ModuleDependenciesFile>
-      <OmitDefaultLibName>false</OmitDefaultLibName>
-      <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
-      <ObjectFileName>x64\Debug\</ObjectFileName>
-      <CallingConvention>Cdecl</CallingConvention>
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
-      <PrecompiledHeaderOutputFile>x64\Debug\CaviaNetworkDebugger.pch</PrecompiledHeaderOutputFile>
-      <PreprocessToFile>false</PreprocessToFile>
-      <PreprocessKeepComments>false</PreprocessKeepComments>
-      <PreprocessSuppressLineNumbers>false</PreprocessSuppressLineNumbers>
-      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
-      <ShowIncludes>false</ShowIncludes>
-      <SourceDependenciesFile>x64\Debug\</SourceDependenciesFile>
-      <SmallerTypeCheck>false</SmallerTypeCheck>
-      <StructMemberAlignment>Default</StructMemberAlignment>
-      <TrackerLogDirectory>x64\Debug\CaviaNet.68e1ffa1.tlog\</TrackerLogDirectory>
-      <MinimalRebuildFromTracking>true</MinimalRebuildFromTracking>
-      <XMLDocumentationFileName>x64\Debug\</XMLDocumentationFileName>
-      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <IntelJCCErratum>false</IntelJCCErratum>
-      <BuildStlModules>false</BuildStlModules>
-      <TreatExternalTemplatesAsInternal>true</TreatExternalTemplatesAsInternal>
-      <LinkCompiled>true</LinkCompiled>
-      <AdditionalIncludeDirectories>;C:\@Data.Transient\Dev\toolchains\vcpkg\installed\x64-windows-static\include</AdditionalIncludeDirectories>
-      <ClangClMode>true</ClangClMode>
-      <MSCVersion>Default</MSCVersion>
-    </ClCompile>
+    <ClCompile Include="tests\basic_logger_tests.cpp"/>
+    <ClCompile Include="RuntimeLogger.cpp"/>
   </ItemGroup>
-  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets"/>
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
 </Project>
-
