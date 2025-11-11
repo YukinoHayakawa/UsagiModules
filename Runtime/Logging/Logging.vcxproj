@@ -40,6 +40,7 @@
   <PropertyGroup Label="UserMacros">
   </PropertyGroup>
   <ItemGroup>
+    <ClInclude Include="LoggingLevels.hpp" />
     <ClInclude Include="RuntimeLogger.hpp"/>
   </ItemGroup>
   <ItemGroup>

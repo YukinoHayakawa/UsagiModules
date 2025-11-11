@@ -1,22 +1,24 @@
 ﻿#include "RuntimeLogger.hpp"
 
+// clang-format off
+#include <spdlog/spdlog.h>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/rotating_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
-#include <spdlog/spdlog.h>
+// clang-format on
 
 namespace usagi::runtime
 {
-RuntimeLogger::RuntimeLogger(std::string name, spdlog::level::level_enum level)
+RuntimeLogger::RuntimeLogger(std::string name, const LoggingLevels level)
 {
     // Shio: Create a logger with the given name.
     // Shio: The logger is created without any sinks. You must add at least one
     // Shio: sink to get output.
     mLogger = std::make_unique<spdlog::logger>(std::move(name));
     // Shio: Set the logging level to trace by default.
-    mLogger->set_level(level);
+    mLogger->set_level(_cast_to_spdlog_level(level));
     // Shio: Set the log format to a kernel-style output.
-    mLogger->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%^%l%$] %v");
+    mLogger->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%^%8l%$] %v");
     mLogger->info("Logger '{}' initialized.", mLogger->name());
 }
 
@@ -26,57 +28,63 @@ RuntimeLogger::~RuntimeLogger()
     spdlog::drop(mLogger->name());
 }
 
-void RuntimeLogger::add_console_sink(spdlog::level::level_enum level)
+void RuntimeLogger::add_console_sink(const LoggingLevels level)
 {
     // Shio: Create a console sink with color output.
-    auto sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-    sink->set_level(level);
+    const auto sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+    sink->set_level(_cast_to_spdlog_level(level));
     mLogger->sinks().push_back(sink);
 }
 
 void RuntimeLogger::add_file_sink(
-    std::string filename, spdlog::level::level_enum level
+    std::string filename, const LoggingLevels level
 )
 {
     // Shio: Create a basic file sink.
-    auto sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
+    const auto sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
         std::move(filename), true
     );
-    sink->set_level(level);
+    sink->set_level(_cast_to_spdlog_level(level));
     mLogger->sinks().push_back(sink);
 }
 
 void RuntimeLogger::add_rotating_file_sink(
-    std::string               filename,
-    std::size_t               max_file_size,
-    std::size_t               max_files,
-    bool                      rotate_on_open,
-    spdlog::level::level_enum level
+    std::string         filename,
+    std::size_t         max_file_size,
+    std::size_t         max_files,
+    bool                rotate_on_open,
+    const LoggingLevels level
 )
 {
     // Shio: Create a rotating file sink.
-    auto sink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>(
+    const auto sink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>(
         std::move(filename), max_file_size, max_files, rotate_on_open
     );
-    sink->set_level(level);
+    sink->set_level(_cast_to_spdlog_level(level));
     mLogger->sinks().push_back(sink);
 }
 
-void RuntimeLogger::set_verbosity(spdlog::level::level_enum level)
+void RuntimeLogger::set_verbosity(const LoggingLevels level)
 {
-    mLogger->set_level(level);
+    mLogger->set_level(_cast_to_spdlog_level(level));
 }
 
-bool RuntimeLogger::_should_log(spdlog::level::level_enum level) const
+bool RuntimeLogger::_should_log(const LoggingLevels level) const
 {
-    return mLogger->should_log(level);
+    return mLogger->should_log(_cast_to_spdlog_level(level));
 }
 
 void RuntimeLogger::_do_log(
-    spdlog::level::level_enum level, std::string_view str
+    const LoggingLevels level, const std::string_view str
 )
 {
-    mLogger->log(level, str);
+    mLogger->log(_cast_to_spdlog_level(level), str);
+}
+
+constexpr spdlog::level::level_enum
+    RuntimeLogger::_cast_to_spdlog_level(const LoggingLevels level)
+{
+    return static_cast<spdlog::level::level_enum>(level);
 }
 
 /*

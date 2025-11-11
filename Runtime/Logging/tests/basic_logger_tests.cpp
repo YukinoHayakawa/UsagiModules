@@ -1,4 +1,5 @@
-#define BOOST_TEST_MODULE BasicLoggerTests
+#define BOOST_TEST_MODULE UsagiModules_Logging_BasicLoggerTests
+
 #include <cstdio>
 #include <fstream>
 #include <iostream>
