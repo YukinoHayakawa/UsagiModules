@@ -294,7 +294,9 @@ function count_to(n) {
     }
 }
 
-let counter_gen = count_to(3);
+let counter_gen = newthread(count_to);
+println(counter_gen.getstatus()); // "idle"
+resume counter_gen(3); // Start the generator with its arguments
 println(counter_gen.getstatus()); // "suspended"
 
 local value;
@@ -319,58 +321,76 @@ A coroutine transitions through several states, which can be queried using the `
 
 1.  **`"idle"`**: The initial state of a new coroutine, or the state after it has finished executing its function. A C++ host can check for this state to know a coroutine has completed its work.
 2.  **`"running"`**: The coroutine is currently executing code.
-3.  **`"suspended"`**: The coroutine is paused, having called `yield` or `suspend`. It is waiting to be resumed by a call to `wakeup()`.
+3.  **`"suspended"`**: The coroutine is paused, having called `yield` or `suspend`. It is waiting to be resumed by a call to `wakeup()` from the C++ host.
 
 ```quirrel
 let co = newthread(function(val) {
     println($"Coroutine started with: {val}");
-    suspend(); // Pause and wait to be woken up
+    suspend("HANDSHAKE"); // Pause and wait to be woken up
     println("Coroutine resumed.");
 });
 
 println(co.getstatus()); // "idle"
 
-co.call("Hello"); // Start the coroutine
+co.call("Hello"); // Start the coroutine via the host C++ API
 println(co.getstatus()); // "suspended"
 
-co.wakeup(); // Resume the coroutine
+co.wakeup(); // Resume the coroutine via the host C++ API
 println(co.getstatus()); // "idle" (it has now finished)
+```
+
+##### Host Interaction and Best Practices
+
+Interacting with coroutines from a C++ host has important nuances.
+
+*   **Initial Call**: The host MUST use a function like `sq_call` to start an `idle` coroutine. If this initial call suspends, the VM leaves the entire call frame on the stack. This "messy stack" is internal state and must not be modified by the host.
+*   **Subsequent Calls**: The host MUST use `sq_wakeupvm` to resume a `suspended` coroutine.
+*   **The Handshake Pattern**: Because the initial `sq_call` can leave a messy stack containing intermediate script values, it is a critical best practice for any long-running coroutine to perform a `suspend()` as its very first operation. This establishes a clean "handshake" with the C++ host before any complex logic or local variables are introduced, preventing state corruption.
+
+```quirrel
+// GOOD: A robust coroutine with a handshake.
+function MyEntityUpdate() {
+    // First line: Handshake with the C++ host.
+    // This cleanly suspends the initial `sq_call`.
+    let dt = suspend("INIT_OK");
+
+    // Main loop starts here, after the handshake.
+    while (true) {
+        // ... update logic using dt ...
+        // Yield control back to the host and wait for the next frame's delta-time.
+        dt = suspend();
+    }
+}
 ```
 
 ##### Bidirectional Communication with `suspend`
 
-The global `suspend(...)` function is the primary mechanism for a coroutine to communicate with the C++ host. It is a variadic function that can both send multiple values to the host and receive a value back.
+The global `suspend(...)` function is the primary mechanism for a coroutine to communicate with the C++ host.
 
--   **Sending Data to Host**: Any arguments passed to `suspend` are pushed to the stack for the C++ host to read.
--   **Receiving Data from Host**: The value returned by `suspend` is the value the C++ host provides when it wakes the coroutine up.
+*   **Sending Data to Host**: To avoid ambiguity for the C++ host, all data yielded to the host **must** be packaged into a single **table**. The host can't reliably know how many arguments you passed, but it can always reliably get one object from the stack.
 
-```quirrel
-// --- In Script ---
-function RequestDataCoroutine(id) {
-    // Send a command and an ID to the C++ host, and wait for a result.
-    let result = suspend("GET_ENTITY_NAME", id);
+    ```quirrel
+    // GOOD: Yield a single, predictable table.
+    suspend({ cmd = "ATTACK", target = enemy_id });
 
-    // When resumed, 'result' will hold the value from C++.
-    println($"Received entity name: {result}");
-    return result;
-}
+    // BAD: Ambiguous for the C++ host. Avoid this.
+    // suspend("ATTACK", enemy_id);
+    ```
 
-// --- In C++ (Conceptual) ---
-// After sq_resume(v, ...) returns SQ_SUSPEND, the host can:
-// 1. Check the stack for arguments passed to suspend().
-//    e.g., read the string "GET_ENTITY_NAME" and the integer id.
-// 2. Find the requested data (e.g., from a database).
-// 3. Push the result (e.g., the entity's name string) onto the stack.
-// 4. Call sq_wakeup(v, ...) to resume the coroutine. The pushed
-//    value will become the return value of 'suspend' in the script.
-```
+*   **Receiving Data from Host**: The value returned by `suspend` is the value the C++ host provides when it wakes the coroutine up.
+
+    ```quirrel
+    // In Script: Ask the host for data and wait for the result.
+    let my_name = suspend({ cmd = "GET_MY_NAME" });
+    println($"The host says my name is {my_name}");
+    ```
 
 ##### Coroutine Object Methods
 
 Thread objects have several built-in methods for managing them:
 
--   `my_thread.call(...)`: Starts the coroutine, passing arguments to its main function.
--   `my_thread.wakeup(value = null)`: Resumes a suspended coroutine. The optional `value` is passed as the return value of `yield` or `suspend`.
+-   `my_thread.call(...)`: Starts the coroutine from script, passing arguments to its main function.
+-   `my_thread.wakeup(value = null)`: Resumes a suspended coroutine from script. The optional `value` is passed as the return value of `yield` or `suspend`.
 -   `my_thread.getstatus()`: Returns a string representing the current state: `"idle"`, `"running"`, or `"suspended"`.
 -   `my_thread.getstackinfos(level)`: A powerful debugging tool that returns a table of information (function name, source, line number, locals) for a specific level of the coroutine's call stack.
 
