@@ -24,9 +24,6 @@ class Object;
 
 namespace usagi::scripting::quirrel
 {
-using CoroutineContext = ExecutionContext;
-using CoroutineHandle  = Handle;
-
 /**
  * \brief Contains the essential handles and metadata for a managed coroutine.
  * \details A Quirrel coroutine (or 'thread') has a dual nature from the C++

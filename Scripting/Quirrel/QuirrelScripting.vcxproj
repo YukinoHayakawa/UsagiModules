@@ -41,15 +41,15 @@
   <PropertyGroup Label="UserMacros">
   </PropertyGroup>
   <ItemGroup>
-    <ClInclude Include="Debugger\Debugger.hpp" />
+    <ClInclude Include="Debugging\Debugger.hpp" />
     <ClInclude Include="Execution\Coroutines\Coroutine.hpp" />
     <ClInclude Include="Execution\Coroutines\CoroutineManager.hpp" />
     <ClInclude Include="Execution\Coroutines\InvocationResults.hpp" />
     <ClInclude Include="Execution\Coroutines\SystemQuirrelTickCoroutines.hpp" />
     <ClInclude Include="Execution\Exceptions.hpp" />
     <ClInclude Include="Execution\Execution.hpp" />
-    <ClInclude Include="Execution\ThreadExecutionStates.hpp" />
-    <ClInclude Include="Execution\VirtualMachine.hpp" />
+    <ClInclude Include="Execution\VirtualMachines\VirtualMachine.hpp" />
+    <ClInclude Include="Interop\Json.hpp" />
     <ClInclude Include="Language\ObjectTypes.hpp" />
     <ClInclude Include="Language\Tables.hpp" />
     <ClInclude Include="Language\Types.hpp" />
@@ -64,11 +64,11 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Debugger\Debugger.cpp" />
+    <ClCompile Include="Debugging\Debugger.cpp" />
     <ClCompile Include="Execution\Coroutines\Coroutine.cpp" />
     <ClCompile Include="Execution\Coroutines\CoroutineManager.cpp" />
     <ClCompile Include="Execution\ExecutionStaticTests.cpp" />
-    <ClCompile Include="Execution\VirtualMachine.cpp" />
+    <ClCompile Include="Execution\VirtualMachines\VirtualMachine.cpp" />
     <ClCompile Include="Language\Types.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>

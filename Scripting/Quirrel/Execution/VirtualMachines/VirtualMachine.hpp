@@ -8,6 +8,7 @@
 #include <Usagi/Runtime/RAII/RawHandleResource.hpp>
 
 #include "Coroutines/CoroutineManager.hpp"
+#include "Execution.hpp"
 
 namespace usagi::runtime
 {
@@ -17,7 +18,7 @@ class RuntimeLogger;
 namespace usagi::scripting::quirrel
 {
 class VirtualMachine
-    : public RawHandleResource<HSQUIRRELVM>
+    : public runtime::RawHandleResource<ExecutionContextHandle>
     , public std::enable_shared_from_this<VirtualMachine>
 {
 public:

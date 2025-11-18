@@ -23,7 +23,8 @@ std::string Debugger::format_stack_frame(const HSQUIRRELVM vm)
     visit_stack_frame(vm, [&](const SQObjectPtr & Obj) {
         const auto type = sq_type(Obj);
         std::format_to(
-            std::back_inserter(param_types), "[{}] ", meta::enum_to_string(type)
+            std::back_inserter(param_types), "[{}] ",
+            meta::reflection::enum_to_string(type)
         );
     });
     return param_types;
@@ -114,7 +115,7 @@ std::string Debugger::format_stack_values(HSQUIRRELVM vm)
             default:
                 std::format_to(
                     std::back_inserter(param_values), "[type {}] ",
-                    meta::enum_to_string(sq_type(Obj))
+                    meta::reflection::enum_to_string(sq_type(Obj))
                 );
                 break;
         }

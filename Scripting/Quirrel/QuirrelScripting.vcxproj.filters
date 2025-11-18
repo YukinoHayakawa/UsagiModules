@@ -24,10 +24,16 @@
     <ClCompile Include="Execution\Coroutines\CoroutineManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Execution\VirtualMachine.cpp">
+    <ClCompile Include="Execution\VirtualMachines\VirtualMachine.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Debugger\Debugger.cpp">
+    <ClCompile Include="Debugging\Debugger.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Execution\ExecutionStaticTests.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Language\Types.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -38,7 +44,7 @@
     <ClInclude Include="Execution\Coroutines\CoroutineManager.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Execution\VirtualMachine.hpp">
+    <ClInclude Include="Execution\VirtualMachines\VirtualMachine.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Language\ObjectTypes.hpp">
@@ -53,10 +59,19 @@
     <ClInclude Include="Execution\Exceptions.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Execution\ThreadExecutionStates.hpp">
+    <ClInclude Include="Debugging\Debugger.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Debugger\Debugger.hpp">
+    <ClInclude Include="Execution\Coroutines\SystemQuirrelTickCoroutines.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Execution\Execution.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Interop\Json.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Language\Tables.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
