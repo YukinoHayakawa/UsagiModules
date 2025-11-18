@@ -17,20 +17,20 @@ ExecutionContextHandle DebuggingInterface::get_self_vm() const
 
 void DebuggingInterface::print_func(std::string_view str)
 {
-    // todo print to logger
+    get_logger().info("{}", str);
 }
 
 void DebuggingInterface::error_func(std::string_view str)
 {
-    // todo print to logger
+    get_logger().error("{}", str);
 }
 
 sq_int_t DebuggingInterface::error_handler()
 {
-    // todo print to logger
     // SQInteger event_type;
     // sq_getinteger(v, 2, &event_type);
 
+    [[maybe_unused]]
     const auto vm = get_self_vm();
 
     // todo: this is no such an `event_type`
