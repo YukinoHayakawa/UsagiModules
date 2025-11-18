@@ -1,7 +1,7 @@
 ﻿// game_logic.nut
 // Main entry point for game logic
 
-from "engine_core" import native_log
+from "engine_core" import native_log, to_json_string
 
 // seems local dosn't work and will trigger assert() failure
 // ... actually it was due to `native_log`
@@ -29,6 +29,17 @@ native_log($"game_logic.nut: {g_state.entities.len()} entities loaded from persi
 
 function test()
 {
+    print(to_json_string({
+      "id": 1,
+      "name": "Foo",
+      "price": 123,
+      "tags": ["Bar","Eek"],
+      "a": 1,
+      "b": 1,
+      "c": 1,
+      "d": 1,
+      "e": 1,
+    }));
     while(true)
     {
         suspend("get_delta_time()", 1, true)
