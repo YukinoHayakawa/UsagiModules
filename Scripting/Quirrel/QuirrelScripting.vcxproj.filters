@@ -30,10 +30,13 @@
     <ClCompile Include="Debugging\Debugger.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Execution\ExecutionStaticTests.cpp">
+    <ClCompile Include="Language\Types.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Language\Types.cpp">
+    <ClCompile Include="Debugging\DebuggingCommon.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Debugging\DebuggingInterface.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -53,9 +56,6 @@
     <ClInclude Include="Language\Types.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Execution\Coroutines\InvocationResults.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Execution\Exceptions.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -72,6 +72,18 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Language\Tables.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Debugging\DebuggingCommon.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Debugging\DebuggingInterface.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Debugging\Exceptions.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="RuntimeEnvironment.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

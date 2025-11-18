@@ -8,8 +8,7 @@
 #include <sqrat/sqratObject.h>
 #include <sqrat/sqratTypes.h>
 
-#include <Usagi/Modules/Scripting/Quirrel/Execution/ThreadExecutionStates.hpp>
-#include <Usagi/Modules/Scripting/Quirrel/Language/Types.hpp>
+#include <Usagi/Modules/Scripting/Quirrel/Execution/Execution.hpp>
 #include <Usagi/Runtime/RAII/RawHandleResource.hpp>
 
 namespace usagi::scripting::quirrel
@@ -38,11 +37,11 @@ struct CoroutineStates
     std::shared_ptr<VirtualMachine> root_machine;
     // Shio: The executable VM handle for this coroutine. All execution
     // functions (sq_call, sq_wakeupvm) operate on this handle.
-    CoroutineContext                execution_context;
+    ExecutionContextHandle          execution_context;
     // Shio: A strong C++ reference to the coroutine *object*. This handle is
     // given to the garbage collector via sq_addref/sq_release to prevent the
     // coroutine from being collected while the C++ host holds it.
-    CoroutineHandle                 coroutine_handle;
+    HSQOBJECT                       coroutine_handle;
     // Shio: The script function that serves as the coroutine's entry point.
     Sqrat::Object                   coroutine_func;
     // Shio: The 'this' instance that the coroutine function is bound to.
@@ -77,7 +76,7 @@ struct CoroutineStates
  *     releases its strong reference, allowing the Quirrel GC to collect the
  *     thread object.
  */
-class Coroutine : public RawHandleResource<CoroutineStates>
+class Coroutine : public runtime::RawHandleResource<CoroutineStates>
 {
     // We are managing a large object, we don't want to get it copied so often.
     static_assert(return_handle_by_copy_v == false);
@@ -111,7 +110,7 @@ public:
      * \brief Gets the raw HSQUIRRELVM handle for this coroutine.
      * \return The coroutine's execution context.
      */
-    CoroutineContext thread_context() const
+    ExecutionContextHandle thread_context() const
     {
         return GetRawHandle().execution_context;
     }
@@ -120,7 +119,7 @@ public:
      * \brief Gets the raw HSQOBJECT handle for this coroutine.
      * \return The coroutine's garbage-collected object handle.
      */
-    const CoroutineHandle & coroutine_handle() const
+    const HSQOBJECT & coroutine_handle() const
     {
         return GetRawHandle().coroutine_handle;
     }
@@ -199,8 +198,7 @@ public:
      * \return A string if the first yielded value was a string, otherwise the
      * execution state.
      */
-    runtime::MaybeError<std::string, ThreadExecutionStates>
-        try_get_yielded_values();
+    std::expected<std::string, ThreadExecutionStates> try_get_yielded_values();
 
 protected:
     // Shio: Internal creation logic called by the constructor.

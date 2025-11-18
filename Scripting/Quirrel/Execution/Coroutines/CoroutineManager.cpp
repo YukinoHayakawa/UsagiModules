@@ -5,7 +5,8 @@
 #include <sqrat/sqratObject.h>
 
 #include <Usagi/Modules/Runtime/Logging/RuntimeLogger.hpp>
-#include <Usagi/Modules/Scripting/Quirrel/Execution/VirtualMachine.hpp>
+#include <Usagi/Modules/Scripting/Quirrel/Execution/Execution.hpp>
+#include <Usagi/Modules/Scripting/Quirrel/Execution/VirtualMachines/VirtualMachine.hpp>
 
 namespace usagi::scripting::quirrel
 {
@@ -13,7 +14,7 @@ void CoroutineManager::tick_coroutines()
 {
     auto v = mVirtualMachine.GetRawHandle();
 
-    std::unordered_set<CoroutineContext> toRemove;
+    std::unordered_set<ExecutionContextHandle> toRemove;
 
     for(auto && coro : mActiveCoroutines)
     {

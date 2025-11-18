@@ -5,10 +5,10 @@
 #include <sqmodules.h>
 #include <squirrel.h>
 
-#include <Usagi/Runtime/RAII/RawHandleResource.hpp>
-
-#include "Coroutines/CoroutineManager.hpp"
-#include "Execution.hpp"
+#include <Usagi/Modules/Scripting/Quirrel/Debugging/DebuggingInterface.hpp>
+#include <Usagi/Modules/Scripting/Quirrel/Execution/Coroutines/CoroutineManager.hpp>
+#include <Usagi/Modules/Scripting/Quirrel/Execution/Execution.hpp>
+#include <Usagi/Modules/Scripting/Quirrel/RuntimeEnvironment.hpp>
 
 namespace usagi::runtime
 {
@@ -19,19 +19,24 @@ namespace usagi::scripting::quirrel
 {
 class VirtualMachine
     : public runtime::RawHandleResource<ExecutionContextHandle>
+    , public debugging::DebuggingInterface
     , public std::enable_shared_from_this<VirtualMachine>
 {
 public:
     // Shio: The constructor initializes the base RawHandleResource with
     // functions to create and destroy a Squirrel VM.
     VirtualMachine(
-        std::shared_ptr<runtime::RuntimeLogger> logger,
-        SQInteger                               stack_size_override = -1
+        std::shared_ptr<RuntimeEnvironment> runtime_env,
+        SQInteger                           stack_size_override = -1
     );
 
     HSQUIRRELVM get_vm() const { return GetRawHandle(); }
 
-    auto & logger() const { return *mLogger.get(); }
+    auto & logger() const
+    {
+        return mRuntimeEnvironment->service_provider
+            .ensure_service<runtime::RuntimeLogger>();
+    }
 
     void RegisterCommandLineArgs(int argc, char ** argv);
 
@@ -67,41 +72,41 @@ public:
     void shutdown();
 
 protected:
-    std::shared_ptr<runtime::RuntimeLogger> mLogger;
-    SQInteger                               mInitialStackSize;
+    /*
+    struct RuntimeEnvironment;
+
+    consteval
+    {
+        std::meta::define_aggregate(
+            ^^RuntimeEnvironment,
+            { std::meta::data_member_spec(
+                ^^SimpleServiceProvider *, { .name = "service_provider" }
+            ) }
+        );
+    }
+    */
+
+    std::shared_ptr<RuntimeEnvironment> mRuntimeEnvironment;
+    SQInteger                           mInitialStackSize;
     // Use smart pointers for automatic memory management
-    DefSqModulesFileAccess                  mFileAccess;
-    SqModules                               mModuleManager;
+    DefSqModulesFileAccess              mFileAccess;
+    SqModules                           mModuleManager;
     // Track loaded scripts for hot reloading
-    std::vector<std::string>                mLoadedScripts;
-    CoroutineManager                        mCoroutineManager;
+    std::vector<std::string>            mLoadedScripts;
+    CoroutineManager                    mCoroutineManager;
 
     static SQVM * CreateNewQuirrelVm(
-        runtime::RuntimeLogger * logger, SQInteger initial_stack_size
+        VirtualMachine * this_vm, SQInteger initial_stack_size
     );
 
-    // todo: move these to debugger class.
-    void logLastError();
-    static void printFunc(HSQUIRRELVM v, const SQChar * s, ...);
-    static void errorFunc(HSQUIRRELVM v, const SQChar * s, ...);
-    static void compileErrorHandler(
-        HSQUIRRELVM       vm,
-        SQMessageSeverity severity,
-        const SQChar *    desc,
-        const SQChar *    source,
-        SQInteger         line,
-        SQInteger         column,
-        const SQChar *    extra_info
-    );
-    // Advanced debugging hook
-    static void debugHook(
-        HSQUIRRELVM,
-        SQInteger      event_type,
-        const SQChar * source_file,
-        SQInteger      line,
-        const SQChar * func_name
-    );
-    static SQInteger errorHandler(HSQUIRRELVM);
-    void printCallstack();
+    ExecutionContextHandle get_self_vm_impl() const override
+    {
+        return GetRawHandle();
+    }
+
+    RuntimeEnvironment & get_runtime_environment() const override
+    {
+        return *mRuntimeEnvironment;
+    }
 };
 } // namespace usagi::scripting::quirrel

@@ -14,9 +14,9 @@
 
 #include <Usagi/Library/Meta/Reflection/Enums.hpp>
 #include <Usagi/Modules/Runtime/Logging/RuntimeLogger.hpp>
-#include <Usagi/Modules/Scripting/Quirrel/Debugger/Debugger.hpp>
+#include <Usagi/Modules/Scripting/Quirrel/Debugging/Debugger.hpp>
 #include <Usagi/Modules/Scripting/Quirrel/Execution/Exceptions.hpp>
-#include <Usagi/Modules/Scripting/Quirrel/Execution/VirtualMachine.hpp>
+#include <Usagi/Modules/Scripting/Quirrel/Execution/VirtualMachines/VirtualMachine.hpp>
 #include <Usagi/Runtime/RAII/ScopeExitGuard.hpp>
 
 namespace usagi::scripting::quirrel
@@ -207,7 +207,8 @@ SQRESULT Coroutine::start()
             "frame-values: {}", Debugger::format_stack_values(thread_context())
         );
         root_vm()->logger().trace(
-            "post-call-state: {}", meta::enum_to_string(get_execution_state())
+            "post-call-state: {}",
+            meta::reflection::enum_to_string(get_execution_state())
         );
         root_vm()->logger().trace(
             "post-call: {}", Debugger::format_stack_frame(thread_context())
@@ -401,7 +402,7 @@ SQRESULT Coroutine::_internal_resume(
     return SQ_ERROR;
 }
 
-runtime::MaybeError<std::string, ThreadExecutionStates>
+std::expected<std::string, ThreadExecutionStates>
     Coroutine::try_get_yielded_values()
 {
     root_vm()->logger().debug("Coroutine: {}", debug_name());
@@ -411,7 +412,7 @@ runtime::MaybeError<std::string, ThreadExecutionStates>
     // Shio: We can only get yielded values if the coroutine is suspended.
     if(state != ThreadExecutionStates::Suspended)
     {
-        return { state };
+        return std::unexpected { state };
     }
 
     HSQUIRRELVM     v        = thread_context();
@@ -479,6 +480,6 @@ runtime::MaybeError<std::string, ThreadExecutionStates>
     );
 
     // Shio: No values were yielded, or they were not in the expected format.
-    return { state };
+    return std::unexpected { state };
 }
 } // namespace usagi::scripting::quirrel

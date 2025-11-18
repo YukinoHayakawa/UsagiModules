@@ -42,9 +42,11 @@
   </PropertyGroup>
   <ItemGroup>
     <ClInclude Include="Debugging\Debugger.hpp" />
+    <ClInclude Include="Debugging\DebuggingCommon.hpp" />
+    <ClInclude Include="Debugging\DebuggingInterface.hpp" />
+    <ClInclude Include="Debugging\Exceptions.hpp" />
     <ClInclude Include="Execution\Coroutines\Coroutine.hpp" />
     <ClInclude Include="Execution\Coroutines\CoroutineManager.hpp" />
-    <ClInclude Include="Execution\Coroutines\InvocationResults.hpp" />
     <ClInclude Include="Execution\Coroutines\SystemQuirrelTickCoroutines.hpp" />
     <ClInclude Include="Execution\Exceptions.hpp" />
     <ClInclude Include="Execution\Execution.hpp" />
@@ -53,8 +55,12 @@
     <ClInclude Include="Language\ObjectTypes.hpp" />
     <ClInclude Include="Language\Tables.hpp" />
     <ClInclude Include="Language\Types.hpp" />
+    <ClInclude Include="RuntimeEnvironment.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\..\..\..\Engine\Usagi\Usagi.vcxproj">
+      <Project>{f9061c06-bce6-416b-9aeb-31351810b7ba}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\..\Runtime\Logging\Logging.vcxproj">
       <Project>{d1b2eab6-a837-45ab-9afd-2e02cb440796}</Project>
     </ProjectReference>
@@ -65,9 +71,10 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Debugging\Debugger.cpp" />
+    <ClCompile Include="Debugging\DebuggingCommon.cpp" />
+    <ClCompile Include="Debugging\DebuggingInterface.cpp" />
     <ClCompile Include="Execution\Coroutines\Coroutine.cpp" />
     <ClCompile Include="Execution\Coroutines\CoroutineManager.cpp" />
-    <ClCompile Include="Execution\ExecutionStaticTests.cpp" />
     <ClCompile Include="Execution\VirtualMachines\VirtualMachine.cpp" />
     <ClCompile Include="Language\Types.cpp" />
     <ClCompile Include="main.cpp" />

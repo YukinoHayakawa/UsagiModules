@@ -8,6 +8,8 @@ class InvalidVirtualMachine : public runtime::RuntimeError
 {
 public:
     using RuntimeError::RuntimeError;
+
+    InvalidVirtualMachine() : RuntimeError("Encountered a null Quirrel VM.") {}
 };
 
 class MismatchedObjectType : public runtime::RuntimeError

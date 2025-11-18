@@ -1,8 +1,9 @@
 ﻿#include <spdlog/spdlog.h>
 
 #include <Usagi/Modules/Runtime/Logging/RuntimeLogger.hpp>
+#include <Usagi/Runtime/Services/SimpleServiceProvider.hpp>
 
-#include "Execution/VirtualMachine.hpp"
+#include "Execution/VirtualMachines/VirtualMachine.hpp"
 
 using namespace usagi::scripting::quirrel;
 
@@ -57,6 +58,8 @@ SQInteger native_log(HSQUIRRELVM v)
 }
 } // namespace
 
+using namespace usagi::runtime;
+
 /**
  * @brief Main function to run the server example.
  */
@@ -65,17 +68,25 @@ int main(int argc, char ** argv)
     // Create the dummy script files on disk
     // CreateDummyScripts();
 
-    auto & server = gGameServer = std::make_shared<VirtualMachine>(
-        std::make_shared<usagi::runtime::RuntimeLogger>("QuirrelLogger")
-    );
-    server->logger().add_console_sink();
+    auto env = std::make_shared<RuntimeEnvironment>();
 
-    server->init();
-    server->RegisterCommandLineArgs(argc, argv);
+    // Add logging service.
+    env->service_provider.create_default_service<RuntimeLogger>()
+        .value()
+        .get()
+        .add_console_sink();
+
+    auto & root_vm = env->service_provider
+                         .create_service(std::make_unique<VirtualMachine>(env))
+                         .value()
+                         .get();
+
+    root_vm.init();
+    root_vm.RegisterCommandLineArgs(argc, argv);
 
     {
         // 1. Create an 'exports' table for our native module
-        auto exports = server->CreateBindNewObject<Sqrat::Table>();
+        auto exports = root_vm.CreateBindNewObject<Sqrat::Table>();
 
         // 2. Bind C++ functions
         // Use SquirrelFuncDeclString for full type-hinting and docs
@@ -105,7 +116,7 @@ int main(int argc, char ** argv)
 
         // 3. Bind the C++ GameObject class
         auto gameObjClass =
-            server->CreateBindNewObject<Sqrat::Class<GameObject>>("GameObject");
+            root_vm.CreateBindNewObject<Sqrat::Class<GameObject>>("GameObject");
         // Sqrat::Class<GameObject> gameObjClass(v, "GameObject");
         gameObjClass
             .Ctor<int>()              // Bind constructor: GameObject(int id)
@@ -121,7 +132,7 @@ int main(int argc, char ** argv)
         exports.Bind("GameObject", gameObjClass);
 
         // 5. Register our populated exports table as a native module
-        server->module_manager().addNativeModule("engine_core", exports);
+        root_vm.module_manager().addNativeModule("engine_core", exports);
     }
 
     /*
@@ -131,17 +142,17 @@ int main(int argc, char ** argv)
     }
     */
 
-    if(!server->loadScripts())
+    if(!root_vm.loadScripts())
     {
         return 1;
     }
 
     // Shio: --- SCRIPT SERVER RUNNING ---
-    server->logger().info("\n--- SCRIPT SERVER RUNNING ---");
+    root_vm.logger().info("\n--- SCRIPT SERVER RUNNING ---");
     // Shio: --- Ticking 500 frames... ---
-    server->logger().info("--- Ticking 500 frames... ---");
+    root_vm.logger().info("--- Ticking 500 frames... ---");
     // Shio: --- Press to tick 100 frames (R+ENTER to reload) ---
-    server->logger().info(
+    root_vm.logger().info(
         "--- Press to tick 100 frames (R+ENTER to reload) ---"
     );
 
@@ -151,16 +162,16 @@ int main(int argc, char ** argv)
         if(frame == 50)
         {
             // Trigger a hot-reload mid-flight
-            server->logger().info("TRIGGERING HOT-RELOAD");
-            server->triggerReload();
+            root_vm.logger().info("TRIGGERING HOT-RELOAD");
+            root_vm.triggerReload();
         }
 
-        server->tick();
+        root_vm.tick();
         frame++;
     }
 
     // Shio: --- SIMULATION FINISHED ---
-    server->logger().info("\n--- SIMULATION FINISHED ---");
-    server->shutdown();
+    root_vm.logger().info("\n--- SIMULATION FINISHED ---");
+    root_vm.shutdown();
     return 0;
 }

@@ -1,42 +1,52 @@
 ﻿#pragma once
 
-#include <type_traits>
+#include <cstdint>
 
-#include <sqconfig.h>
-#include <squirrel.h>
-
-namespace usagi::scripting::quirrel
+/*
+ * This file defines equivalent common types appears in Quirrel so you don't
+ * have to include the bigger headers of the scripting language.
+ */
+namespace usagi::scripting::quirrel::types
 {
-static_assert(_SQ64, "Why on earth would you compile a 32-bit program?");
-
 // Numerical types
 
-using Int32 = SQInt32;
-static_assert(std::is_same_v<SQInt32, std::int32_t>);
-using UInt32 = SQUnsignedInteger32;
-static_assert(std::is_same_v<SQUnsignedInteger32, std::uint32_t>);
-using Int64 = SQInteger;
-static_assert(std::is_same_v<SQInteger, std::int64_t>);
-using UInt64 = SQUnsignedInteger;
-static_assert(std::is_same_v<SQUnsignedInteger, std::uint64_t>);
-using Double = SQFloat;
-static_assert(std::is_same_v<SQFloat, double>);
-using Bool = SQUnsignedInteger;
-static_assert(std::is_same_v<Bool, SQUnsignedInteger>);
-using Char = SQChar;
-static_assert(std::is_same_v<Char, char>);
+using sq_int_t    = std::int64_t;
+using sq_uint_t   = std::uint64_t;
+using sq_int32_t  = std::int32_t;
+using sq_uint32_t = std::uint32_t;
+using sq_int64_t  = std::int64_t;
+using sq_uint64_t = std::uint64_t;
+using sq_float_t  = double;
+using sq_bool_t   = sq_uint_t;
+using sq_char_t   = char;
+
+template <typename T>
+struct limits;
+
+template <>
+struct limits<sq_char_t>
+{
+    constexpr static sq_char_t max_v = '\xff';
+    static_assert(max_v == static_cast<char>(255));
+};
 
 // Internal types
 
-using Hash = SQHash;
-static_assert(std::is_same_v<SQHash, std::uint64_t>);
-using RawObjectVal = SQRawObjectVal;
-static_assert(std::is_same_v<SQRawObjectVal, SQUnsignedInteger>);
-using UserPointer = SQUserPointer;
-static_assert(std::is_same_v<SQUserPointer, void *>);
-using OperationResult = SQRESULT;
-static_assert(std::is_same_v<SQRESULT, SQInteger>);
+using hash_t           = std::uint64_t;
+using raw_object_val_t = sq_uint_t;
+using user_pointer_t   = void *;
+using result_t         = sq_int_t;
 
-using ExecutionContext = HSQUIRRELVM;
-using Handle           = HSQOBJECT;
-} // namespace usagi::scripting::quirrel
+// tagSQMessageSeverity
+enum class MessageLevels
+{
+    Info    = 0,
+    Warning = 1,
+    Error   = 2,
+};
+} // namespace usagi::scripting::quirrel::types
+
+// Something like TEXT(str). Gotta be for Windows.
+#ifndef _SC
+#define _SC(str) str
+#endif
