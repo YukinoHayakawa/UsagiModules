@@ -36,22 +36,22 @@ VirtualMachine::VirtualMachine(
 }
 
 SQVM * VirtualMachine::CreateNewQuirrelVm(
-    VirtualMachine * this_vm, const SQInteger initial_stack_size
+    [[maybe_unused]] VirtualMachine * this_vm, SQInteger initial_stack_size
 )
 {
     // Shio: Initializing Quirrel VM...
-    this_vm->logger().info(" Initializing Quirrel VM...");
+    // this_vm->logger().info(" Initializing Quirrel VM...");
     const auto vm = sq_open(initial_stack_size);
     if(!vm)
     {
         // Use spdlog's critical log which can be configured to throw or exit
-        this_vm->logger().critical("Failed to create Quirrel VM!");
+        // this_vm->logger().critical("Failed to create Quirrel VM!");
         throw runtime::RuntimeError(
             "Failed to create Quirrel VM with initial_stack_size={}",
             initial_stack_size
         );
     }
-    this_vm->logger().info("Root VM handle {}", (void *)vm);
+    // this_vm->logger().info("Root VM handle {}", (void *)vm);
     return vm;
 }
 
@@ -59,7 +59,10 @@ void VirtualMachine::init()
 {
     auto _vm = GetRawHandle();
 
-    debugging::DebuggingCommon::bind_handlers_to(GetRawHandle());
+    // Store a pointer to this VirtualMachine instance within the VM itself
+    sq_setforeignptr(_vm, this);
+
+    debugging::DebuggingCommon::bind_handlers_to(_vm);
 
     // 3. Set up the module manager to handle all library registration
     // mFileAccess = std::make_unique<DefSqModulesFileAccess>();

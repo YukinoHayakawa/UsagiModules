@@ -9,7 +9,7 @@ using namespace usagi::scripting::quirrel;
 
 namespace
 {
-std::shared_ptr<VirtualMachine> gGameServer;
+VirtualMachine * gGameServer = nullptr;
 
 /**
  * @brief Represents a C++ object that can be manipulated by Quirrel.
@@ -80,6 +80,8 @@ int main(int argc, char ** argv)
                          .create_service(std::make_unique<VirtualMachine>(env))
                          .value()
                          .get();
+
+    gGameServer = &root_vm;
 
     root_vm.init();
     root_vm.RegisterCommandLineArgs(argc, argv);

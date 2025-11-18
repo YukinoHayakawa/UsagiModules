@@ -107,8 +107,6 @@ void DebuggingCommon::bind_handlers_to(ExecutionContextHandle vm)
     sqstd_seterrorhandlers(vm);
 
     // 2. Set up the debug hook for rich error reporting
-    // Store a pointer to this VirtualMachine instance within the VM itself
-    sq_setforeignptr(vm, di);
     // todo fix
     // sq_setdebughook(vm, debug_hook);
     sq_setnativedebughook(vm, &debug_hook);
