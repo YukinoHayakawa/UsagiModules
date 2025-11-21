@@ -70,6 +70,7 @@
     <ClInclude Include="..\quirrel\sqrat\include\sqrat\sqratTypes.h" />
     <ClInclude Include="..\quirrel\sqrat\include\sqrat\sqratUtil.h" />
     <ClInclude Include="..\quirrel\sqstdlib\sqstdblobimpl.h" />
+    <ClInclude Include="..\quirrel\sqstdlib\sqstdhash.h" />
     <ClInclude Include="..\quirrel\sqstdlib\sqstdserialization.h" />
     <ClInclude Include="..\quirrel\sqstdlib\sqstdstream.h" />
     <ClInclude Include="..\quirrel\squirrel\compiler\arena.h" />
@@ -87,6 +88,7 @@
     <ClInclude Include="..\quirrel\squirrel\compiler\optimizer.h" />
     <ClInclude Include="..\quirrel\squirrel\compiler\parser.h" />
     <ClInclude Include="..\quirrel\squirrel\compiler\sqfuncstate.h" />
+    <ClInclude Include="..\quirrel\squirrel\compiler\sqtypeparser.h" />
     <ClInclude Include="..\quirrel\squirrel\compiler\static_analyzer\analyzer.h" />
     <ClInclude Include="..\quirrel\squirrel\opcodes.h" />
     <ClInclude Include="..\quirrel\squirrel\sqarray.h" />
@@ -98,7 +100,6 @@
     <ClInclude Include="..\quirrel\squirrel\sqstate.h" />
     <ClInclude Include="..\quirrel\squirrel\sqstring.h" />
     <ClInclude Include="..\quirrel\squirrel\sqtable.h" />
-    <ClInclude Include="..\quirrel\squirrel\sqtypeparser.h" />
     <ClInclude Include="..\quirrel\squirrel\squserdata.h" />
     <ClInclude Include="..\quirrel\squirrel\squtils.h" />
     <ClInclude Include="..\quirrel\squirrel\sqvm.h" />
@@ -113,6 +114,7 @@
     <ClCompile Include="..\quirrel\sqstdlib\sqstdblob.cpp" />
     <ClCompile Include="..\quirrel\sqstdlib\sqstddatetime.cpp" />
     <ClCompile Include="..\quirrel\sqstdlib\sqstddebug.cpp" />
+    <ClCompile Include="..\quirrel\sqstdlib\sqstdhash.cpp" />
     <ClCompile Include="..\quirrel\sqstdlib\sqstdio.cpp" />
     <ClCompile Include="..\quirrel\sqstdlib\sqstdmath.cpp" />
     <ClCompile Include="..\quirrel\sqstdlib\sqstdrex.cpp" />
@@ -131,6 +133,7 @@
     <ClCompile Include="..\quirrel\squirrel\compiler\parser.cpp" />
     <ClCompile Include="..\quirrel\squirrel\compiler\sqfuncstate.cpp" />
     <ClCompile Include="..\quirrel\squirrel\compiler\sqio.cpp" />
+    <ClCompile Include="..\quirrel\squirrel\compiler\sqtypeparser.cpp" />
     <ClCompile Include="..\quirrel\squirrel\compiler\static_analyzer\analyzer.cpp" />
     <ClCompile Include="..\quirrel\squirrel\sqapi.cpp" />
     <ClCompile Include="..\quirrel\squirrel\sqbaselib.cpp" />
@@ -144,7 +147,6 @@
     <ClCompile Include="..\quirrel\squirrel\sqstate.cpp" />
     <ClCompile Include="..\quirrel\squirrel\sqstringlib.cpp" />
     <ClCompile Include="..\quirrel\squirrel\sqtable.cpp" />
-    <ClCompile Include="..\quirrel\squirrel\sqtypeparser.cpp" />
     <ClCompile Include="..\quirrel\squirrel\sqvm.cpp" />
     <ClCompile Include="..\quirrel\squirrel\vartrace.cpp" />
     <ClCompile Include="..\quirrel\squirrel\vartracestub.cpp" />
