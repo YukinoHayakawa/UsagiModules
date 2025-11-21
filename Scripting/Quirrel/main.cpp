@@ -25,6 +25,7 @@
 #include <Usagi/Runtime/Services/SimpleServiceProvider.hpp>
 
 #include "Execution/VirtualMachines/VirtualMachine.hpp"
+#include "Interop/Json.hpp"
 
 using namespace usagi::scripting::quirrel;
 
@@ -74,220 +75,6 @@ SQInteger native_log(HSQUIRRELVM v)
         // sq_pop(v, 2);
     }
     return 0; // 0 return values
-}
-
-// Helper to escape JSON strings
-static std::string JsonEscape(const char * str)
-{
-    if(!str) return "\"\"";
-
-    std::stringstream ss;
-    ss << "\"";
-    for(const char * c = str; *c; ++c)
-    {
-        switch(*c)
-        {
-            case '"' : ss << "\\\""; break;
-            case '\\': ss << "\\\\"; break;
-            case '\b': ss << "\\b"; break;
-            case '\f': ss << "\\f"; break;
-            case '\n': ss << "\\n"; break;
-            case '\r': ss << "\\r"; break;
-            case '\t': ss << "\\t"; break;
-            default:
-                if(static_cast<unsigned char>(*c) < 0x20)
-                {
-                    ss << "\\u" << std::setfill('0') << std::setw(4) << std::hex
-                       << static_cast<int>(*c);
-                }
-                else
-                {
-                    ss << *c;
-                }
-        }
-    }
-    ss << "\"";
-    return ss.str();
-}
-
-struct SQJsonSerializer
-{
-    enum
-    {
-        MAX_DEPTH = 200,
-    };
-
-    std::stringstream & ss;
-    uint32_t            depth;
-    bool                success;
-
-    SQJsonSerializer(std::stringstream & stream)
-        : ss(stream)
-        , depth(0)
-        , success(true)
-    {
-    }
-
-    bool serialize(SQObjectPtr obj)
-    {
-        if(depth > MAX_DEPTH)
-        {
-            // Fallback or error
-            ss << "\"<depth_limit_exceeded>\"";
-            return false;
-        }
-
-        switch(sq_type(obj))
-        {
-            case OT_NULL   : ss << "null"; break;
-            case OT_INTEGER: ss << _integer(obj); break;
-            case OT_FLOAT:
-            {
-                SQFloat val = _float(obj);
-                if(std::isnan(val) || std::isinf(val))
-                {
-                    ss << "null";
-                }
-                else
-                {
-                    ss << val;
-                }
-                break;
-            }
-            case OT_BOOL  : ss << (_integer(obj) ? "true" : "false"); break;
-            case OT_STRING: ss << JsonEscape(_stringval(obj)); break;
-            case OT_ARRAY:
-            {
-                ss << "[";
-                SQArray * arr = _array(obj);
-                SQInteger len = arr->Size();
-                depth++;
-                for(SQInteger i = 0; i < len; ++i)
-                {
-                    if(i > 0) ss << ",";
-                    // Direct internal access to array values
-                    serialize(arr->_values[i]);
-                }
-                depth--;
-                ss << "]";
-                break;
-            }
-            case OT_TABLE:
-            {
-                ss << "{";
-                SQTable * tbl = _table(obj);
-                depth++;
-
-                // Iterate using internal hash nodes, safer than stack iteration
-                // Copied logic from sqstdserialization.cpp
-                SQTable::_HashNode * nodes = tbl->_nodes;
-                SQInteger            numNodes =
-                    tbl->_numofnodes_minus_one + 1; // size of the hash array
-
-                bool first = true;
-                for(SQInteger i = 0; i < numNodes; ++i)
-                {
-                    SQObjectPtr key = nodes[i].key;
-                    SQObjectPtr val = nodes[i].val;
-
-                    // Skip empty/deleted slots
-                    if(sq_type(key) == OT_NULL ||
-                       (sq_type(key) & OT_FREE_TABLE_SLOT))
-                        continue;
-
-                    if(!first) ss << ",";
-
-                    // Key must be a string for JSON
-                    if(sq_isstring(key))
-                    {
-                        ss << JsonEscape(_stringval(key));
-                    }
-                    else
-                    {
-                        // Convert non-string key to string (basic conversion)
-                        if(sq_isinteger(key))
-                        {
-                            ss << "\"" << _integer(key) << "\"";
-                        }
-                        else
-                        {
-                            ss << "\"<invalid_key>\"";
-                        }
-                    }
-
-                    ss << ":";
-                    serialize(val);
-                    first = false;
-                }
-                depth--;
-                ss << "}";
-                break;
-            }
-            case OT_CLASS:
-            {
-                // Serialize class default values as a JSON object or just
-                // placeholder sqstdserialization.cpp serializes classes via
-                // specific logic, here we just output a placeholder as JSON
-                // usually represents data, not schema.
-                ss << "\"<class>\"";
-                break;
-            }
-            case OT_INSTANCE:
-            {
-                // For instances, we usually want to serialize properties.
-                // Without __getstate/JSON support in the class, this is
-                // ambiguous. We'll placeholder it for safety unless we
-                // implement full __getstate support.
-                ss << "\"<instance>\"";
-                break;
-            }
-            default: ss << "\"<unsupported_type>\""; break;
-        }
-        return true;
-    }
-};
-
-std::string to_json_string_(const Sqrat::Object & value)
-{
-    HSQUIRRELVM v = value.GetVM();
-    if(!v) return "null";
-
-    std::stringstream ss;
-    SQJsonSerializer  serializer(ss);
-
-    // Convert Handle to internal SQObjectPtr
-    // HSQOBJECT is struct { type, val }. SQObjectPtr has
-    // constructors/assignment for it. We safely cast the internal handle.
-    HSQOBJECT   hObj = value.GetObject();
-    SQObjectPtr obj;
-    obj._type  = hObj._type;
-    obj._unVal = hObj._unVal;
-
-    serializer.serialize(obj);
-
-    return ss.str();
-}
-
-std::string to_json_string(const Sqrat::Table & value)
-{
-    return to_json_string_(static_cast<const Sqrat::Object &>(value));
-}
-
-// see `VarTrace::saveStack` todo this is a TEMP test
-std::string to_string(/*HSQUIRRELVM vm, */ const Sqrat::Table & value)
-{
-    SQObjectPtr obj(value.GetObject());
-    SQObjectPtr res;
-    if(gGameServer->get_vm()->ToString(obj, res))
-    {
-        const SQChar * valueAsString = sq_objtostring(&res);
-        if(valueAsString)
-        {
-            gGameServer->logger().info(" {}", std::string_view(valueAsString));
-        }
-        return valueAsString;
-    }
-    return "<to_string() error>";
 }
 
 using namespace usagi::runtime;
@@ -348,7 +135,19 @@ int main(int argc, char ** argv)
             "Logs a string to the C++ console" // 3. The optional docstring
         );
 
-        exports.Func("to_json_string", &to_json_string);
+        /* todo polymorphism in Querrel doesn't work like this. I don't think
+         *   there is function overloading.
+        exports.Func(
+            "to_json_string", &interop::JsonSerializer::object_to_json_string,
+            "to_json_string(val: object): string"
+        );
+        */
+
+        // So currently we only support serializing a Table to JSON.
+        exports.Func(
+            "to_json_string", &interop::JsonSerializer::table_to_json_string,
+            "to_json_string(val: table): string"
+        );
 
         // 3. Bind the C++ GameObject class
         auto gameObjClass =
@@ -393,9 +192,9 @@ int main(int argc, char ** argv)
     );
 
     int frame = 0;
-    while(frame < 100)
+    while(frame < 20)
     {
-        if(frame == 50)
+        if(frame == 10)
         {
             // Trigger a hot-reload mid-flight
             root_vm.logger().info("TRIGGERING HOT-RELOAD");

@@ -3,6 +3,7 @@
 #include <string_view>
 
 #include <Usagi/Modules/Scripting/Quirrel/Execution/Execution.hpp>
+#include <Usagi/Modules/Scripting/Quirrel/Language/RuntimeTypes.hpp>
 #include <Usagi/Modules/Scripting/Quirrel/Language/Types.hpp>
 
 namespace usagi::runtime
@@ -55,7 +56,7 @@ public:
     virtual void print_callstack();
 
 protected:
-    virtual ExecutionContextHandle get_self_vm_impl() const = 0;
+    virtual ExecutionContextHandle get_self_vm_impl() const      = 0;
     virtual RuntimeEnvironment & get_runtime_environment() const = 0;
     virtual runtime::RuntimeLogger & get_logger() const final;
 };

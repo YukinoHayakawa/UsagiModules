@@ -30,13 +30,16 @@
     <ClCompile Include="Debugging\Debugger.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Language\Types.cpp">
+    <ClCompile Include="Language\StaticTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Debugging\DebuggingCommon.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Debugging\DebuggingInterface.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Interop\Json.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -50,7 +53,7 @@
     <ClInclude Include="Execution\VirtualMachines\VirtualMachine.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Language\ObjectTypes.hpp">
+    <ClInclude Include="Language\Objects.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Language\Types.hpp">
@@ -68,7 +71,7 @@
     <ClInclude Include="Execution\Execution.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Interop\Json.hpp">
+    <ClInclude Include="Interop\Json_.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Language\Tables.hpp">
@@ -84,6 +87,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="RuntimeEnvironment.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Language\RuntimeTypes.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Interop\Json.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

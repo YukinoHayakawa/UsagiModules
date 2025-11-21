@@ -4,6 +4,7 @@
 
 #include <Usagi/Modules/Runtime/Logging/RuntimeLogger.hpp>
 #include <Usagi/Modules/Scripting/Quirrel/Execution/Exceptions.hpp>
+#include <Usagi/Modules/Scripting/Quirrel/Language/RuntimeTypes.hpp>
 #include <Usagi/Modules/Scripting/Quirrel/RuntimeEnvironment.hpp>
 
 namespace usagi::scripting::quirrel::debugging

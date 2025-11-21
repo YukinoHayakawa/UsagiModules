@@ -40,6 +40,7 @@ function test()
       "d": 1,
       "e": 1,
     }));
+    print(to_json_string({ entity = Entity(4, "Enemy_2") }));
     while(true)
     {
         suspend("get_delta_time()", 1, true)

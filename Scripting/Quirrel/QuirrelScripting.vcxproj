@@ -52,7 +52,9 @@
     <ClInclude Include="Execution\Execution.hpp" />
     <ClInclude Include="Execution\VirtualMachines\VirtualMachine.hpp" />
     <ClInclude Include="Interop\Json.hpp" />
-    <ClInclude Include="Language\ObjectTypes.hpp" />
+    <ClInclude Include="Interop\Json_.hpp" />
+    <ClInclude Include="Language\Objects.hpp" />
+    <ClInclude Include="Language\RuntimeTypes.hpp" />
     <ClInclude Include="Language\Tables.hpp" />
     <ClInclude Include="Language\Types.hpp" />
     <ClInclude Include="RuntimeEnvironment.hpp" />
@@ -76,7 +78,8 @@
     <ClCompile Include="Execution\Coroutines\Coroutine.cpp" />
     <ClCompile Include="Execution\Coroutines\CoroutineManager.cpp" />
     <ClCompile Include="Execution\VirtualMachines\VirtualMachine.cpp" />
-    <ClCompile Include="Language\Types.cpp" />
+    <ClCompile Include="Interop\Json.cpp" />
+    <ClCompile Include="Language\StaticTests.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>

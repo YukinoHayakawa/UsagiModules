@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include <Usagi/Modules/Scripting/Quirrel/Execution/Execution.hpp>
+#include <Usagi/Modules/Scripting/Quirrel/Language/RuntimeTypes.hpp>
 #include <Usagi/Modules/Scripting/Quirrel/Language/Types.hpp>
 
 namespace usagi::scripting::quirrel::debugging

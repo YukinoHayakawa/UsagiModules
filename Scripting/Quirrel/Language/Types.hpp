@@ -36,14 +36,6 @@ using hash_t           = std::uint64_t;
 using raw_object_val_t = sq_uint_t;
 using user_pointer_t   = void *;
 using result_t         = sq_int_t;
-
-// tagSQMessageSeverity
-enum class MessageLevels
-{
-    Info    = 0,
-    Warning = 1,
-    Error   = 2,
-};
 } // namespace usagi::scripting::quirrel::types
 
 // Something like TEXT(str). Gotta be for Windows.
