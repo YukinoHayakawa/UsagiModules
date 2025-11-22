@@ -7,18 +7,6 @@
 #include <squirrel.h>
 #include <sqobject.h>
 #include <sqvm.h>
-
-// Include Squirrel Internals to access direct table/array nodes
-// This mimics the approach in sqstdserialization.cpp to avoid stack corruption issues
-#include <squirrel.h>
-#include <squirrel/sqpcheader.h>
-#include <squirrel/sqvm.h>
-#include <squirrel/sqtable.h>
-#include <squirrel/sqarray.h>
-#include <squirrel/sqclass.h>
-#include <squirrel/sqfuncproto.h>
-#include <squirrel/sqclosure.h>
-#include <squirrel/sqstring.h>
 // clang-format on
 
 #include <Usagi/Modules/Runtime/Logging/RuntimeLogger.hpp>
@@ -77,6 +65,11 @@ SQInteger native_log(HSQUIRRELVM v)
     return 0; // 0 return values
 }
 
+void native_log_2(const std::string &str)
+{
+    gGameServer->logger().info(" {}", str);
+}
+
 using namespace usagi::runtime;
 
 /**
@@ -128,12 +121,16 @@ int main(int argc, char ** argv)
         // C++ one.
         // exports.SquirrelFunc("native_log", &native_log, -1);
         // This is the modern, declarative way to bind a native C-style function
+        /*
         exports.SquirrelFuncDeclString(
             &native_log, // 1. The C++ function pointer (must be an SQFUNCTION)
             "native_log(s: string): null",     // 2. The Quirrel function
                                                // declaration string
             "Logs a string to the C++ console" // 3. The optional docstring
         );
+        */
+
+        exports.Func("native_log", &native_log_2);
 
         /* todo polymorphism in Querrel doesn't work like this. I don't think
          *   there is function overloading.
@@ -145,8 +142,8 @@ int main(int argc, char ** argv)
 
         // So currently we only support serializing a Table to JSON.
         exports.Func(
-            "to_json_string", &interop::JsonSerializer::table_to_json_string,
-            "to_json_string(val: table): string"
+            "to_json_string",
+            &interop::JsonSerializer::table_to_json_string
         );
 
         // 3. Bind the C++ GameObject class

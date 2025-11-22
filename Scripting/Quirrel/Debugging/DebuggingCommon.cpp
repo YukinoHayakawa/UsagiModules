@@ -16,6 +16,7 @@
 
 namespace usagi::scripting::quirrel::debugging
 {
+// todo: bug - this function may cause vm to crash. reimpl.
 void DebuggingCommon::print_func(
     const ExecutionContextHandle vm, const sq_char_t * str, ...
 )
@@ -33,6 +34,7 @@ void DebuggingCommon::print_func(
     di->print_func(buffer);
 }
 
+// todo: bug - this function may cause vm to crash. reimpl.
 void DebuggingCommon::error_func(
     const ExecutionContextHandle vm, const sq_char_t * str, ...
 )

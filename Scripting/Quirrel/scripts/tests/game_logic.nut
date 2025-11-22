@@ -25,6 +25,20 @@ let g_state = persist("global_entity_list", @() {
     // }
 })
 
+class EntityWithoutPersist {
+    x = 0
+    y = 0
+    z = 0
+
+    constructor(x_, y_, z_) {
+        this.x = x_
+        this.y = y_
+        this.z = z_
+    }
+}
+
+class Nothing { }
+
 native_log($"game_logic.nut: {g_state.entities.len()} entities loaded from persistent state.")
 
 function test()
@@ -32,7 +46,7 @@ function test()
     // Seems that two anonymous tables would crash the vm during
     // >	QuirrelScripting.exe!SQTable::_GetStr(const unsigned __int64 key, unsigned __int64 hash) Line 89	C++
     // Becuase the second table is not allocated. It's weird.
-    print(to_json_string({
+    native_log(to_json_string({
       "id": 1,
       "name": "Foo",
       "price": 123,
@@ -42,8 +56,24 @@ function test()
       "c": 1,
       "d": 1,
       "e": 1,
-    }));
-    print(to_json_string({ "entity": Entity(4, "Enemy_2") }));
+    }))
+    // It seems that only having an instance like `Entity(4, "Enemy_2")` would
+    // cause the crash. Could it because hot-reloading?
+    // let temp = { "entity": Entity(4, "Enemy_2") }
+    // A simple table like this never crashes.
+    // let temp = { "entity": true }
+    // No persist values. Still crashes.
+    // let temp = { "entity": EntityWithoutPersist(1, 2, 3) }
+    // Seems that an empty class doesn't crash the vm.
+    // Ok. I am sure that the crashes are due to bugs in our print() impl.
+    let temp = { "entity": Nothing() }
+    let str = to_json_string(temp)
+    native_log(str)
+    native_log(to_json_string({ "entity": Entity(4, "Enemy_2") }))
+    native_log(to_json_string({ "entity": Entity(4, "Enemy_2") }))
+    native_log(to_json_string({ "entity": Entity(4, "Enemy_2") }))
+    native_log(to_json_string({ "entity": Entity(4, "Enemy_2") }))
+    native_log(to_json_string({ "entity": Entity(4, "Enemy_2") }))
     while(true)
     {
         suspend("get_delta_time()", 1, true)
@@ -55,6 +85,8 @@ function test()
 // This is the factory function C++ will call
 function GetAllEntityCoroutines() {
     native_log($"game_logic.nut: C++ requested 'GetAllEntityCoroutines'")
+    native_log(to_json_string({ "entity": Entity(4, "Enemy_2") }))
+    native_log(to_json_string({ "entity": Entity(4, "Enemy_2") }))
     local coroutines = []
     foreach(entity in g_state.entities) {
        // Add the 'UpdateCoroutine' function from each entity instance

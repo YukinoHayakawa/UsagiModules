@@ -25,7 +25,7 @@
       <!-- See `sqconfig.h` for what macros can be defined. -->
       <!-- We define `SQUSEDOUBLE` and `_SQ64` since nowadays game engine like Unreal -->
       <!-- is universally using `double` type for better floating point precision. -->
-      <PreprocessorDefinitions>_SQ64;SQUSEDOUBLE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>SQ_CHECK_THREAD=2;_SQ64;SQUSEDOUBLE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
 </Project>

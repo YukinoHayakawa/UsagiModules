@@ -1,7 +1,7 @@
 ﻿// entity.nut
 // Represents a single entity's logic
 
-from "engine_core" import/*  native_log, */ get_delta_time, GameObject
+from "engine_core" import native_log, get_delta_time, GameObject
 
 class Entity {
     cpp_obj = null
@@ -27,12 +27,12 @@ class Entity {
         })
 
         // On reload, this log will show the old tick_count
-        print($"entity.nut: {this.state.name} loaded with tick_count = {this.state.tick_count}")
+        native_log($"entity.nut: {this.state.name} loaded with tick_count = {this.state.tick_count}")
     }
 
     // This is the coroutine function
     function UpdateCoroutine() {
-        print($"{this.state.name} UpdateCoroutine started.")
+        native_log($"{this.state.name} UpdateCoroutine started.")
         suspend("<", "xxx", ">")
 
         // This is the main game loop for this entity

@@ -8,20 +8,26 @@
 // clang-format off
 // old-school trick for accessing private struct Table::_HashNode
 #define private public
+// Shio: Include Squirrel Internals to access direct table/array nodes
+// This mimics the approach in sqstdserialization.cpp to avoid stack corruption
+// issues - Yukino: it doesn't really.
 #include <squirrel.h>
+#include <sqpcheader.h>
 #include <sqvm.h>
-#include <sqstate.h>
-#include <sqstring.h>
-#include <sqobject.h>
 #include <sqtable.h>
 #include <sqarray.h>
 #include <sqclass.h>
+#include <sqfuncproto.h>
+#include <sqclosure.h>
+#include <sqstring.h>
 
 #include <sqrat/sqratTable.h>
 #undef private
 // clang-format on
 
 // This goddamn header is so hard to spell.
+#include <sstream>
+
 #include <nlohmann/json.hpp>
 
 #include <Usagi/Library/Meta/Reflection/Enums.hpp>
@@ -233,6 +239,9 @@ std::string JsonSerializer::object_to_json_string(const Sqrat::Object & value)
     HSQUIRRELVM v = value.GetVM();
     if(!v) return "null";
 
+    // Convert Handle to internal SQObjectPtr
+    // HSQOBJECT is struct { type, val }. SQObjectPtr has
+    // constructors/assignment for it. We safely cast the internal handle.
     const objects::sq_object hObj = value.GetObject();
     objects::sq_object_ptr   obj;
     obj._type  = hObj._type;

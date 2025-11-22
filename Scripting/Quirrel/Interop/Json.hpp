@@ -56,5 +56,4 @@ public:
         std::copy(str.begin(), str.end(), out);
     }
 };
-
 } // namespace usagi::scripting::quirrel::interop
