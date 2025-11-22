@@ -71,9 +71,6 @@
     <ClInclude Include="Execution\Execution.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Interop\Json_.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Language\Tables.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -93,6 +90,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Interop\Json.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Runtime\Exceptions.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Execution\Invocation.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

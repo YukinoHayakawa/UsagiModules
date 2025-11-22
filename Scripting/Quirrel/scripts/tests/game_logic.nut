@@ -29,6 +29,9 @@ native_log($"game_logic.nut: {g_state.entities.len()} entities loaded from persi
 
 function test()
 {
+    // Seems that two anonymous tables would crash the vm during
+    // >	QuirrelScripting.exe!SQTable::_GetStr(const unsigned __int64 key, unsigned __int64 hash) Line 89	C++
+    // Becuase the second table is not allocated. It's weird.
     print(to_json_string({
       "id": 1,
       "name": "Foo",
@@ -40,7 +43,7 @@ function test()
       "d": 1,
       "e": 1,
     }));
-    print(to_json_string({ entity = Entity(4, "Enemy_2") }));
+    print(to_json_string({ "entity": Entity(4, "Enemy_2") }));
     while(true)
     {
         suspend("get_delta_time()", 1, true)

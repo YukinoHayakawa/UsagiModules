@@ -1,9 +1,12 @@
 #pragma once
 
+#include <optional>
+
 #include <nlohmann/json.hpp>
 
 #include <Usagi/Modules/Scripting/Quirrel/Execution/Execution.hpp>
 #include <Usagi/Modules/Scripting/Quirrel/Language/Objects.hpp>
+#include <Usagi/Modules/Scripting/Quirrel/Language/Types.hpp>
 
 namespace usagi::scripting::quirrel::interop
 {
@@ -19,6 +22,10 @@ private:
 
     static nlohmann::json serialize_recursive(
         HSQUIRRELVM v, objects::sq_object_ptr & obj, std::size_t depth
+    );
+
+    static std::optional<std::string> optionally_skip_key(
+        const objects::sq_object_ptr & key_ptr, types::sq_uint32_t index
     );
 
 public:

@@ -37,7 +37,7 @@ public:
     // Shio: Note: The logger is created without any sinks. You must add
     // Shio: at least one sink to get output.
     explicit RuntimeLogger(
-        std::string name, LoggingLevels level = LoggingLevels::Trace
+        std::string name = "default", LoggingLevels level = LoggingLevels::Trace
     );
     // Shio: Destructor handles logger shutdown.
     virtual ~RuntimeLogger();

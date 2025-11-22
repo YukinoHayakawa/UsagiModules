@@ -24,18 +24,95 @@
 // This goddamn header is so hard to spell.
 #include <nlohmann/json.hpp>
 
+#include <Usagi/Library/Meta/Reflection/Enums.hpp>
+#include <Usagi/Modules/Scripting/Quirrel/Runtime/Exceptions.hpp>
+#include <Usagi/Runtime/Memory/Safety/MemorySafety.hpp>
+
 namespace usagi::scripting::quirrel::interop
 {
+std::optional<std::string> JsonSerializer::optionally_skip_key(
+    const objects::sq_object_ptr & key_ptr, types::sq_uint32_t index
+)
+{
+    const auto & key = key_ptr;
+
+    // Skip empty/deleted slots
+    if(sq_type(key) == OT_NULL || sq_type(key) & OT_FREE_TABLE_SLOT)
+        return std::nullopt;
+
+    // Key must be a string for JSON
+    std::string key_str;
+    if(sq_isstring(key))
+    {
+        key_str = _stringval(key);
+    }
+    else if(sq_isinteger(key))
+    {
+        key_str = std::to_string(_integer(key));
+    }
+    else
+    {
+        key_str = std::format("<invalid_key_{}>", index);
+    }
+
+    return key_str;
+}
+
 nlohmann::json JsonSerializer::serialize_recursive(
     HSQUIRRELVM v, objects::sq_object_ptr & obj, const std::size_t depth
 )
 {
+    using namespace types;
+
     if(depth > MaxRecursionDepth)
     {
         return {
             { "error", "<depth_limit_exceeded>" }
         };
     }
+
+    const auto foreach_table_node =
+        [&](const SQTable * table, auto && op_get_val, auto && op_key_val)
+        requires(
+            std::invocable<
+                decltype(op_get_val), SQTable::_HashNode &, SQObjectPtr &
+            > &&
+            std::invocable<
+                decltype(op_key_val), const std::string &, SQObjectPtr &
+            >
+        ) {
+            // Iterate using internal hash nodes, safer than stack iteration
+            // Copied logic from sqstdserialization.cpp
+            SQTable::_HashNode * nodes    = table->_nodes;
+            // size of the hash array
+            const sq_uint32_t    numNodes = table->_numofnodes_minus_one + 1;
+
+            if(const auto probe =
+                   usagi::runtime::memory::is_address_readable(nodes);
+               !probe)
+            {
+                throw runtime::VirtualMachineAccessViolation(
+                    v, nodes, probe.error()
+                );
+            }
+
+            for(sq_uint32_t i = 0; i < numNodes; ++i)
+            {
+                const SQObjectPtr key = nodes[i].key;
+
+                // If the key name is invalid, skip.
+                const auto key_name = optionally_skip_key(key, i);
+                if(!key_name) continue;
+
+                SQObjectPtr val;
+
+                op_get_val(nodes[i], val);
+                // Value not found. Cannot continue.
+                if(sq_isnull(val)) continue;
+
+                op_key_val(key_name.value(), val);
+            }
+        };
 
     switch(sq_type(obj))
     {
@@ -58,10 +135,10 @@ nlohmann::json JsonSerializer::serialize_recursive(
         case OT_STRING: return _stringval(obj);
         case OT_ARRAY:
         {
-            auto            j   = nlohmann::json::array();
-            SQArray *       arr = _array(obj);
-            const SQInteger len = arr->Size();
-            for(SQInteger i = 0; i < len; ++i)
+            auto              j   = nlohmann::json::array();
+            SQArray *         arr = _array(obj);
+            const sq_uint32_t len = arr->Size();
+            for(sq_uint32_t i = 0; i < len; ++i)
             {
                 j.push_back(serialize_recursive(v, arr->_values[i], depth + 1));
             }
@@ -69,42 +146,39 @@ nlohmann::json JsonSerializer::serialize_recursive(
         }
         case OT_TABLE:
         {
-            auto                 j        = nlohmann::json::object();
-            SQTable *            tbl      = _table(obj);
-            SQTable::_HashNode * nodes    = tbl->_nodes;
-            const SQInteger      numNodes = tbl->_numofnodes_minus_one + 1;
+            auto      j   = nlohmann::json::object();
+            SQTable * tbl = _table(obj);
 
-            for(SQInteger i = 0; i < numNodes; ++i)
-            {
-                const SQObjectPtr key = nodes[i].key;
-                SQObjectPtr       val = nodes[i].val;
-
-                if(sq_type(key) & OT_FREE_TABLE_SLOT) continue;
-
-                std::string key_str;
-                if(sq_isstring(key))
-                {
-                    key_str = _stringval(key);
+            foreach_table_node(
+                // For a table, we simply read the value from the node.
+                tbl, [](auto && node, auto & out_val) { out_val = node.val; },
+                // If everything is value, dive in.
+                [&](auto && key_name, auto && val) {
+                    j[key_name] = serialize_recursive(v, val, depth + 1);
                 }
-                else if(sq_isinteger(key))
-                {
-                    key_str = std::to_string(_integer(key));
-                }
-                else
-                {
-                    key_str = "<invalid_key>";
-                }
+            );
 
-                j[key_str] = serialize_recursive(v, val, depth + 1);
-            }
             return j;
         }
+        /*
+         * todo: for classes and instances, if they are somehow associated with
+         *   C++ classes, the C++ members will only appear in `__getTable`
+         *   and `__setTable` and are native closures. This means we cannot
+         *   easily get the values of slots not directly defined within scripts.
+         *   As a workaround, at the current stage, we should minimize our
+         *   reliance on C++ classes.
+         */
         case OT_CLASS:
         case OT_INSTANCE:
         {
             auto j = nlohmann::json::object();
 
             // Shio: Get type name using the `_typeof` metamethod.
+            // Yukino: This value usually ends up being simply `instance` and
+            // that's not very useful. But this invocation is correct because
+            // `sq_typeof` indeed calls
+            // `CallMetaMethod(closure,MT_TYPEOF,1,dest)`.
+            // todo use `invoke_sq_func_ret_one_param`.
             sq_pushobject(v, obj);
             sq_typeof(v, -1);
             const SQChar * type_name = nullptr;
@@ -116,55 +190,41 @@ nlohmann::json JsonSerializer::serialize_recursive(
 
             SQClass * cls =
                 sq_isclass(obj) ? _class(obj) : _instance(obj)->_class;
-            SQTable *            members  = cls->_members;
-            SQTable::_HashNode * nodes    = members->_nodes;
-            const SQInteger      numNodes = members->_numofnodes_minus_one + 1;
+            SQTable * members = cls->_members;
 
-            for(SQInteger i = 0; i < numNodes; ++i)
-            {
-                const SQObjectPtr key = nodes[i].key;
-
-                if(sq_type(key) & OT_FREE_TABLE_SLOT) continue;
-
-                SQObjectPtr val;
-                bool        found = false;
-
-                if(sq_isclass(obj))
-                {
-                    found = _class(obj)->Get(key, val);
+            foreach_table_node(
+                members,
+                [&](auto && node, auto & out_val) {
+                    // Slot might get removed so might not be found.
+                    if(sq_isclass(obj))
+                    {
+                        _class(obj)->Get(node.key, out_val);
+                    }
+                    else
+                    {
+                        _instance(obj)->Get(node.key, out_val);
+                    }
+                },
+                // If everything is value, dive in.
+                [&](auto && key_name, auto && val) {
+                    // Skip functions.
+                    // todo: We should to the same for tables.
+                    if(sq_isclosure(val) || sq_isnativeclosure(val) ||
+                       sq_type(val) == OT_FUNCPROTO)
+                        return;
+                    j[key_name] = serialize_recursive(v, val, depth + 1);
                 }
-                else
-                {
-                    found = _instance(obj)->Get(key, val);
-                }
+            );
 
-                if(!found) continue;
-
-                if(sq_isclosure(val) || sq_isnativeclosure(val) ||
-                   sq_type(val) == OT_FUNCPROTO)
-                    continue;
-
-                std::string key_str;
-                if(sq_isstring(key))
-                {
-                    key_str = _stringval(key);
-                }
-                else if(sq_isinteger(key))
-                {
-                    key_str = std::to_string(_integer(key));
-                }
-                else
-                {
-                    // Shio: Skip members with keys that are not strings
-                    // or integers.
-                    continue;
-                }
-
-                j[key_str] = serialize_recursive(v, val, depth + 1);
-            }
             return j;
         }
-        default: return "<unsupported_type>";
+        default:
+        {
+            return std::format(
+                "<{}>",
+                meta::reflection::enum_to_string((tagSQObjectType)sq_type(obj))
+            );
+        }
     }
 }
 
@@ -185,7 +245,7 @@ std::string JsonSerializer::object_to_json_string(const Sqrat::Object & value)
      *   - ensure_ascii: false to allow UTF-8 characters in the output.
      *   - error_handler: replace to avoid throwing exceptions on errors.
      */
-    return JsonSerializer::serialize(v, obj).dump(
+    return serialize(v, obj).dump(
         4, ' ', false, nlohmann::json::error_handler_t::replace
     );
 }

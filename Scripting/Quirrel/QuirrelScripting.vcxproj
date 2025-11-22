@@ -50,14 +50,15 @@
     <ClInclude Include="Execution\Coroutines\SystemQuirrelTickCoroutines.hpp" />
     <ClInclude Include="Execution\Exceptions.hpp" />
     <ClInclude Include="Execution\Execution.hpp" />
+    <ClInclude Include="Execution\Invocation.hpp" />
     <ClInclude Include="Execution\VirtualMachines\VirtualMachine.hpp" />
     <ClInclude Include="Interop\Json.hpp" />
-    <ClInclude Include="Interop\Json_.hpp" />
     <ClInclude Include="Language\Objects.hpp" />
     <ClInclude Include="Language\RuntimeTypes.hpp" />
     <ClInclude Include="Language\Tables.hpp" />
     <ClInclude Include="Language\Types.hpp" />
     <ClInclude Include="RuntimeEnvironment.hpp" />
+    <ClInclude Include="Runtime\Exceptions.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\..\..\Engine\Usagi\Usagi.vcxproj">
