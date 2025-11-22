@@ -1,6 +1,8 @@
 #pragma once
 
+#include <iterator>
 #include <optional>
+#include <string>
 
 #include <nlohmann/json.hpp>
 
@@ -55,5 +57,13 @@ public:
         const auto str = object_to_json_string(value);
         std::copy(str.begin(), str.end(), out);
     }
+
+    /*
+     * Shio: This function facilitates the creation of a Squirrel table from a
+     * JSON object. It leverages Squirrel's native ability to parse JSON-style
+     * table declarations.
+     */
+    static Sqrat::Table
+        compile_json_to_table(HSQUIRRELVM v, const nlohmann::json & j);
 };
 } // namespace usagi::scripting::quirrel::interop

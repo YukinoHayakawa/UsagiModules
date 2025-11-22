@@ -17,4 +17,16 @@ class MismatchedObjectType : public runtime::RuntimeError
 public:
     using RuntimeError::RuntimeError;
 };
+
+class ScriptCompilationError : public runtime::RuntimeError
+{
+public:
+    using RuntimeError::RuntimeError;
+};
+
+class ScriptExecutionError : public runtime::RuntimeError
+{
+public:
+    using RuntimeError::RuntimeError;
+};
 } // namespace usagi::scripting::quirrel

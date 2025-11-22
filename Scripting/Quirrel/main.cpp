@@ -65,9 +65,25 @@ SQInteger native_log(HSQUIRRELVM v)
     return 0; // 0 return values
 }
 
-void native_log_2(const std::string &str)
+void native_log_2(const std::string & str)
 {
     gGameServer->logger().info(" {}", str);
+}
+
+Sqrat::Table compile_json_to_table(std::string json_string)
+{
+    try
+    {
+        auto j = nlohmann::json::parse(json_string);
+        return interop::JsonSerializer::compile_json_to_table(
+            gGameServer->get_vm(), j
+        );
+    }
+    catch(const std::exception & e)
+    {
+        native_log_2(e.what());
+        return {};
+    }
 }
 
 using namespace usagi::runtime;
@@ -142,9 +158,10 @@ int main(int argc, char ** argv)
 
         // So currently we only support serializing a Table to JSON.
         exports.Func(
-            "to_json_string",
-            &interop::JsonSerializer::table_to_json_string
+            "to_json_string", &interop::JsonSerializer::table_to_json_string
         );
+
+        exports.Func("from_json_string", &compile_json_to_table);
 
         // 3. Bind the C++ GameObject class
         auto gameObjClass =

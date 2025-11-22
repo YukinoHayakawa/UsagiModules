@@ -31,6 +31,7 @@
 #include <nlohmann/json.hpp>
 
 #include <Usagi/Library/Meta/Reflection/Enums.hpp>
+#include <Usagi/Modules/Scripting/Quirrel/Execution/Exceptions.hpp>
 #include <Usagi/Modules/Scripting/Quirrel/Runtime/Exceptions.hpp>
 #include <Usagi/Runtime/Memory/Safety/MemorySafety.hpp>
 
@@ -267,5 +268,59 @@ std::string JsonSerializer::object_to_json_string(const Sqrat::Object & value)
 std::string JsonSerializer::table_to_json_string(const Sqrat::Table & value)
 {
     return object_to_json_string(value);
+}
+
+Sqrat::Table JsonSerializer::compile_json_to_table(
+    HSQUIRRELVM v, const nlohmann::json & j
+)
+{
+    // Shio: Convert the JSON object to its string representation and
+    // create a script that returns it as a table expression.
+    // todo: perf
+    const std::string json_string   = j.dump();
+    const std::string script_string = "return " + json_string;
+
+    const SQInteger top         = sq_gettop(v);
+    const char *    source_name = "__json_compiler__";
+
+    if(SQ_FAILED(sq_compile(
+           v, script_string.c_str(),
+           static_cast<SQInteger>(script_string.length()), source_name,
+           SQTrue /* raise error */
+       )))
+    {
+        // Shio: The compilation failed. sq_compilebuffer does not leave
+        // the error on the stack, so we throw a C++ exception.
+        sq_settop(v, top);
+        throw ScriptCompilationError(
+            "Failed to compile JSON object into a Squirrel table."
+        );
+    }
+
+    // Shio: A closure is now on the stack; push the root table as its
+    // 'this' environment and execute it.
+    sq_pushroottable(v);
+
+    if(SQ_FAILED(sq_call(v, 1, SQTrue, SQTrue)))
+    {
+        sq_settop(v, top);
+        throw ScriptExecutionError(
+            "Failed to execute compiled JSON table constructor."
+        );
+    }
+
+    // Shio: The result of the script (the table) is now on the stack.
+    // We use Sqrat::Var to safely wrap it.
+    Sqrat::Var<Sqrat::Table> table_var(v, -1);
+    // Shio: Restore the stack to its original state before returning.
+    sq_settop(v, top);
+    if(table_var.value.IsNull())
+    {
+        // Shio: This can happen if the script somehow didn't return a
+        // table.
+        sq_settop(v, top);
+        throw MismatchedObjectType("Compiled JSON did not return a table.");
+    }
+    return table_var.value;
 }
 } // namespace usagi::scripting::quirrel::interop
