@@ -15,9 +15,6 @@ class DebuggingInterface;
  */
 struct DebuggingCommon
 {
-    // todo configurable buffer size.
-    constexpr static std::size_t print_buffer_size_v = 1'024;
-
     static void
         print_func(ExecutionContextHandle vm, const sq_char_t * str, ...);
     static void

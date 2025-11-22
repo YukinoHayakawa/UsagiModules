@@ -1,13 +1,15 @@
 ﻿#include "VirtualMachine.hpp"
 
-#include <cstdarg>
-
+// clang-format off
 #include <sqstdblob.h>
 #include <sqstddatetime.h>
 #include <sqstddebug.h>
 #include <sqstdmath.h>
 #include <sqstdstring.h>
 #include <sqstdsystem.h>
+#include <sqvm.h>
+// clang-format on
+
 
 #include <Usagi/Modules/Runtime/Logging/RuntimeLogger.hpp>
 #include <Usagi/Modules/Scripting/Quirrel/Debugging/DebuggingCommon.hpp>
@@ -36,7 +38,9 @@ VirtualMachine::VirtualMachine(
 }
 
 SQVM * VirtualMachine::CreateNewQuirrelVm(
-    [[maybe_unused]] VirtualMachine * this_vm, SQInteger initial_stack_size
+    // todo: this is a temp hack. fix this.
+    [[maybe_unused]] VirtualMachine * this_vm,
+    SQInteger                         initial_stack_size
 )
 {
     // Shio: Initializing Quirrel VM...

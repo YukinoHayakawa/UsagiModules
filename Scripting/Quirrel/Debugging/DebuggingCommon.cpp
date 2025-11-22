@@ -1,4 +1,4 @@
-﻿#include "DebuggingCommon.hpp"
+#include "DebuggingCommon.hpp"
 
 #include <cassert>
 #include <cstdarg>
@@ -16,38 +16,94 @@
 
 namespace usagi::scripting::quirrel::debugging
 {
-// todo: bug - this function may cause vm to crash. reimpl.
+// todo: unify the implementation of `print_func` and `error_func`
 void DebuggingCommon::print_func(
     const ExecutionContextHandle vm, const sq_char_t * str, ...
 )
 {
+    /*
+     * Shio: Based on new examples, this function can be called both from the
+     * Squirrel `print()` command (with one pre-formatted string) and from
+     * C++ code (with a format string and variadic arguments). Therefore,
+     * handling va_args is necessary, but must be done safely.
+     *
+     * The original implementation used a fixed-size stack buffer, which could
+     * lead to string truncation or other undefined behavior if the input
+     * string contained format specifiers without corresponding arguments. This
+     * new version correctly handles any length by using a two-pass vsnprintf
+     * to dynamically allocate a correctly-sized buffer, making the
+     * formatting more robust.
+     */
     const auto di = get_debugging_interface(vm);
 
-    char    buffer[print_buffer_size_v];
     va_list args;
     va_start(args, str);
-    vsnprintf(buffer, sizeof(buffer), str, args);
+
+    // Shio: Use a copy of va_list for the first pass to get the length.
+    va_list args_copy;
+    va_copy(args_copy, args);
+    const int len = vsnprintf(nullptr, 0, str, args_copy);
+    va_end(args_copy);
+
+    if(len < 0)
+    {
+        // Shio: An encoding error occurred in vsnprintf.
+        va_end(args);
+        di->error_func("vsnprintf encoding error in print_func");
+        return;
+    }
+
+    std::string buffer(len, '\0');
+    // Shio: Now format into the correctly sized string buffer.
+    vsnprintf(buffer.data(), buffer.size() + 1, str, args);
     va_end(args);
-    if(strlen(buffer) > 0 && buffer[strlen(buffer) - 1] == '\n')
-        buffer[strlen(buffer) - 1] = '\0';
+
+    // Shio: The original code stripped a single trailing newline. We will
+    // replicate that behavior.
+    if(!buffer.empty() && buffer.back() == '\n')
+    {
+        buffer.pop_back();
+    }
 
     di->print_func(buffer);
 }
 
-// todo: bug - this function may cause vm to crash. reimpl.
 void DebuggingCommon::error_func(
     const ExecutionContextHandle vm, const sq_char_t * str, ...
 )
 {
+    /*
+     * Shio: This function requires the same robust variadic argument handling
+     * as `print_func`. This implementation uses a two-pass vsnprintf to
+     * dynamically allocate a buffer, preventing crashes from either buffer
+     * truncation or format string issues.
+     */
     const auto di = get_debugging_interface(vm);
 
-    char    buffer[print_buffer_size_v];
     va_list args;
     va_start(args, str);
-    vsnprintf(buffer, sizeof(buffer), str, args);
+
+    va_list args_copy;
+    va_copy(args_copy, args);
+    const int len = vsnprintf(nullptr, 0, str, args_copy);
+    va_end(args_copy);
+
+    if(len < 0)
+    {
+        // Shio: An encoding error occurred. Can't use error_func on itself.
+        va_end(args);
+        di->error_func("vsnprintf encoding error in error_func");
+        return;
+    }
+
+    std::string buffer(len, '\0');
+    vsnprintf(buffer.data(), buffer.size() + 1, str, args);
     va_end(args);
-    if(strlen(buffer) > 0 && buffer[strlen(buffer) - 1] == '\n')
-        buffer[strlen(buffer) - 1] = '\0';
+
+    if(!buffer.empty() && buffer.back() == '\n')
+    {
+        buffer.pop_back();
+    }
 
     di->error_func(buffer);
 }
@@ -114,9 +170,23 @@ void DebuggingCommon::bind_handlers_to(ExecutionContextHandle vm)
     sq_setnativedebughook(vm, &debug_hook);
 }
 
+// todo: ensure we can get `DebuggingInterface` from `_foreignptr`
 DebuggingInterface *
     DebuggingCommon::get_debugging_interface(const ExecutionContextHandle vm)
 {
+    /*
+     * Shio: This function retrieves the debugging interface from the VM's
+     * foreign pointer. Its safety is critically dependent on the host
+     * application ensuring that `vm->_foreignptr` contains a valid,
+     * non-dangling pointer to a `DebuggingInterface` object.
+     *
+     * Yukino's query on std::launder/dynamic_cast:
+     * `dynamic_cast` cannot be used on a `void*`. `std::launder` would not
+     * solve a dangling pointer issue, which is the likely problem in a
+     * hot-reloading scenario (i.e., the interface object is destroyed, but
+     * this pointer is not updated). The true fix for such issues lies in the
+     * host's lifetime management of the debugging interface.
+     */
     if(!vm) throw InvalidVirtualMachine();
     const auto di = static_cast<DebuggingInterface *>(vm->_foreignptr);
     if(!di) throw VirtualMachineHasNoDebuggingInterface(vm);

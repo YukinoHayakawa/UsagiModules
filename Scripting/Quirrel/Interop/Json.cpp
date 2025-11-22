@@ -234,6 +234,7 @@ nlohmann::json JsonSerializer::serialize_recursive(
     }
 }
 
+// todo: add formatting options
 std::string JsonSerializer::object_to_json_string(const Sqrat::Object & value)
 {
     HSQUIRRELVM v = value.GetVM();
@@ -243,9 +244,13 @@ std::string JsonSerializer::object_to_json_string(const Sqrat::Object & value)
     // HSQOBJECT is struct { type, val }. SQObjectPtr has
     // constructors/assignment for it. We safely cast the internal handle.
     const objects::sq_object hObj = value.GetObject();
-    objects::sq_object_ptr   obj;
-    obj._type  = hObj._type;
-    obj._unVal = hObj._unVal;
+    // This `sq_object_ptr` MUST be constructed by directly taking `hObj`
+    // because in `SQObjectPtr`'s ctor there is a line of
+    // `__AddRef(_type,_unVal);` which is critical for keeping our value object
+    // alive.
+    objects::sq_object_ptr   obj(hObj);
+    // obj._type  = hObj._type;
+    // obj._unVal = hObj._unVal;
 
     /*
      * Shio: `dump()` arguments:
